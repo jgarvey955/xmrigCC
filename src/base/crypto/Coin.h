@@ -45,6 +45,7 @@ public:
         TOWNFORGE,
         TUSKE,
         XEQ,
+        SALVIUM,
         MAX
     };
 

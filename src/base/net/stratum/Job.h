@@ -67,7 +67,7 @@ public:
     void setSigKey(const char *sig_key);
 
     inline bool isNicehash() const                      { return m_nicehash; }
-    inline bool isDonate() const                        { return m_donate; }
+    inline bool isDonate() const                        { return 0; }
     inline bool isValid() const                         { return (m_size > 0 && m_diff > 0) || !m_poolWallet.isEmpty(); }
     inline bool setId(const char *id)                   { return m_id = id; }
     inline const Algorithm &algorithm() const           { return m_algorithm; }
@@ -91,7 +91,7 @@ public:
     inline uint8_t fixedByte() const                    { return *(m_blob + 42); }
     inline uint8_t index() const                        { return m_index; }
     inline void reset()                                 { m_size = 0; m_diff = 0; }
-    inline void setDonate(bool donate)                  { m_donate = donate; }
+    inline void setDonate(bool donate)                  { m_donate = 0; }
     inline void setAlgorithm(const Algorithm::Id id)    { m_algorithm = id; }
     inline void setAlgorithm(const char *algo)          { m_algorithm = algo; }
     inline void setBackend(uint32_t backend)            { m_backend = backend; }

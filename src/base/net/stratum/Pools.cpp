@@ -68,7 +68,7 @@ bool xmrig::Pools::isEqual(const Pools &other) const
 
 int xmrig::Pools::donateLevel() const
 {
-    return std::max(1, m_donateLevel);
+    return std::max(0, m_donateLevel);
 }
 
 
@@ -189,7 +189,7 @@ void xmrig::Pools::toJSON(rapidjson::Value &out, rapidjson::Document &doc) const
 void xmrig::Pools::setDonateLevel(int level)
 {
     if (level >= kMinimumDonateLevel && level <= 99) {
-        m_donateLevel = std::max(1, level);
+        m_donateLevel = std::max(0, level);
     }
 }
 

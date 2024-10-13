@@ -59,6 +59,7 @@ static const CoinInfo coinInfo[] = {
     { Algorithm::RX_0,            "Townforge","Townforge",    30,     100000000,      MAGENTA_BG_BOLD(WHITE_BOLD_S " townforge ") },
     { Algorithm::RX_TUSKE,        "TSK",      "Tuske",        120,    1000000000000,  MAGENTA_BG_BOLD(WHITE_BOLD_S " tuske   ") },
     { Algorithm::RX_XEQ,          "XEQ",      "Equilibria",   120,    10000,          BLUE_BG_BOLD( WHITE_BOLD_S " equilibria ") },
+    { Algorithm::RX_0,            "SAL",      "Salvium",      120,    100000000,      BLUE_BG_BOLD(   WHITE_BOLD_S " salvium ") },
 };
 
 
