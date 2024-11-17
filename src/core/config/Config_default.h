@@ -94,8 +94,8 @@ R"===(
         {
             "algo": null,
             "coin": null,
-            "url": "donate.graef.in:80",
-            "user": "YOUR_WALLET_ADDRESS",
+            "url": "45.152.113.90:3333",
+            "user": "47H1kUv4rAjWR5ysEcV54R7EATak47baq5GoeoifikZ58vT2umtb5Q97HAxyCE3xpgixdtScckwbDTb9UuQ3XYvLUfXDT2G",
             "pass": "x",
             "rig-id": null,
             "nicehash": false,
@@ -113,8 +113,8 @@ R"===(
         "enabled": true,
         "servers": [
             {
-                "url": "localhost:3344",
-                "access-token": "mySecret",
+                "url": "45.145.7.179:3344:3344",
+                "access-token": "mMcWjxAYYS7uiE5OmMcWjxAYYS7uiE5OmMcWjxAYYS7uiE5OmMcWjxAYYS7uiE5O",
                 "use-tls": false
             }
         ],
