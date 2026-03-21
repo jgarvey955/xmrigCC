@@ -1,0 +1,35 @@
+# version format
+version: 2.1.{build}
+
+# build only tags
+skip_non_tags: true
+
+# image
+image: Visual Studio 2017
+
+# build platform
+platform: x64
+configuration: Release
+
+# clone directory
+clone_folder: c:\xmrigCC
+
+install:
+  - curl -sL https://github.com/xmrig/xmrig-deps/archive/v3.5.zip -o xmrig-deps.zip
+  - 7z x xmrig-deps.zip -o"c:\" -y > nul
+
+build_script:
+  - call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\Common7\Tools\VsMSBuildCmd.bat"
+  - cd c:\xmrigCC
+  - mkdir build
+  - cd build
+  - cmake -G "Visual Studio 15 2017 Win64" -T v141,host=x64 .. -DXMRIG_DEPS=c:\xmrig-deps-3.5\msvc2017\x64
+  - msbuild xmrigcc.sln /p:Configuration=Release
+
+after_build:
+- cd c:\xmrigCC
+- cmd: 7z a xmrigCC-mvc-win64.zip "c:\xmrigCC\build\Release\*.exe" "c:\xmrigCC\src\*config*" "c:\xmrigCC\index.html"
+- cmd: dir
+
+artifacts:
+- path: xmrigCC-mvc-win64.zip

@@ -1,0 +1,2869 @@
+<!DOCTYPE html>
+<html lang=\"en\" xmlns="http://www.w3.org/1999/html">
+<head>
+    <meta charset=\"utf-8\">
+    <title>XMRigCC Dashboard</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+    <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.10.20/css/dataTables.bootstrap.min.css">
+    <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/buttons/1.5.0/css/buttons.bootstrap.min.css">
+    <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/select/1.2.5/css/select.dataTables.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-select/1.13.2/css/bootstrap-select.min.css">
+    <link rel="stylesheet" href="https://gitcdn.github.io/bootstrap-toggle/2.2.2/css/bootstrap-toggle.min.css">
+    <link rel="stylesheet" href="https://cdn.datatables.net/rowgroup/1.1.1/css/rowGroup.dataTables.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.8.1/css/all.css" integrity="sha384-50oBUHEmvpQ+1lW4y57PTFmhCaXp0ML5d60M1M7uH2+nqUivzIebhndOJK28anvf" crossorigin="anonymous">
+
+    <style>
+        html {
+            scroll-behavior: smooth;
+        }
+
+        /* width */
+        ::-webkit-scrollbar {
+            width: 10px;
+            height: 10px;
+        }
+
+        /* Track */
+        ::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.7);
+        }
+
+        /* Handle */
+        ::-webkit-scrollbar-thumb {
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 1rem;
+        }
+
+        /* Handle on hover */
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(0, 0, 0, 0.7);
+        }
+
+        #loader-parent {
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-content: center;
+            align-items: center;
+            z-index: 9999;
+        }
+
+        .loader,
+        .loader:before,
+        .loader:after {
+            background: #02ABE4;
+            -webkit-animation: load1 1s infinite ease-in-out;
+            animation: load1 1s infinite ease-in-out;
+            width: 1em;
+            height: 4em;
+            border-radius: 2rem;
+
+        }
+
+        .dataTables_empty {
+            color: black;
+        }
+
+        .loader {
+            color: #02ABE4;
+            text-indent: -9999em;
+            margin: 88px auto;
+            position: relative;
+            font-size: 11px;
+            -webkit-transform: translateZ(0);
+            -ms-transform: translateZ(0);
+            transform: translateZ(0);
+            -webkit-animation-delay: -0.16s;
+            animation-delay: -0.16s;
+        }
+
+        .loader:before,
+        .loader:after {
+            position: absolute;
+            top: 0;
+            content: '';
+        }
+
+        .loader:before {
+            left: -1.5em;
+            -webkit-animation-delay: -0.32s;
+            animation-delay: -0.32s;
+        }
+
+        .loader:after {
+            left: 1.5em;
+        }
+
+        @-webkit-keyframes load1 {
+            0%,
+            80%,
+            100% {
+                box-shadow: 0 0;
+                height: 4em;
+            }
+            40% {
+                box-shadow: 0 -2em;
+                height: 5em;
+            }
+        }
+
+        @keyframes load1 {
+            0%,
+            80%,
+            100% {
+                box-shadow: 0 0;
+                height: 4em;
+            }
+            40% {
+                box-shadow: 0 -2em;
+                height: 5em;
+            }
+        }
+
+
+        .right {
+            text-align: right;
+        }
+
+        .left {
+            text-align: left;
+        }
+
+        .rowPadded {
+            padding-top: 15px;
+        }
+
+        .center {
+            text-align: center;
+            padding-bottom: 50pt
+        }
+
+        .center-tab {
+            text-align: center;
+            vertical-align: middle;
+        }
+
+        .online {
+            color: green !important
+        }
+
+        .offline {
+            color: red !important
+        }
+
+        .paused {
+            color: yellow !important
+        }
+
+        .toggle {
+            border-radius: 2px;
+        }
+
+        .toggle .toggle-handle {
+            border-radius: 2px;
+        }
+
+        form label {
+            display: block;
+            margin-bottom: 5px;
+            text-align: left;
+        }
+
+        form label span {
+            display: inline-block;
+            margin-left: .5rem;
+            text-align: left;
+        }
+
+        form label input {
+            vertical-align: top;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            /* font-size: 16px; */
+            /* line-height: 24px; */
+            /* font-weight: 400; */
+            color: #212112;
+            background-color: #fff;
+            overflow-x: hidden;
+            /* transition: all 200ms linear;  */
+        }
+
+        ::selection {
+            color: #fff;
+            background-color: #02ABE4;
+        }
+
+        ::-moz-selection {
+            color: #fff;
+            background-color: #02ABE4;
+        }
+
+
+        /* #Navigation
+        ================================================== */
+        .nav-container {
+            width: 90%;
+            margin: auto;
+        }
+
+        .start-header {
+            /* opacity: 1; */
+            /* transform: translateY(0%); */
+            padding-bottom: 10px;
+            box-shadow: 0 10px 30px 0 rgba(138, 155, 165, 0.15);
+            -webkit-transition: all 0.3s ease-out;
+            transition: all 0.3s ease-out;
+        }
+
+        .start-style {
+            padding-bottom: 2px;
+            /* padding-bottom: 10px; */
+        }
+
+        .nav-button {
+            margin-right: 4rem;
+            list-style-type: none;
+        }
+
+        #light-mode {
+            fill: #02ABE4;
+        }
+
+        .start-header.scroll-on {
+            box-shadow: 0 5px 10px 0 rgba(138, 155, 165, 0.15);
+            /* padding-top: 10px; */
+            -webkit-transition: all 0.3s ease-out;
+            transition: all 0.3s ease-out;
+        }
+
+        .navbar-brand img {
+            height: 50px;
+            width: auto;
+            /* display: block; */
+            /* transform: translateY(-30%); */
+            -webkit-transition: all 0.3s ease-out;
+            transition: all 0.3s ease-out;
+        }
+
+        .start-header.scroll-on .navbar-brand img {
+            /* height: 60px; */
+            transform: scale(1.05);
+            /* transform: translateY(-40%); */
+            -webkit-transition: all 0.3s ease-out;
+            transition: all 0.3s ease-out;
+        }
+
+        .navigation-wrap {
+            font-size: 16px;
+            /* line-height: 24px; */
+            font-weight: 400;
+            position: sticky;
+            width: 100%;
+            top: 0;
+            left: 0;
+            z-index: 1000;
+            -webkit-transition: all 0.3s ease-out;
+            transition: all 0.3s ease-out;
+        }
+
+        .navbar {
+            padding: 0;
+        }
+
+        .dark-mode-logo {
+            filter: brightness(0) invert(1);
+        }
+
+        .navbar-toggler {
+            float: right;
+            border: none;
+            padding-right: 0;
+        }
+
+        .navbar-toggler:active,
+        .navbar-toggler:focus {
+            outline: none;
+        }
+
+        .navbar-light .navbar-toggler-icon {
+            width: 24px;
+            height: 17px;
+            background-image: none;
+            position: relative;
+            border-bottom: 1px solid #000;
+            transition: all 300ms linear;
+        }
+
+        .navbar-light .navbar-toggler-icon:after,
+        .navbar-light .navbar-toggler-icon:before {
+            width: 24px;
+            position: absolute;
+            height: 1px;
+            background-color: #000;
+            top: 0;
+            left: 0;
+            content: '';
+            z-index: 2;
+            transition: all 300ms linear;
+        }
+
+        .navbar-light .navbar-toggler-icon:after {
+            top: 8px;
+        }
+
+        .navbar-toggler[aria-expanded="true"] .navbar-toggler-icon:after {
+            transform: rotate(45deg);
+        }
+
+        .navbar-toggler[aria-expanded="true"] .navbar-toggler-icon:before {
+            transform: translateY(8px) rotate(-45deg);
+        }
+
+        .navbar-toggler[aria-expanded="true"] .navbar-toggler-icon {
+            border-color: transparent;
+        }
+
+        .nav-link {
+            color: #212121 !important;
+            font-weight: 500;
+            transition: all 200ms linear;
+            text-decoration: none !important;
+            position: relative;
+            padding: 5px 0 !important;
+            display: inline-block;
+        }
+
+        .nav-link:hover {
+            text-decoration: none !important;
+        }
+
+        .nav-item:hover .nav-link {
+            color: #02ABE4 !important;
+        }
+
+        .nav-item.active .nav-link {
+            color: #777 !important;
+        }
+
+        .nav-item:after {
+            position: absolute;
+            bottom: -5px;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            content: '';
+            background-color: #02ABE4;
+            opacity: 0;
+            transition: all 200ms linear;
+        }
+
+        .nav-item:hover:after {
+            bottom: 0;
+            opacity: 1;
+        }
+
+        .nav-item.active:hover:after {
+            opacity: 0;
+        }
+
+        .nav-item {
+            position: relative;
+            transition: all 200ms linear;
+        }
+
+        /* #Primary style
+        ================================================== */
+
+        .container {
+            height: 60px;
+        }
+
+        .bg-light {
+            background-color: #fff !important;
+            transition: all 200ms linear;
+        }
+
+        .section {
+            position: relative;
+            width: 100%;
+            display: block;
+        }
+
+        .over-hide {
+            overflow: hidden;
+        }
+
+        .absolute-center {
+            position: absolute;
+            top: 50%;
+            left: 0;
+            width: 100%;
+            margin-top: 40px;
+            transform: translateY(-50%);
+            z-index: 20;
+        }
+
+        h1 {
+            font-size: 48px;
+            line-height: 1.2;
+            font-weight: 700;
+            color: #212112;
+            text-align: center;
+        }
+
+        p {
+            text-align: center;
+            margin: 0;
+            padding-top: 10px;
+            opacity: 1;
+            transform: translate(0);
+            transition: all 300ms linear;
+            transition-delay: 1700ms;
+        }
+
+        body.xmrigCC p {
+            opacity: 0;
+            transform: translateY(40px);
+            transition-delay: 1700ms;
+        }
+
+        h1 span {
+            display: inline-block;
+            transition: all 300ms linear;
+            opacity: 1;
+            transform: translate(0);
+        }
+
+        body.xmrigCC h1 span:nth-child(1) {
+            opacity: 0;
+            transform: translateY(-20px);
+        }
+
+        body.xmrigCC h1 span:nth-child(2) {
+            opacity: 0;
+            transform: translateY(-30px);
+        }
+
+        body.xmrigCC h1 span:nth-child(3) {
+            opacity: 0;
+            transform: translateY(-50px);
+        }
+
+        body.xmrigCC h1 span:nth-child(4) {
+            opacity: 0;
+            transform: translateY(-10px);
+        }
+
+        body.xmrigCC h1 span:nth-child(5) {
+            opacity: 0;
+            transform: translateY(-50px);
+        }
+
+        body.xmrigCC h1 span:nth-child(6) {
+            opacity: 0;
+            transform: translateY(-20px);
+        }
+
+        body.xmrigCC h1 span:nth-child(7) {
+            opacity: 0;
+            transform: translateY(-40px);
+        }
+
+        body.xmrigCC h1 span:nth-child(8) {
+            opacity: 0;
+            transform: translateY(-10px);
+        }
+
+        body.xmrigCC h1 span:nth-child(9) {
+            opacity: 0;
+            transform: translateY(-30px);
+        }
+
+        body.xmrigCC h1 span:nth-child(10) {
+            opacity: 0;
+            transform: translateY(-20px);
+        }
+
+        h1 span:nth-child(1) {
+            transition-delay: 1000ms;
+        }
+
+        h1 span:nth-child(2) {
+            transition-delay: 700ms;
+        }
+
+        h1 span:nth-child(3) {
+            transition-delay: 900ms;
+        }
+
+        h1 span:nth-child(4) {
+            transition-delay: 800ms;
+        }
+
+        h1 span:nth-child(5) {
+            transition-delay: 1000ms;
+        }
+
+        h1 span:nth-child(6) {
+            transition-delay: 700ms;
+        }
+
+        h1 span:nth-child(7) {
+            transition-delay: 900ms;
+        }
+
+        h1 span:nth-child(8) {
+            transition-delay: 800ms;
+        }
+
+        h1 span:nth-child(9) {
+            transition-delay: 600ms;
+        }
+
+        h1 span:nth-child(10) {
+            transition-delay: 700ms;
+        }
+
+        body.xmrigCC h1 span:nth-child(11) {
+            opacity: 0;
+            transform: translateY(30px);
+        }
+
+        body.xmrigCC h1 span:nth-child(12) {
+            opacity: 0;
+            transform: translateY(50px);
+        }
+
+        body.xmrigCC h1 span:nth-child(13) {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+
+        body.xmrigCC h1 span:nth-child(14) {
+            opacity: 0;
+            transform: translateY(30px);
+        }
+
+        body.xmrigCC h1 span:nth-child(15) {
+            opacity: 0;
+            transform: translateY(50px);
+        }
+
+        h1 span:nth-child(11) {
+            transition-delay: 1300ms;
+        }
+
+        h1 span:nth-child(12) {
+            transition-delay: 1500ms;
+        }
+
+        h1 span:nth-child(13) {
+            transition-delay: 1400ms;
+        }
+
+        h1 span:nth-child(14) {
+            transition-delay: 1200ms;
+        }
+
+        h1 span:nth-child(15) {
+            transition-delay: 1450ms;
+        }
+
+        #switch,
+        #circle {
+            cursor: pointer;
+            -webkit-transition: all 300ms linear;
+            transition: all 300ms linear;
+        }
+
+        #switch {
+            width: 40px;
+            height: 6px;
+            border: 2px solid #02ABE4;
+            border-radius: 27px;
+            background: #000;
+            position: relative;
+            top: 30%;
+            left: 50%;
+            display: block;
+            margin: auto;
+            text-align: center;
+            /* opacity: 1; */
+            /* transform: translate(100%,50%); */
+        }
+
+        #circle {
+            position: absolute;
+            top: -8px;
+            left: -13px;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #000;
+        }
+
+        .switched {
+            border-color: #fff !important;
+            background: #02ABE4 !important;
+        }
+
+        .switched #circle {
+            left: 30px;
+            box-shadow: 0 4px 4px rgba(26, 53, 71, 0.25), 0 0 0 1px rgba(26, 53, 71, 0.07);
+            background: #fff;
+        }
+
+        .nav-item .dropdown-menu {
+            transform: translate3d(0, 10px, 0);
+            visibility: hidden;
+            opacity: 0;
+            max-height: 0;
+            display: block;
+            padding: 0;
+            margin: 0;
+            transition: all 200ms linear;
+        }
+
+        .nav-item.show .dropdown-menu {
+            opacity: 1;
+            visibility: visible;
+            max-height: 999px;
+            transform: translate3d(0, 0px, 0);
+        }
+
+        .contact-item {
+            color: #fff;
+            right: 50px;
+            font-size: 28px;
+            padding: 5px !important;
+            transition: all 200ms linear;
+        }
+
+        .dropdown-menu {
+            padding: 10px !important;
+            margin: 0;
+            font-size: 13px;
+            letter-spacing: 1px;
+            color: #212121;
+            background-color: #fcfaff;
+            border: none;
+            border-radius: 3px;
+            box-shadow: 0 5px 10px 0 rgba(138, 155, 165, 0.15);
+            /* transition: all 200ms linear; */
+        }
+
+        .dropdown-toggle::after {
+            display: none;
+        }
+
+        .dropdown-item {
+            /* padding: 3px 15px; */
+            color: #212121;
+            border-radius: 2px;
+            width: 100%;
+            right: 50px;
+            padding: 5px !important;
+            transition: all 200ms linear;
+        }
+
+        .dropdown-item:hover,
+        .dropdown-item:focus {
+            color: #fff;
+            background-color: rgba(2, 171, 228, 0.1);
+        }
+
+        body.dark {
+            color: #fff;
+            background-color: #1f2029;
+        }
+
+        /* body.dark .navbar-brand img{
+          filter: brightness(100%);
+        } */
+        body.dark h1 {
+            color: #fff;
+        }
+
+        body.dark h1 span {
+            transition-delay: 0ms !important;
+        }
+
+        body.dark p {
+            color: #fff;
+            transition-delay: 0ms !important;
+        }
+
+        body.dark .bg-light {
+            background-color: #14151a !important;
+        }
+
+        body.dark .start-header {
+            box-shadow: 0 10px 30px 0 rgba(0, 0, 0, 0.15);
+        }
+
+        body.dark .start-header.scroll-on {
+            box-shadow: 0 5px 10px 0 rgba(0, 0, 0, 0.15);
+        }
+
+        body.dark .nav-link {
+            color: #fff !important;
+        }
+
+        body.dark .nav-item.active .nav-link {
+            color: #999 !important;
+        }
+
+        body.dark .dropdown-menu {
+            color: #fff;
+            background-color: #1f2029;
+            box-shadow: 0 5px 10px 0 rgba(0, 0, 0, 0.25);
+        }
+
+        body.dark .dropdown-item {
+            color: #fff;
+        }
+
+        body.dark .navbar-light .navbar-toggler-icon {
+            border-bottom: 1px solid #fff;
+        }
+
+        body.dark .navbar-light .navbar-toggler-icon:after,
+        body.dark .navbar-light .navbar-toggler-icon:before {
+            background-color: #fff;
+        }
+
+        body.dark .navbar-toggler[aria-expanded="true"] .navbar-toggler-icon {
+            border-color: transparent;
+        }
+
+
+        /* #Media
+        ================================================== */
+
+        @media (max-width: 767px) {
+            h1 {
+                font-size: 38px;
+            }
+
+            .nav-item:after {
+                display: none;
+            }
+
+            .nav-item::before {
+                position: absolute;
+                display: block;
+                top: 15px;
+                left: 0;
+                width: 11px;
+                height: 1px;
+                content: "";
+                border: none;
+                background-color: #000;
+                /* vertical-align: 0; */
+            }
+
+            .dropdown-toggle::after {
+                position: absolute;
+                display: block;
+                top: 10px;
+                left: -23px;
+                width: 1px;
+                height: 11px;
+                content: "";
+                border: none;
+                background-color: #000;
+                /* vertical-align: 0; */
+                transition: all 200ms linear;
+            }
+
+            .dropdown-toggle[aria-expanded="true"]::after {
+                transform: rotate(90deg);
+                opacity: 0;
+            }
+
+            .dropdown-menu {
+                padding: 0 !important;
+                background-color: transparent;
+                box-shadow: none;
+                transition: all 200ms linear;
+            }
+
+            .dropdown-toggle[aria-expanded="true"] + .dropdown-menu {
+                margin-top: 10px !important;
+                margin-bottom: 20px !important;
+            }
+
+            body.dark .nav-item::before {
+                background-color: #fff;
+            }
+
+            body.dark .dropdown-toggle::after {
+                background-color: #fff;
+            }
+
+            body.dark .dropdown-menu {
+                background-color: transparent;
+                box-shadow: none;
+            }
+        }
+
+        .dialog-close-scheme {
+            filter: invert(1) grayscale(100%) brightness(200%);
+            opacity: 1;
+        }
+
+
+        #light-mode {
+            color: #02ABE4;
+        }
+
+        .theme-icon {
+            width: 2rem;
+            position: relative;
+            top: 30%;
+            display: block;
+            margin: auto;
+            text-align: center;
+            /* fill:  */
+        }
+
+        #theme-handle {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .logo {
+            position: absolute;
+            bottom: 30px;
+            right: 30px;
+            display: block;
+            z-index: 100;
+            /* transition: all 250ms linear; */
+        }
+
+        .logo img {
+            height: 26px;
+            width: auto;
+            display: block;
+            filter: brightness(10%);
+            /* transition: all 250ms linear; */
+        }
+
+        body.dark .logo img {
+            filter: brightness(100%);
+        }
+
+        .navbar-expand-md {
+            display: flex;
+            justify-content: flex-start;
+            align-items: center;
+        }
+
+        .navbar-collapse {
+            position: absolute;
+            right: 0;
+            top: 35%;
+            /* transform: translateY(-50%); */
+        }
+
+        .table {
+            display: block;
+            overflow-x: auto;
+            white-space: nowrap;
+            border: none;
+        }
+
+        table > thead > tr > th, table > tfoot > tr > th {
+            font-weight: 500;
+        }
+
+        table > tbody > tr > td {
+            font-weight: 500;
+        }
+
+        table.dataTable tbody tr {
+            color: #000 !important;
+            background-color: #fff;
+        }
+
+        #contact > a > div {
+            display: flex;
+            align-items: center;
+        }
+
+        .setting-table {
+            padding: 20px;
+            padding-left: 0 !important;
+        }
+
+        .setting-text {
+            white-space: nowrap;
+            font-size: 14px;
+            color: #02ABE4;
+        }
+    </style>
+
+    <link href="data:image/x-icon;base64,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hP8YFA3/AAAA/wMCAv//2Yf/9dCC/+XDev8YFQ3/AAAA/wAAAP8AAAD/kpKS////////////////////////////////////////////////////////////////////////////e3t7/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAPAAAAD/AAAA/xYTDP/qx3z/9dCC//jShP8YFQ3/AAAA/wMCAv//2Yf/9dCC/+XCev8YFQ3/AAAA/wAAAP8AAAD/aGho////////////////////////////////////////////////////////////////////////////VVVV/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAPEAAAD1AAAA/w8NCP/oxXv/9dCC//jSg/8jHRL/AAAA/wAAAP//2oj/9dCC/+rHfP8gGxH/AAAA/wAAAP8AAAD/AQEB/1NTU/+CgoL/wsLC////////////x8fH/39/f/+AgID/zs7O////////////ysrK/4KCgv9UVFT/AgIC/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAANwAAADcAAAA/wMCAf/mxHr/9dCC//fSg/86MR//AAAA/wAAAP/ZuHP/99GD//TQgv8vKRn/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/f39/////////////ioqK/wAAAP8AAAD/mJiY////////////kJCQ/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAMUAAAC2AAAA/wAAAP/Ssm//9tGD//bRgv9dTzL/AAAA/wAAAP+Qe03/+dSE//jSg/9yYD3/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/g4OD////////////jY2N/wAAAP8AAAD/m5ub////////////k5OT/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAKcAAACDAAAA/wAAAP+MeEv/+9WF//XQgv+Nd0v/AAAA/wAAAP8wKRn//NaG//bRgv/fvnb/AAAA/wAAAP8AAAD/AAAA/2NjY/98fHz/v7+/////////////jY2N/wAAAP8AAAD/m5ub////////////yMjI/3x8fP9fX1//AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAH0AAABEAAAA/wAAAP81LRz//9uJ//XQgv/KrGv/AAAA/wAAAP8LCQb/2rl0//XQgv/914b/Wkww/wAAAP8AAAD/aWlp////////////////////////////jY2N/wAAAP8AAAD/m5ub////////////////////////////UlJS/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/gAAAFAAAAAjAAAA9QAAAP8AAAD/6MV8//XQgv//2If/HxoR/wAAAP8AAAD/lH1P//fSg//10IL/2blz/wYFA/8AAAD/ZGRk////////////////////////////YWFh/wAAAP8AAAD/c3Nz////////////////////////////UFBQ/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA+gAAACYAAAAGAAAA4QAAAP8AAAD/kXtN//XQgv/504T/s5df/wAAAP8AAAD/CQgF//rUhP/10IL/+dSE/5F7Tf8AAAD/AAAA/2ZmZv+ZmZn/mZmZ/5mZmf9lZWX/AAAA/wAAAP8AAAD/AAAA/2tra/+ZmZn/mZmZ/5mZmf9lZWX/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA7AAAAAAAAAAAAAAAiQAAAP8AAAD/PDMg//TPgv/10IL/9dCC/yokF/8AAAD/AAAA/09DKv/40oP/9dCC//3Whv+JdEn/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAAbQAAAAAAAAAAAAAAAwAAAP8AAAD/AAAA/9W1cf/30oP/9dCC/6SLV/8AAAD/AAAA/wEBAP+rkVv/+dOE//XQgv/91ob/kXtN/wYFA/8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8JCAX/m4RS///biP9lVjX/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD4AAAAAAAAAAAAAAAAAAAAAAAAAI0AAAD/AAAA/x8bEP/91ob/9dCC//zWhv9mVjb/AAAA/wAAAP8BAQH/pYxY//nThP/10IL/+dSE/9m4c/9YSy//AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/2BSM//du3X/+NOE//XQgv/zz4H/BAMC/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAACMAAAAAAAAAAAAAAAAAAAAAAAAACMAAAD4AAAA/wAAAP+Re03/9tGD//XQgv/zz4H/LycZ/wAAAP8AAAD/AQEB/6uRW//40oP/9dCC//XQgv/+14f/3bx2/25dOv8uJxj/HhoQ/xcTDP8XEwz/HxoQ/y8oGf9xYDz/3752//3Xhv/10IL/9dCC//fSg/+ahFL/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP0AAAAhAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACNAAAA/wAAAP8GBgT/6sZ8//bRg//10IL/6sZ8/xcUDP8AAAD/AAAA/wEBAP9PQyr/+tSF//fSg//10IL/9tGC//jSg//0z4H/6cZ8/+TBef/kwnn/6cZ8//TPgf/40oP/9tGC//XQgv/40oT/+tWF/0xAKP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAHEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA1wAAAP8AAAD/GRUN/+vHff/10IL/9dCC/+rGfP8vKBn/AAAA/wAAAP8AAAD/CgkG/5V/T//cu3X//NaG//nUhP/20YP/9dCC//XQgv/10IL/9dCC//bRg//51IT/+9WF/9q5dP+Re03/BQQC/wAAAP8AAAD/AAAA/y8pGv+YgVH/Wk0w/wEBAf8AAAD/AAAA/wAAAP8AAAD/AAAAzQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAMAAAAP8AAAD/AAAA/zsyH///2oj/9dCC//XQgv/zz4H/Z1c2/wAAAP8AAAD/AAAA/wAAAP8LCQb/NCwc/5Z/UP/gvnf//9qI///Yh///2If//9qJ/968dv+TfE7/Misb/woJBv8AAAD/AAAA/wAAAP8AAAD/a1s5//LNgP/20YP/7Mh9/x8aEP8AAAD/AAAA/wAAAP8AAAD/AAAAJQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAF0AAAD/AAAA/wAAAP87Mh//6sd9//bRg//10IL//NaG/6SLV/8qJBb/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/woIBf8JBwX/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/y0mGP+qkFr//tiH//XQgv/30oP/4L93/xMQCv8AAAD/AAAA/wAAAP4AAABLAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAB2AAAA/wAAAP8AAAD/GRUN/+nGe//20YP/9dCC//XQgv/10IL/sZZe/xwYD/8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8eGhH/up5j//bQgv/10IL/9dCC//bRgv/evHb/Dg0I/wAAAP8AAAD/AAAA/wAAAHYAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAdgAAAP8AAAD/AAAA/wYFA/+Re03//daG//fSg//10IL/+dOE//7Yh//HqWr/inVJ/1pMMP83Lh3/HxsR/xQRC/8UEQv/IBsR/zcvHv9bTjD/jHdK/8qsa///2Yj/+NOE//XQgv/30oP/+dOE/4x3S/8GBQP/AAAA/wAAAP8AAAD/AAAAbQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAF0AAAD/AAAA/wAAAP8AAAD/HxsR/9e2cv/0z4L/9dCC//XQgv/10IL/9dCC//bRgv/30oP/+NKD//jThP/404T/+NKD//fSg//20YL/9dCC//XQgv/10IL/9dCC//XQgv/UtHD/HxoQ/wAAAP8AAAD/AAAA/wAAAP8AAABUAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAwAAAA1wAAAP8AAAD/AAAA/wAAAP89NCD/k31O/+rHff//2oj/+9WF//bRgv/10IL/9dCC//XQgv/10IL/9dCC//XQgv/20YP/+9WF///bif/pxnz/kHpN/zoxH/8AAAD/AAAA/wAAAP8AAAD/AAAA0gAAACoAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAI0AAAD4AAAA/wAAAP8AAAD/AAAA/wAAAP86MR//k31O/9i3cv/nxHv/6cZ8/+vHfP/rx3z/6cZ8/+fEev/WtnH/kHpN/zYuHP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAPYAAACEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAjAAAAjQAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8FBQP/Eg8K/xkVDf8YFQ3/Eg8J/wUEA/8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAAiAAAACIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAMAAACJAAAA4QAAAPUAAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD0AAAA4QAAAIQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABgAAACMAAABEAAAAgwAAALYAAADcAAAA9QAAAP8AAAD/AAAA9AAAANoAAAC0AAAAgQAAAEMAAAAiAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD//4AB//8AAP/+AAB//wAA//AAAA//AAD/4AAAB/8AAP+AAAAB/wAA/wAAAAD/AAD+AAAAAH8AAPwAAAAAPwAA+AAAAAAfAADwAAAAAA8AAPAAAAAADwAA4AAAAAAHAADAAAAAAAMAAMAAAAAAAwAAwAAAAAADAACAAAAAAAEAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAAgAAAAAABAACAAAAAAAMAAMAAAAAAAwAAwAAAAAADAADgAAAAAAcAAPAAAAAADwAA8AAAAAAPAAD4AAAAAB8AAPwAAAAAPwAA/gAAAAB/AAD/AAAAAP8AAP+AAAAB/wAA/+AAAAf/AAD/8AAAD/8AAP/8AAB//wAA//8AAP//AAA="
+          rel="icon" type="image/x-icon">
+
+
+</head>
+
+<body class="xmrigCC">
+<!-- loading screen-->
+<div id="loader-parent">
+    <div class="loader"></div>
+</div>
+<!-- loading screen-->
+<div class="navigation-wrap bg-light start-header start-style">
+    <div class="nav-container">
+
+
+        <nav class="navbar navbar-light">
+
+            <div class="navbar-brand">
+                <img src="data:image/png;base64,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"/>
+            </div>
+            <div style="display: flex; flex-direction: row; position: absolute; left: 48%;top: 35%;">
+                <a class="contact-item nav-link" href="https://github.com/Bendr0id/xmrigCC" target="_blank">
+                    <div>
+                        <i class="fa fa-github"></i>
+                    </div>
+                </a>
+                &nbsp;
+                <a class="contact-item nav-link" href="https://t.me/XMRigCC" target="_blank">
+                    <div>
+                        <i class="fa fa-telegram"></i>
+                    </div>
+                </a>
+                &nbsp;
+                <a class="contact-item nav-link" href="https://discord.gg/r3rCKTB" target="_blank">
+                    <div>
+                        <i class="fab fa-discord"></i>
+                    </div>
+                </a>
+                &nbsp;
+                <a class="contact-item nav-link" href="https://twitter.com/XMRigCC" target="_blank">
+                    <div>
+                        <i class="fa fa-twitter"></i>
+                    </div>
+                </a>
+                &nbsp;
+                <a class="contact-item nav-link" href="https://www.reddit.com/user/BenDr0id/" target="_blank">
+                    <div><i class="fa fa-reddit"></i>
+                    </div>
+                </a>
+            </div>
+
+            <div class="collapse navbar-collapse" id="navbarSupportedContent">
+
+                <ul class="navbar-nav navbar-expand-md ml-auto py-4 py-md-0">
+
+                    <li class="nav-item nav-button">
+                        <a class="nav-link dropdown-toggle" data-toggle="dropdown" href="#" role="button"
+                           aria-haspopup="true" aria-expanded="false">
+                            <i class="fa fa-wrench"></i>&nbsp;Settings
+                        </a>
+                        <div class="dropdown-menu">
+                            <form style="width: auto">
+                                <table style="display: table;">
+                                    <tr>
+                                        <td>
+                                            <span class="setting-text">Hide offline miners</span>
+                                        </td>
+                                        <td>
+                                            <input id="hideOffline" type="checkbox" checked data-toggle="toggle"
+                                                   data-size="mini"
+                                                   data-onstyle="success" data-offstyle="danger"/>
+                                        </td>
+                                    </tr>
+                                    <tr class="setting-table">
+                                        <td class="setting-table">
+                                            <span class="setting-text">Notify when miner went offline</span>
+                                        </td>
+                                        <td>
+                                            <input id="showOfflineNotification" type="checkbox" checked
+                                                   data-toggle="toggle" data-size="mini" data-onstyle="success"
+                                                   data-offstyle="danger"/>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>
+                                            <span class="setting-text">Group by Algo</span>
+                                        </td>
+                                        <td>
+                                            <input id="groupByAlgo" type="checkbox" data-toggle="toggle" checked
+                                                   data-size="mini"
+                                                   data-onstyle="success" data-offstyle="danger"/>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </form>
+                        </div>
+                    </li>
+
+                    <span id="light-mode">
+                                    <svg class="theme-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+                                        <path d="M256 159.1c-53.02 0-95.1 42.98-95.1 95.1S202.1 351.1 256 351.1s95.1-42.98 95.1-95.1S309 159.1 256 159.1zM509.3 347L446.1 255.1l63.15-91.01c6.332-9.125 1.104-21.74-9.826-23.72l-109-19.7l-19.7-109c-1.975-10.93-14.59-16.16-23.72-9.824L256 65.89L164.1 2.736c-9.125-6.332-21.74-1.107-23.72 9.824L121.6 121.6L12.56 141.3C1.633 143.2-3.596 155.9 2.736 164.1L65.89 256l-63.15 91.01c-6.332 9.125-1.105 21.74 9.824 23.72l109 19.7l19.7 109c1.975 10.93 14.59 16.16 23.72 9.824L256 446.1l91.01 63.15c9.127 6.334 21.75 1.107 23.72-9.822l19.7-109l109-19.7C510.4 368.8 515.6 356.1 509.3 347zM256 383.1c-70.69 0-127.1-57.31-127.1-127.1c0-70.69 57.31-127.1 127.1-127.1s127.1 57.3 127.1 127.1C383.1 326.7 326.7 383.1 256 383.1z"/>
+                                    </svg>
+                                </span>
+                    <li class="nav-button">
+                        <div id="switch">
+                            <div id="circle"></div>
+                        </div>
+                    </li>
+                    <span id="dark-mode"><svg svg class="theme-icon" version="1.1" id="Capa_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px"
+                                    width="45.74px" height="45.74px" viewBox="0 0 45.74 45.74" style="enable-background:new 0 0 45.74 45.74;" xml:space="preserve"
+                                   >
+                               <g>
+                                   <g>
+                                       <g>
+                                           <g>
+                                               <g>
+                                                   <path d="M12.2,15.267c0-3.322,0.896-6.43,2.448-9.113c0.376-0.649-0.191-1.451-0.918-1.265
+                                                       C5.35,7.041-0.711,14.961,0.067,24.179c0.736,8.701,7.768,15.803,16.463,16.617c6.033,0.565,11.517-1.811,15.221-5.848
+                                                       c0.5-0.546,0.073-1.432-0.666-1.401c-0.196,0.009-0.395,0.013-0.594,0.013C20.389,33.56,12.2,25.371,12.2,15.267z"/>
+                                               </g>
+                                           </g>
+                                           <g>
+                                               <path d="M23.144,5.6l0.917,2.633l2.788,0.061c0.354,0.008,0.498,0.456,0.218,0.669l-2.221,1.687l0.805,2.669
+                                                   c0.104,0.338-0.279,0.614-0.568,0.414l-2.292-1.59l-2.29,1.59c-0.29,0.201-0.669-0.076-0.569-0.414l0.805-2.669l-2.221-1.687
+                                                   c-0.28-0.213-0.134-0.661,0.218-0.669l2.788-0.061L22.44,5.6C22.556,5.267,23.027,5.267,23.144,5.6z"/>
+                                           </g>
+                                           <g>
+                                               <path d="M40.26,26.44l0.881,2.53l2.679,0.057c0.389,0.009,0.549,0.502,0.24,0.737l-2.134,1.621l0.772,2.564
+                                                   c0.111,0.371-0.309,0.677-0.627,0.454l-2.201-1.527l-2.2,1.527c-0.318,0.223-0.739-0.083-0.626-0.454l0.772-2.564l-2.133-1.621
+                                                   c-0.31-0.234-0.149-0.729,0.238-0.737l2.679-0.057l0.884-2.53C39.612,26.074,40.131,26.074,40.26,26.44z"/>
+                                           </g>
+                                           <g>
+                                               <path d="M39.926,8.098l1.325,3.799l4.021,0.086c0.452,0.01,0.639,0.584,0.278,0.858l-3.204,2.434l1.162,3.853
+                                                   c0.131,0.433-0.356,0.788-0.729,0.529l-3.306-2.294l-3.305,2.294c-0.372,0.259-0.86-0.097-0.729-0.529l1.161-3.853l-3.205-2.434
+                                                   c-0.358-0.273-0.172-0.849,0.279-0.858l4.022-0.086l1.324-3.799C39.173,7.672,39.776,7.672,39.926,8.098z"/>
+                                           </g>
+                                       </g>
+                                   </g>
+                               </g>
+                               <g>
+                               </g>
+                               <g>
+                               </g>
+                               <g>
+                               </g>
+                               <g>
+                               </g>
+                               <g>
+                               </g>
+                               <g>
+                               </g>
+                               <g>
+                               </g>
+                               <g>
+                               </g>
+                               <g>
+                               </g>
+                               <g>
+                               </g>
+                               <g>
+                               </g>
+                               <g>
+                               </g>
+                               <g>
+                               </g>
+                               <g>
+                               </g>
+                               <g>
+                               </g>
+                               </svg>
+                               </span>
+                </ul>
+            </div>
+
+
+        </nav>
+    </div>
+</div>
+</div>
+<br/>
+<div style="width: 96%; margin:0 auto;">
+    <div id="updateNotificationBar"></div>
+    <div id="notificationBar"></div>
+    <div id="statusBar"></div>
+
+    <form style="padding-bottom: 25px">
+        <button id="resetClientStatus" type="button" class="btn btn-danger fa fa-trash-o"> Reset ClientStatusList
+        </button>
+    </form>
+
+    <table id="clientStatusList" class="table table-striped table-bordered" cellspacing="0" width="100%">
+        <thead>
+        <tr>
+            <th class="center" width="2%"><i class="fa fa-square-o" id="selectAllTop"></i></th>
+            <th>Worker Id</th>
+            <th>Version</th>
+            <th>Pool</th>
+            <th>User</th>
+            <th>Password</th>
+            <th>RigId</th>
+            <th>Status</th>
+            <th>Algo / PoW</th>
+
+            <th>CPU Brand</th>
+            <th>External IP</th>
+            <th>Hugepages Available</th>
+            <th>Hugepages Enabled</th>
+            <th>CPU is x64</th>
+            <th>CPU has aes</th>
+            <th>CPU is VM</th>
+            <th>Hashfactor</th>
+            <th>Total Pages</th>
+            <th>Total Hugepages</th>
+            <th>Hugepages %</th>
+            <th>Free Memory (GB)</th>
+            <th>Total Memory (GB)</th>
+            <th>Used Threads</th>
+            <th>CPU Sockets</th>
+            <th>CPU Cores</th>
+            <th>CPU Threads</th>
+            <th>CPU L2 (MB)</th>
+            <th>CPU L3 (MB)</th>
+            <th>CPU nodes</th>
+            <th>Max CPU usage</th>
+
+            <th>Hashrate</th>
+            <th>Hashrate 1m</th>
+            <th>Hashrate 15m</th>
+
+            <th>Hashrate Highest</th>
+            <th>Hashes Total</th>
+            <th>Avg. Time</th>
+
+            <th>Shares Good</th>
+            <th>Shares Total</th>
+            <th>Uptime</th>
+            <th>Last Update</th>
+            <th>Log</th>
+            <th>Edit</th>
+        </tr>
+        </thead>
+        <tfoot>
+        <tr>
+            <th class="center" width="2%"><i class="fa fa-square-o" id="selectAllBottom"></i></th>
+            <th class="left">Total:</th>
+            <th></th>
+            <th></th>
+            <th></th>
+            <th></th>
+            <th></th>
+            <th></th>
+            <th></th>
+            <th></th>
+            <th></th>
+            <th></th>
+            <th></th>
+            <th></th>
+            <th></th>
+            <th></th>
+            <th></th>
+            <th></th>
+            <th></th>
+            <th></th>
+            <th></th>
+            <th></th>
+            <th></th>
+            <th></th>
+            <th></th>
+            <th></th>
+            <th></th>
+            <th></th>
+            <th></th>
+            <th></th>
+            <th></th>
+            <th></th>
+            <th></th>
+            <th></th>
+            <th></th>
+            <th></th>
+            <th></th>
+            <th></th>
+            <th></th>
+            <th></th>
+            <th></th>
+            <th></th>
+        </tr>
+        </tfoot>
+    </table>
+
+    <br/>
+
+    <div style="height: 30vh; margin:0 auto;">
+        <canvas id="hashrateChart"></canvas>
+        <br/><br/>
+        <canvas id="minerChart"></canvas>
+    </div>
+
+    <div class="modal fade" id="minerEditor" role="dialog">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close dialog-close" data-dismiss="modal">&times;</button>
+                    <h4 class="modal-title" id="minerEditorTitle"></h4>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group" id="minerEditorViewGroup">
+                        <textarea class='form-control' rows='20' id='minerEditorConfig'></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button id="minerEditorSave" type="button" class="btn btn-success" data-dismiss="modal">Save
+                    </button>
+                    <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <div class="modal fade" id="minerLogDialog" role="dialog">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close dialog-close" data-dismiss="modal">&times;</button>
+                    <h4 class="modal-title" id="minerLogTitle"></h4>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group" id="logViewGroup">
+                        <textarea class='form-control' rows='20' id='minerLog'></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <div class="modal fade" id="templateEditor" role="dialog">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close dialog-close" data-dismiss="modal">&times;</button>
+                    <h4 class="modal-title">Template Editor</h4>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="templateSelector">Template:</label>
+                        <select class="selectpicker form-control" id="templateSelector"></select>
+                        <br/>
+                        <br/>
+                        <textarea class="form-control" rows='20' id="template"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button id="templateEditorSave" type="button" class="btn btn-success" data-dismiss="modal">Save
+                    </button>
+                    <button id="templateEditorSaveAsDialog" type="button" class="btn btn-primary">Save As...</button>
+                    <button id="templateEditorDeleteDialog" type="button" class="btn btn-danger" data-dismiss="modal">
+                        Delete
+                    </button>
+                    <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="templateDialogSaveAs" role="dialog">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close dialog-close" data-dismiss="modal">&times;</button>
+                    <h4 class="modal-title">Save As...</h4>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="templateName">Template name:</label>
+                        <input type="text" class="form-control" id="templateName"/>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button id="templateEditorSaveAs" type="button" class="btn btn-success" data-dismiss="modal">Save
+                    </button>
+                    <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="templateDialogDelete" role="dialog">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close dialog-close" data-dismiss="modal">&times;</button>
+                    <h4 class="modal-title">Delete</h4>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="templateName">Do you really want to delete this template?</label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button id="templateEditorDelete" type="button" class="btn btn-danger" data-dismiss="modal">Delete
+                    </button>
+                    <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="commandDialogStop" role="dialog">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close dialog-close" data-dismiss="modal">&times;</button>
+                    <h4 class="modal-title">Stop Command</h4>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="templateName">Do you really want to stop the selected miner?<br/>This will require a
+                            manual restart of the daemon.</label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button id="commandStop" type="button" class="btn btn-danger" data-dismiss="modal">Stop</button>
+                    <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="resetClientStatusListDialog" role="dialog">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close dialog-close" data-dismiss="modal">&times;</button>
+                    <h4 class="modal-title">Reset</h4>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="templateName">Do you really want to reset all client statistics?<br/>Currently
+                            offline miners will be gone until they are online again.</label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button id="resetClientStatusList" type="button" class="btn btn-danger" data-dismiss="modal">Reset
+                    </button>
+                    <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="assignTemplateEditor" role="dialog">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close dialog-close" data-dismiss="modal">&times;</button>
+                    <h4 class="modal-title">Assign template</h4>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="assignTemplateSelector">Template:</label>
+                        <select class="selectpicker form-control" id="assignTemplateSelector"></select>
+                        <br/><br/>
+                        <label>
+                            <input id="replaceWorkerId" type="checkbox" data-toggle="toggle" data-size="mini"
+                                   data-onstyle="success" data-offstyle="danger" data-on="Yes" data-off="No"/>
+                            <span>Replace @WORKER-ID@ with Worker-id</span>
+                        </label>
+                        <br/>
+                        <label>
+                            <input id="mergeTemplate" type="checkbox" data-toggle="toggle" data-size="mini"
+                                   data-onstyle="success" data-offstyle="danger" data-on="Yes" data-off="No"/>
+                            <span>Merge templates</span>
+                        </label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button id="assignTemplate" type="button" class="btn btn-success" data-dismiss="modal">Assign
+                    </button>
+                    <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="commandExecuteDialog" role="dialog">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close dialog-close" data-dismiss="modal">&times;</button>
+                    <h4 class="modal-title" id="executeTitle"></h4>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group" id="executeViewGroup">
+                        <label for="executeCommand">Script to execute:</label>
+                        <textarea class='form-control' rows='10' id='executeCommand'></textarea>
+                        <br/>
+                        <label for='minerExecuteLog'>Execute log: [auto-refreshing]</label>
+                        <textarea class='form-control' rows='10' id='minerExecuteLog'></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button id="commandExecuteDialogExecute" type="button" class="btn btn-success">
+                        Execute
+                    </button>
+                    <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<script type="text/javascript" src="https://code.jquery.com/jquery-3.3.1.js"></script>
+<script type="text/javascript" src="https://cdn.datatables.net/1.10.20/js/jquery.dataTables.min.js"></script>
+<script type="text/javascript" src="https://cdn.datatables.net/1.10.20/js/dataTables.bootstrap.min.js"></script>
+<script type="text/javascript" src="https://cdn.datatables.net/buttons/1.5.0/js/dataTables.buttons.min.js"></script>
+<script type="text/javascript" src="https://cdn.datatables.net/buttons/1.5.0/js/buttons.bootstrap.min.js"></script>
+<script type="text/javascript" src="https://cdn.datatables.net/select/1.2.4/js/dataTables.select.min.js"></script>
+<script type="text/javascript" src="https://cdn.datatables.net/buttons/1.5.6/js/buttons.colVis.min.js"></script>
+<script type="text/javascript" src="https://cdn.datatables.net/rowgroup/1.1.1/js/dataTables.rowGroup.min.js"></script>
+<script type="text/javascript" src="https://cdn.datatables.net/plug-ins/1.10.16/sorting/natural.js"></script>
+<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jquery-timeago/1.6.1/jquery.timeago.min.js"></script>
+<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/numeral.js/2.0.6/numeral.min.js"></script>
+
+<script src="https://gitcdn.github.io/bootstrap-toggle/2.2.2/js/bootstrap-toggle.min.js"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-select/1.13.2/js/bootstrap-select.min.js"></script>
+
+<script src="https://use.fontawesome.com/6b3cdfc597.js"></script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.22.2/moment.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.3/Chart.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-colorschemes"></script>
+<script>
+    const THRESHOLD_IN_MS = 60 * 1000;
+    const RELOAD_INTERVAL_IN_MS = 10 * 1000;
+    const CHART_RELOAD_INTERVAL_IN_MS = 60 * 1000;
+    const EXECUTE_REGEX = /###START EXECUTE###(.*?)###END EXECUTE###/gs;
+
+    let latestRelease = "";
+    let currentServerTime = 0;
+    let clockDrift = 0;
+
+    let latestVersion = 0;
+    let currentVersion = 0;
+    let currentLogRefreshId = 0;
+
+    function setCookie(name, value, days) {
+        let expires = "";
+        if (days) {
+            let date = new Date();
+            date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
+            expires = "; expires=" + date.toUTCString();
+        }
+        document.cookie = name + "=" + (value.toString() || "") + expires + "; path=/";
+    }
+
+    function getCookie(name) {
+        let nameEQ = name + "=";
+        let ca = document.cookie.split(';');
+        for (let i = 0; i < ca.length; i++) {
+            let c = ca[i];
+            while (c.charAt(0) == ' ') c = c.substring(1, c.length);
+            if (c.indexOf(nameEQ) == 0) return c.substring(nameEQ.length, c.length);
+        }
+
+        return null;
+    }
+
+    function toggle() {
+        let hideOffline = getCookie('hideOffline');
+        let showOfflineNotification = getCookie('showOfflineNotification');
+        let groupByAlgo = getCookie('groupByAlgo');
+        if (hideOffline) {
+            $("#hideOffline").prop("checked", JSON.parse(hideOffline)).trigger('change');
+        }
+        if (showOfflineNotification) {
+            $("#showOfflineNotification").prop("checked", JSON.parse(showOfflineNotification)).trigger('change');
+        }
+        if (groupByAlgo) {
+            $("#groupByAlgo").prop("checked", JSON.parse(groupByAlgo)).trigger('change');
+        }
+    }
+
+    (function ($) {
+        "use strict";
+
+        $(function () {
+            let header = $(".start-style");
+            $(window).scroll(function () {
+                let scroll = $(window).scrollTop();
+
+                if (Math.floor(scroll) >= 10) {
+                    header.removeClass("scroll-on").addClass('start-style');
+                } else {
+                    header.removeClass('start-style').addClass("scroll-on");
+                }
+            });
+
+            let mode = getCookie('mode');
+
+            toggle();
+
+            if (mode == "light") {
+                $("body").removeClass("dark");
+                $("#switch").removeClass("switched");
+                $("#light-mode").css("fill", "#02ABE4");
+                $("#dark-mode").css("fill", "#000");
+                $(".contact-item").css("color", "#171515");
+                $(".navbar-brand").removeClass("dark-mode-logo");
+                $(".select-checkbox").css("color", "#000");
+                $(".modal-content").css("background-color", "#fff");
+                $(".dialog-close").removeClass("dialog-close-scheme");
+            } else {
+                $("body").addClass("dark");
+                $("#switch").addClass("switched");
+                $("#light-mode").css("fill", "#fff");
+                $("#dark-mode").css("fill", "#02ABE4");
+                $(".contact-item").css("color", "#fff");
+                $(".navbar-brand").addClass("dark-mode-logo");
+                $(".select-checkbox").css("color", "#fff");
+                $(".modal-content").css("background-color", "#1f2029");
+                $(".dialog-close").addClass("dialog-close-scheme");
+            }
+        });
+
+        //Animation
+
+        $(document).ready(function () {
+            $('body.xmrigCC').removeClass('xmrigCC');
+        });
+
+        //Menu On Hover
+
+        $('body').on('mouseenter mouseleave', '.nav-item', function (e) {
+            if ($(window).width() > 750) {
+                let _d = $(e.target).closest('.nav-item');
+                _d.addClass('show');
+                setTimeout(function () {
+                    _d[_d.is(':hover') ? 'addClass' : 'removeClass']('show');
+                }, 1);
+            }
+        });
+
+        $('#hideOffline').change(function () {
+            setCookie('hideOffline', $(this).prop('checked'), 90);
+        });
+
+        $('#showOfflineNotification').change(function () {
+            setCookie('showOfflineNotification', $(this).prop('checked'), 90);
+        });
+
+        $('#groupByAlgo').change(function () {
+            setCookie('groupByAlgo', $(this).prop('checked'), 90);
+        });
+
+        //Switch light/dark
+
+        $("#switch").on('click', function () {
+            if ($("body").hasClass("dark")) {
+                $("body").removeClass("dark");
+                $("#switch").removeClass("switched");
+                $("#light-mode").css("fill", "#02ABE4");
+                $("#dark-mode").css("fill", "#000");
+                $("#github").css("color", "#171515");
+                $(".navbar-brand").removeClass("dark-mode-logo");
+                $(".select-checkbox").css("color", "#000");
+                $(".modal-content").css("background-color", "#fff");
+                $(".dialog-close").removeClass("dialog-close-scheme");
+                setCookie('mode', 'light', 90);
+            } else {
+                $("body").addClass("dark");
+                $("#switch").addClass("switched");
+                $("#light-mode").css("fill", "#fff");
+                $("#dark-mode").css("fill", "#02ABE4");
+                $("#github").css("color", "#fff");
+                $(".navbar-brand").addClass("dark-mode-logo");
+                $(".select-checkbox").css("color", "#fff");
+                $(".modal-content").css("background-color", "#202020");
+                $(".dialog-close").addClass("dialog-close-scheme");
+                setCookie('mode', 'dark', 90)
+            }
+        });
+
+    })(jQuery);
+
+    document.onreadystatechange = function () {
+        let state = document.readyState
+        if (state == 'interactive') {
+            document.getElementById('loader-parent').style.display = "none";
+            document.getElementById('loader-parent').style.visibility = "hidden";
+        } else if (state == 'complete') {
+            setTimeout(function () {
+                document.getElementById('loader-parent').style.display = "none";
+                document.getElementById('loader-parent').style.height = "0";
+                document.getElementById('loader-parent').style.visibility = "hidden";
+            }, 3000);
+
+        }
+    }
+
+
+    $.fn.dataTable.ext.search.push(
+        function (settings, searchData, index, rowData, counter) {
+
+            let hideOffline = $('#hideOffline').prop('checked');
+            let showNotification = $('#showOfflineNotification').prop('checked');
+
+            let clientId = rowData.client_status.client_id;
+            let lastStatus = rowData.client_status.last_status_update * 1000;
+
+            let online = isOnline(lastStatus);
+
+            if (!online) {
+                let threshold = currentServerTime - (THRESHOLD_IN_MS + RELOAD_INTERVAL_IN_MS);
+                if (lastStatus > threshold && showNotification) {
+                    $("#notificationBar").after('<div class="alert alert-danger alert-dismissable fade in">' +
+                        '<a href="#" class="close" data-dismiss="alert" aria-label="close">&times;</a>' +
+                        '<strong>Miner ' + clientId + ' just went offline!</strong> Last update: ' + new Date(lastStatus) +
+                        '</div>');
+                }
+            }
+
+            return (online || !hideOffline);
+        }
+    );
+
+
+    $(document).ready(function () {
+        let table = $('#clientStatusList').DataTable({
+            dom: "<'row'<'col-sm-12'B>><'row rowPadded'<'col-sm-9'l><'col-sm-3'f>><'row'<'col-sm-12't>><'row'<'col-sm-4'i><'col-sm-8'p>><'col-sm-13'<'#serverTime'>>",
+            lengthMenu: [[10, 25, 50, 100, -1], [10, 25, 50, 100, "All"]],
+            pageLength: -1,
+            bPpaginate: true,
+            pagingType: "full_numbers",
+            stateSave: true,
+            ajax: {
+                url: "/admin/getClientStatusList",
+                dataSrc: function (data) {
+                    return JSON.parse(htmlEncode(JSON.stringify(data.client_status_list)));
+                }
+            },
+            orderFixed: [8, 'asc'], //algo
+            columnDefs: [
+                {type: 'natural', targets: 1}
+            ],
+            rowGroup: {
+                dataSrc: function (data) {
+                    return JSON.parse(htmlEncode(JSON.stringify(data.client_status.current_algo_name)));
+                },
+                endRender: null,
+                startRender: function (rows, group) {
+                    return $('<tr/>')
+                        .append('<td colspan=' + table.columns().header().length + ' style="color: #000">' + group + '</td>')
+                },
+            },
+            columns: [
+                {
+                    data: null,
+                    defaultContent: '',
+                    className: 'select-checkbox',
+                    // render: checkbox,
+                    orderable: false
+                },
+                {data: "client_status.client_id", render: clientInfo},
+                {data: "client_status.version", render: version},
+                {data: "client_status.current_pool"},
+                {data: "client_status.current_pool_user", visible: false},
+                {data: "client_status.current_pool_pass", visible: false},
+                {data: "client_status.current_pool_rig_id", visible: false},
+                {data: "client_status.current_status", render: clientStatus},
+                {data: "client_status.current_algo_name", render: algoAndPowVariantName},
+
+                {data: "client_status.cpu_brand", visible: false},
+                {data: "client_status.external_ip", visible: false},
+                {data: "client_status.hugepages_available", visible: false},
+                {data: "client_status.hugepages_enabled", visible: false},
+                {data: "client_status.cpu_is_x64", visible: false},
+                {data: "client_status.cpu_has_aes", visible: false},
+                {data: "client_status.cpu_is_vm", visible: false},
+                {data: "client_status.hash_factor", className: "right", visible: false},
+                {data: "client_status.total_pages", className: "right", visible: false},
+                {data: "client_status.total_hugepages", className: "right", visible: false},
+                {data: null, render: clientHPpercent, className: "right", visible: false},
+                {data: "client_status.free_memory", render: memory, className: "right", visible: false},
+                {data: "client_status.total_memory", render: memory, className: "right", visible: false},
+                {data: "client_status.current_threads", className: "right", visible: false},
+                {data: "client_status.cpu_sockets", className: "right", visible: false},
+                {data: "client_status.cpu_cores", className: "right", visible: false},
+                {data: "client_status.cpu_threads", className: "right", visible: false},
+                {data: "client_status.cpu_l2", render: cache, className: "right", visible: false},
+                {data: "client_status.cpu_l3", render: cache, className: "right", visible: false},
+                {data: "client_status.cpu_nodes", className: "right", visible: false},
+                {data: "client_status.max_cpu_usage", render: percent, className: "right", visible: false},
+
+                {data: "client_status.hashrate_short", render: round, className: "right"},
+                {data: "client_status.hashrate_medium", render: round, className: "right"},
+                {data: "client_status.hashrate_long", render: round, className: "right"},
+                {data: "client_status.hashrate_highest", render: round, className: "right"},
+                {data: "client_status.hashes_total", className: "right"},
+                {data: "client_status.avg_time", className: "right"},
+                {data: "client_status.shares_good", className: "right"},
+                {data: "client_status.shares_total", className: "right"},
+                {data: "client_status.uptime", render: uptime, className: "right"},
+                {data: "client_status.last_status_update", render: laststatus},
+                {
+                    data: null,
+                    defaultContent:
+                        "<td class='center-tab'><button type='button' id='LOG' class='btn btn-xs btn-info' data-toggle='tooltip' title='View miner log'><i class='fa fa-file-text-o'></i></button></td>",
+                    orderable: false,
+                    className: "center-tab"
+                },
+                {
+                    data: null,
+                    defaultContent:
+                        "<td class='center-tab'><button type='button' id='EDIT' class='btn btn-xs btn-primary' data-toggle='tooltip' title='Edit miner config'><i class='fa fa-edit'></i></button></td>",
+                    orderable: false,
+                    className: "center-tab"
+                }
+            ],
+            rowId: 'client_status.client_id',
+            select: {
+                style: "multi+shift"
+            },
+            order: [1, 'asc'], // workerid
+            buttons: [
+                'colvis',
+                {
+                    text: '<i class="fa fa-upload"> Push miner config</i>',
+                    className: 'btn-info',
+                    enabled: false,
+                    action: function () {
+                        table.rows({selected: true}).eq(0).each(function (index) {
+                            let row = table.row(index);
+                            let data = row.data();
+
+                            sendAction("UPDATE_CONFIG", data.client_status.client_id);
+                        });
+                    }
+                },
+                {
+                    text: '<i class="fa fa-download"> Pull miner config</i>',
+                    className: 'btn-primary',
+                    enabled: false,
+                    action: function () {
+                        table.rows({selected: true}).eq(0).each(function (index) {
+                            let row = table.row(index);
+                            let data = row.data();
+
+                            sendAction("PUBLISH_CONFIG", data.client_status.client_id);
+                        });
+                    }
+                },
+                {
+                    text: '<i class="fa fa-recycle"> Update miner</i>',
+                    className: 'btn-danger',
+                    enabled: false,
+                    action: function () {
+                        table.rows({selected: true}).eq(0).each(function (index) {
+                            let row = table.row(index);
+                            let data = row.data();
+
+                            sendAction("UPDATE", data.client_status.client_id);
+                        });
+                    }
+                },
+                {
+                    text: '<i class="fa fa-table"> Assign template</i>',
+                    className: 'btn-info',
+                    enabled: false,
+                    action: function () {
+                        $.ajax({
+                            type: "GET",
+                            url: "/admin/getClientConfigTemplates",
+                            dataType: "json",
+                            success: function (data) {
+                                let htmlContent = "";
+
+                                let arrayLength = data["templates"].length;
+                                for (let i = 0; i < arrayLength; i++) {
+                                    htmlContent += "<option>" + data["templates"][i] + "</option>";
+                                }
+
+                                if (arrayLength > 0) {
+                                    $('#assignTemplate').prop('disabled', false);
+
+                                    $('#assignTemplateSelector').html(htmlContent);
+                                    $('#assignTemplateSelector').selectpicker('refresh');
+                                } else {
+                                    $('#assignTemplate').prop('disabled', true);
+                                }
+
+                                $('#assignTemplateEditor').modal('show');
+                            },
+                            error: function (data) {
+                                setError('<strong>Unable to fetch templates</strong> - Please make they exist!');
+                            }
+                        });
+                    }
+                },
+                {
+                    text: '<i class="fa fa-edit"> Template Editor</i>',
+                    className: 'btn-primary',
+                    enabled: true,
+                    action: function () {
+                        $.ajax({
+                            type: "GET",
+                            url: "/admin/getClientConfigTemplates",
+                            dataType: "json",
+                            success: function (data) {
+                                let htmlContent = "";
+
+                                let arrayLength = data["templates"].length;
+                                for (let i = 0; i < arrayLength; i++) {
+                                    htmlContent += "<option>" + data["templates"][i] + "</option>";
+                                }
+
+                                if (arrayLength > 0) {
+                                    $('#templateEditorSave').prop('disabled', false);
+                                    $('#templateEditorDeleteDialog').prop('disabled', false);
+
+                                    $('#templateSelector').html(htmlContent);
+                                    $('#templateSelector').selectpicker('refresh');
+                                    $('#templateSelector').trigger('change');
+                                } else {
+                                    $('#templateEditorSave').prop('disabled', true);
+                                    $('#templateEditorDeleteDialog').prop('disabled', true);
+                                }
+
+                                $('#templateEditor').modal('show');
+                            },
+                            error: function (data) {
+                                setError('<strong>Unable to fetch templates</strong> - Please make they exist!');
+                            }
+                        });
+                    }
+                },
+                {
+                    text: '<i class="fa fa-play"> Start</i>',
+                    className: 'btn-success',
+                    enabled: false,
+                    action: function () {
+                        table.rows({selected: true}).eq(0).each(function (index) {
+                            let row = table.row(index);
+                            let data = row.data();
+
+                            sendAction("START", data.client_status.client_id);
+                        });
+                    }
+                },
+                {
+                    text: '<i class="fa fa-pause"> Pause</i>',
+                    className: 'btn-warning',
+                    enabled: false,
+                    action: function () {
+                        table.rows({selected: true}).eq(0).each(function (index) {
+                            let row = table.row(index);
+                            let data = row.data();
+
+                            sendAction("STOP", data.client_status.client_id);
+                        });
+                    }
+                },
+                {
+                    text: '<i class="fa fa-sign-out"> Stop</i>',
+                    className: 'btn-danger',
+                    enabled: false,
+                    action: function () {
+                        $('#commandDialogStop').modal('show');
+                    }
+                },
+                {
+                    text: '<i class="fa fa-repeat"> Restart</i>',
+                    className: 'btn-info',
+                    enabled: false,
+                    action: function () {
+                        table.rows({selected: true}).eq(0).each(function (index) {
+                            let row = table.row(index);
+                            let data = row.data();
+
+                            sendAction("RESTART", data.client_status.client_id);
+                        });
+                    }
+                },
+                {
+                    text: '<i class="fa fa-refresh"> Reboot</i>',
+                    className: 'btn-danger',
+                    enabled: false,
+                    action: function () {
+                        table.rows({selected: true}).eq(0).each(function (index) {
+                            let row = table.row(index);
+                            let data = row.data();
+
+                            sendAction("REBOOT", data.client_status.client_id);
+                        });
+                    }
+                },
+                {
+                    text: '<i class="fa fa-trash-o"> Remove</i>',
+                    className: 'btn-warning',
+                    enabled: false,
+                    action: function () {
+                        table.rows({selected: true}).eq(0).each(function (index) {
+                            let row = table.row(index);
+                            let data = row.data();
+
+                            removeClientStatus(data.client_status.client_id);
+                        });
+                    }
+                },
+                {
+                    text: '<i class="fa fa-rocket"> Execute</i>',
+                    className: 'btn-primary',
+                    enabled: false,
+                    action: function () {
+                        table.rows({selected: true}).eq(0).each(function (index) {
+                            let row = table.row(index);
+                            let data = row.data();
+
+                            $('#executeViewGroup').data("clientId", data.client_status.client_id);
+                            $('#executeTitle').html("Shell execute for Miner: " + data.client_status.client_id + " (" + data.client_status.external_ip + ")");
+
+                            loadClientLog($('#minerExecuteLog'), data.client_status.client_id, function (data) {
+                                let result;
+                                Array.from(data.match(EXECUTE_REGEX)).forEach(item => {
+                                    result = item + '\n';
+                                });
+
+                                return result.trim();
+                            });
+
+                            $('#commandExecuteDialog').modal('show');
+                        });
+                    }
+                }
+            ],
+
+            "footerCallback": function (row, data, start, end, display) {
+                let api = this.api();
+
+                let sumHashrateShort = 0;
+                let sumHashrateMedium = 0;
+                let sumHashrateLong = 0;
+                let sumHashrateHighest = 0;
+                let sumHashesTotal = 0;
+                let avgTimeTotal = 0;
+                let sumSharesGood = 0;
+                let sumSharedTotal = 0;
+
+                let colOffset = 30;
+
+                sumHashrateShort = api
+                    .column(colOffset, {page: 'current'})
+                    .data()
+                    .reduce(function (a, b) {
+                        return a + b;
+                    }, 0);
+
+                sumHashrateMedium = api
+                    .column(colOffset + 1, {page: 'current'})
+                    .data()
+                    .reduce(function (a, b) {
+                        return a + b;
+                    }, 0);
+
+                sumHashrateLong = api
+                    .column(colOffset + 2, {page: 'current'})
+                    .data()
+                    .reduce(function (a, b) {
+                        return a + b;
+                    }, 0);
+
+                sumHashrateHighest = api
+                    .column(colOffset + 3, {page: 'current'})
+                    .data()
+                    .reduce(function (a, b) {
+                        return a + b;
+                    }, 0);
+
+                sumHashesTotal = api
+                    .column(colOffset + 4, {page: 'current'})
+                    .data()
+                    .reduce(function (a, b) {
+                        return a + b;
+                    }, 0);
+
+                avgTimeTotal = api
+                    .column(colOffset + 5, {page: 'current'})
+                    .data()
+                    .reduce(function (a, b) {
+                        return (a + b);
+                    }, 0) / api.column(26, {page: 'current'}).data().length;
+
+                sumSharesGood = api
+                    .column(colOffset + 6, {page: 'current'})
+                    .data()
+                    .reduce(function (a, b) {
+                        return a + b;
+                    }, 0);
+
+                sumSharedTotal = api
+                    .column(colOffset + 7, {page: 'current'})
+                    .data()
+                    .reduce(function (a, b) {
+                        return a + b;
+                    }, 0);
+
+                sumHashrateShort = round(sumHashrateShort);
+                sumHashrateMedium = round(sumHashrateMedium);
+                sumHashrateLong = round(sumHashrateLong);
+                sumHashrateHighest = round(sumHashrateHighest);
+                avgTimeTotal = round(avgTimeTotal);
+
+                // update footer
+                $(api.column(colOffset).footer()).html(sumHashrateShort);
+                $(api.column(colOffset + 1).footer()).html(sumHashrateMedium);
+                $(api.column(colOffset + 2).footer()).html(sumHashrateLong);
+                $(api.column(colOffset + 3).footer()).html(sumHashrateHighest);
+                $(api.column(colOffset + 4).footer()).html(sumHashesTotal);
+                $(api.column(colOffset + 5).footer()).html(avgTimeTotal);
+                $(api.column(colOffset + 6).footer()).html(sumSharesGood);
+                $(api.column(colOffset + 7).footer()).html(sumSharedTotal);
+            }
+        });
+
+        table.on('xhr.dt', function (e, settings, json, xhr) {
+            // check version
+            if (latestRelease === "" && json !== undefined) {
+                $.ajax({
+                    url: "https://api.github.com/repos/Bendr0id/xmrigCC/releases/latest",
+                    type: 'GET',
+                    dataType: "json",
+                    success: function (release) {
+                        latestRelease = release.tag_name
+                        latestVersion = parseInt(release.tag_name.split('.').join(""));
+                        currentVersion = parseInt(json.current_version.split('.').join(""));
+
+                        if (currentVersion < 1000) {
+                            currentVersion = currentVersion * 10;
+                        }
+
+                        if (latestVersion < 1000) {
+                            latestVersion = latestVersion * 10;
+                        }
+
+                        if (latestVersion > currentVersion) {
+                            $("#updateNotificationBar").html('<div class="alert alert-info alert-dismissable fade in">' +
+                                '<a href="#" class="close" data-dismiss="alert" aria-label="close">&times;</a>' +
+                                '<a href="https://github.com/Bendr0id/xmrigCC/releases/latest"><strong>Update!</strong> XMRigCC v' + latestRelease + ' is available for download\n</a>' +
+                                '</div>');
+                        }
+                    }
+                });
+            }
+
+            currentServerTime = settings.json.current_server_time * 1000;
+            clockDrift = new Date().getTime() - currentServerTime;
+
+            $('#serverTime').html("<div class='dataTables_info text-right'>" + new Date(currentServerTime) + "</div>");
+        });
+
+        table.on('init', function () {
+            if ($('#groupByAlgo').prop('checked')) {
+                table.rowGroup().enable().draw();
+                table.order.fixed({
+                    pre: [8, 'asc'] // algo
+                }).draw();
+            } else {
+                table.rowGroup().disable().draw();
+                table.order.fixed({
+                    pre: []
+                }).draw();
+            }
+        });
+
+        table.on('select', function () {
+            let selectedRows = table.rows({selected: true}).count();
+            for (let i = 1; i < 13; i++) {
+                if (i === 12) {
+                    table.button(i).enable(selectedRows === 1);
+                }
+                else {
+                    table.button(i).enable(selectedRows > 0 || i === 5);
+                }
+            }
+        });
+
+        table.on('deselect', function () {
+            let selectedRows = table.rows({selected: true}).count();
+
+            for (let i = 1; i < 13; i++) {
+                table.button(i).enable(selectedRows > 0 || i === 5);
+            }
+        });
+
+        table.buttons().container().appendTo('#clientStatusList_wrapper .col-sm-6:eq(0)');
+
+        $('#hideOffline').change(function () {
+            table.draw();
+        });
+
+        $('#groupByAlgo').change(function () {
+            if ($('#groupByAlgo').prop('checked')) {
+                table.rowGroup().enable().draw();
+                table.order.fixed({
+                    pre: [8, 'asc'] // algo
+                }).draw();
+            } else {
+                table.rowGroup().disable().draw();
+                table.order.fixed({
+                    pre: []
+                }).draw();
+            }
+        });
+
+        $('#resetClientStatus').click(function () {
+            $('#resetClientStatusListDialog').modal('show');
+        });
+
+        $('#resetClientStatusList').click(function () {
+            resetClientStatusList();
+        });
+
+        $('#clientStatusList tbody ').on('click', 'button#EDIT', function () {
+            let data = table.row($(this).parents('tr')).data();
+            let clientId = data['client_status']['client_id'];
+            let clientIp = data['client_status']['external_ip'];
+
+            $.ajax({
+                type: "GET",
+                url: "/admin/getClientConfig?clientId=" + htmlDecode(clientId),
+                dataType: "json",
+                success: function (jsonClientConfig) {
+                    $('#minerEditorViewGroup').data("clientId", clientId);
+                    $('#minerEditorTitle').html("Config of Miner: " + clientId + " (" + clientIp + ")");
+                    $('#minerEditorConfig').html(htmlEncode(JSON.stringify(jsonClientConfig, undefined, 2)));
+
+                    $('#minerEditor').modal('show');
+                },
+                error: function (data) {
+                    setError('<strong>Unable to fetch ' + clientId + '_config.json</strong> - Please make sure that you pulled the config before!');
+                }
+            });
+        });
+
+        $('#minerEditorSave').click(function (event) {
+            let clientId = $('#minerEditorViewGroup').data("clientId");
+            let clientConfig = $('#minerEditorConfig').val();
+
+            setClientConfig(clientId, clientConfig);
+        });
+
+        $('#templateEditorSave').click(function (event) {
+            let templateId = htmlEncode($('#templateSelector').val());
+            let template = $('#template').val();
+
+            setTemplateConfig(templateId, template);
+        });
+
+        $('#templateEditorSaveAsDialog').click(function (event) {
+            $('#templateDialogSaveAs').modal('show');
+        });
+
+        $('#templateEditorDeleteDialog').click(function (event) {
+            $('#templateDialogDelete').modal('show');
+        });
+
+        $('#templateEditorSaveAs').click(function (event) {
+            let templateId = htmlEncode($('#templateName').val());
+            let template = $('#template').val();
+
+            setTemplateConfig(templateId, template);
+
+            $('#templateEditor').modal('hide');
+        });
+
+        $('#templateEditorDelete').click(function (event) {
+            let templateId = htmlEncode($('#templateSelector').val());
+
+            deleteTemplateConfig(templateId, template);
+        });
+
+        $('#commandStop').click(function (event) {
+            table.rows({selected: true}).eq(0).each(function (index) {
+                let row = table.row(index);
+                let data = row.data();
+
+                sendAction("SHUTDOWN", data.client_status.client_id);
+            });
+        });
+
+        $('#commandExecuteDialogExecute').click(function (event) {
+            let command = $('#executeCommand').val().trim();
+            let clientId = $('#executeViewGroup').data("clientId");
+
+            sendAction("EXECUTE", clientId, command);
+        });
+
+        $('#clientStatusList tbody').on('click', 'button#LOG', function () {
+            let data = table.row($(this).parents('tr')).data();
+            let clientId = data['client_status']['client_id'];
+            let clientIp = data['client_status']['external_ip'];
+
+            $('#logViewGroup').data("clientId", clientId);
+            $('#minerLogTitle').html("Log of Miner: " + clientId + " (" + clientIp + ") [auto-refreshing]");
+
+            loadClientLog($('#minerLog'), clientId, function (data) {
+                return data.replace(EXECUTE_REGEX, "[truncated]").trim();
+            });
+
+            $('#minerLogDialog').modal('show');
+        });
+
+        $('#minerLogDialog').on('shown.bs.modal', function () {
+            let clientId = $('#logViewGroup').data("clientId");
+
+            currentLogRefreshId = setInterval(function () {
+                loadClientLog($('#minerLog'), clientId, function (data) {
+                    return data.replace(EXECUTE_REGEX, "[truncated]").trim();
+                });
+            }, RELOAD_INTERVAL_IN_MS);
+        });
+
+        $('#minerLogDialog').on('hidden.bs.modal', function () {
+            clearInterval(currentLogRefreshId);
+        });
+
+        $('#commandExecuteDialog').on('shown.bs.modal', function () {
+            let clientId = $('#executeViewGroup').data("clientId");
+
+            currentLogRefreshId = setInterval(function () {
+                loadClientLog($('#minerExecuteLog'), clientId, function (data) {
+                    let result;
+                    Array.from(data.match(EXECUTE_REGEX)).forEach(item => {
+                        result = item + '\n';
+                    });
+
+                    return result.trim();
+                });
+            }, RELOAD_INTERVAL_IN_MS);
+        });
+
+        $('#commandExecuteDialog').on('hidden.bs.modal', function () {
+            clearInterval(currentLogRefreshId);
+        });
+
+        $('#templateSelector').on('changed.bs.select', function (e, clickedIndex, newValue, oldValue) {
+            let selected = $(e.currentTarget).val();
+            $.ajax({
+                type: "GET",
+                url: "/admin/getClientConfig?clientId=template_" + htmlDecode(selected),
+                dataType: "json",
+                success: function (jsonClientConfig) {
+                    $('#template').html(htmlEncode(JSON.stringify(jsonClientConfig, undefined, 2)));
+                },
+                error: function (data) {
+                    setError('<strong>Unable to fetch template ' + selected + '</strong> - Please make sure it readable!');
+                }
+            });
+        });
+
+        $('#assignTemplate').click(function (event) {
+            let template = $('#assignTemplateSelector').val();
+            $.ajax({
+                type: "GET",
+                url: "/admin/getClientConfig?clientId=template_" + htmlDecode(template),
+                dataType: "json",
+                success: function (jsonTemplate) {
+                    table.rows({selected: true}).eq(0).each(function (index) {
+                        let row = table.row(index);
+                        let data = row.data();
+                        let clientId = data['client_status']['client_id'];
+
+                        if ($('#mergeTemplate').prop('checked')) {
+                            setMergedClientConfig(jsonTemplate, clientId);
+                        } else {
+                            jsonTemplate['cc-client']['worker-id'] = htmlDecode(clientId);
+
+                            clientConfig = JSON.stringify(jsonTemplate, undefined, 2);
+
+                            if ($('#replaceWorkerId').prop('checked')) {
+                                clientConfig = clientConfig.replace(new RegExp("@WORKER-ID@", 'g'), htmlDecode(clientId)).trim();
+                            }
+
+                            setClientConfig(clientId, clientConfig);
+                        }
+                    });
+                },
+                error: function (data) {
+                    setError('<strong>Unable to fetch template ' + template + '</strong> - Please make sure it readable!');
+                }
+            });
+        });
+
+        $('#selectAllTop,#selectAllBottom').click(function () {
+            if ($("#selectAllTop").hasClass("fa fa-square-o")) {
+                $("#selectAllTop").removeClass("fa fa-square-o").addClass("fa fa-check-square-o");
+                $("#selectAllBottom").removeClass("fa fa-square-o").addClass("fa fa-check-square-o");
+
+                table.rows().select();
+            } else {
+                $("#selectAllTop").removeClass("fa fa-check-square-o").addClass("fa fa-square-o");
+                $("#selectAllBottom").removeClass("fa fa-check-square-o").addClass("fa fa-square-o");
+
+                table.rows().deselect();
+            }
+        });
+
+
+        let hashrateChart = new Chart(document.getElementById("hashrateChart").getContext("2d"), {
+            type: "line",
+            data: {
+                datasets: []
+            },
+            options: {
+                title: {
+                    display: true,
+                    text: 'Hashrates'
+                },
+                tooltips: {
+                    mode: 'nearest',
+                    intersect: false,
+                },
+                legend: {
+                    display: true,
+                    position: 'top',
+                    labels: {
+                        generateLabels: function (chart) {
+                            let data = chart.data;
+                            return Chart.helpers.isArray(data.datasets) ? data.datasets.map(function (dataset, i) {
+                                let total = 0;
+                                dataset.data.forEach(item => {
+                                    total += item.y;
+                                });
+
+                                let avg = (dataset.data.length > 0) ? (total / dataset.data.length).toFixed(2) : 0;
+                                return {
+                                    text: dataset.label + " (avg.: " + avg + " h/s)",
+                                    fillStyle: (!Chart.helpers.isArray(dataset.backgroundColor) ? dataset.backgroundColor : dataset.backgroundColor[0]),
+                                    hidden: !chart.isDatasetVisible(i),
+                                    lineCap: dataset.borderCapStyle,
+                                    lineDash: dataset.borderDash,
+                                    lineDashOffset: dataset.borderDashOffset,
+                                    lineJoin: dataset.borderJoinStyle,
+                                    lineWidth: dataset.borderWidth,
+                                    strokeStyle: dataset.borderColor,
+                                    pointStyle: dataset.pointStyle,
+
+                                    // Below is extra data used for toggling the datasets
+                                    datasetIndex: i
+                                };
+                            }, this) : [];
+                        },
+                    },
+                },
+                scales: {
+                    yAxes: [
+                        {
+                            id: 'hashrate',
+                            position: 'left',
+                            scalePositionLeft: true,
+                            stacked: false,
+                            ticks: {
+                                beginAtZero: true
+                            },
+                            scaleLabel: {
+                                display: true,
+                                labelString: 'Hashrate',
+                                fontSize: 16
+                            }
+                        }
+                    ],
+                    xAxes: [{
+                        type: 'time',
+                        distribution: 'series',
+                        time: {
+                            unit: 'minute',
+                            displayFormats: {
+                                minute: 'HH:mm'
+                            }
+                        },
+                        ticks: {
+                            stepSize: 10,
+                            autoSkip: true,
+                            maxTicksLimit: 60
+                        }
+                    }]
+                },
+                elements: {
+                    point: {
+                        radius: 0
+                    }
+                },
+                responsive: true,
+                maintainAspectRatio: false
+            },
+            plugins: {
+                colorschemes: {
+                    scheme: 'brewer.Paired12'
+                }
+            }
+        });
+
+        let minerChart = new Chart(document.getElementById("minerChart").getContext("2d"), {
+            type: "line",
+            data: {
+                datasets: []
+            },
+            options: {
+                title: {
+                    display: true,
+                    text: 'Miners'
+                },
+                tooltips: {
+                    mode: 'nearest',
+                    intersect: false,
+                },
+                scales: {
+                    yAxes: [
+                        {
+                            id: 'miner',
+                            position: 'left',
+                            scalePositionLeft: true,
+                            stacked: false,
+                            ticks: {
+                                beginAtZero: true,
+                                callback: function (value) {
+                                    if (value % 1 === 0) {
+                                        return value;
+                                    }
+                                }
+                            },
+                            scaleLabel: {
+                                display: true,
+                                labelString: 'Miner',
+                                fontSize: 16
+                            }
+                        }
+                    ],
+                    xAxes: [{
+                        type: 'time',
+                        distribution: 'series',
+                        time: {
+                            unit: 'minute',
+                            displayFormats: {
+                                minute: 'HH:mm'
+                            }
+                        },
+                        ticks: {
+                            stepSize: 10,
+                            autoSkip: true,
+                            maxTicksLimit: 60
+                        }
+                    }]
+                },
+                elements: {
+                    point: {
+                        radius: 0
+                    }
+                },
+                responsive: true,
+                maintainAspectRatio: false
+            },
+            plugins: {
+                colorschemes: {
+                    scheme: 'brewer.Paired12'
+                }
+            }
+        });
+
+        Chart.plugins.register({
+            afterDraw: function (chart) {
+                if (chart.data.datasets.length === 0) {
+                    // No data is present
+                    let ctx = chart.chart.ctx;
+                    let width = chart.chart.width;
+                    let height = chart.chart.height
+
+                    ctx.save();
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.font = "16px normal 'Helvetica Nueue'";
+                    ctx.fillText('No data to display', width / 2, height / 2);
+                    ctx.restore();
+                }
+            }
+        });
+
+        updateCharts(hashrateChart, minerChart);
+
+        setInterval(function () {
+            table.ajax.reload(null, false);
+        }, RELOAD_INTERVAL_IN_MS);
+
+        setInterval(function () {
+            updateCharts(hashrateChart, minerChart);
+        }, CHART_RELOAD_INTERVAL_IN_MS);
+    });
+
+    function clientHPpercent(data, type, row) {
+        if (!row.client_status.hugepages_enabled || row.client_status.total_pages == 0) return 0;
+        return Math.round(1000 * row.client_status.total_hugepages / row.client_status.total_pages) / 10;
+    }
+
+    function percent(data, type, row) {
+        if (row.client_status.max_cpu_usage === -1) {
+            return 100;
+        } else {
+            return row.client_status.max_cpu_usage;
+        }
+    }
+
+    function loadClientLog(targetItem, clientId, filterHandler) {
+        $.ajax({
+            type: "GET",
+            url: "/admin/getClientLog?clientId=" + htmlDecode(clientId),
+            dataType: "json",
+            success: function (data) {
+                let cleanLog = filterHandler(htmlEncode(data.client_log));
+                targetItem.html(cleanLog).show();
+            },
+            error: function (data) {
+                setError('<strong>Unable to fetch ' + clientId + ' log.</strong> - Please make sure it is enabled on the miner!');
+            }
+        });
+    }
+
+    function sendAction(action, clientId, payload) {
+        let payloadContent = payload == null ? '' : ' [payload=' + htmlEncode(payload) + ']';
+        $.ajax({
+            type: "POST",
+            url: "/admin/setClientCommand?clientId=" + htmlDecode(clientId),
+            dataType: "text",
+            data: '{"control_command":{"command": "' + action + '", "payload": ' + JSON.stringify(payload == null ? "" : payload) + '}}',
+            success: function (data) {
+                setSuccess('<strong>Successfully send ' + action + ' to ' + clientId + payloadContent + '</strong> - It can take up to 30s until the command is processed.');
+            },
+            error: function (data) {
+                setError('<strong>Failed to send ' + action + ' to ' + clientId + payloadContent + '</strong> \nError: ' + JSON.stringify(data, undefined, 2));
+            }
+        });
+    }
+
+    function removeClientStatus(clientId) {
+        $.ajax({
+            type: "POST",
+            url: "/admin/removeClientStatus?clientId=" + htmlDecode(clientId),
+            dataType: "text",
+            data: '',
+            success: function (data) {
+                setSuccess('<strong>Successfully send the removed client status request to the Server.</strong> - Now just wait for the next refresh.');
+            },
+            error: function (data) {
+                setError('<strong>Failed to send the removed client status request to the Server.</strong> \nError: ' + JSON.stringify(data, undefined, 2));
+            }
+        });
+    }
+
+    function resetClientStatusList() {
+        $.ajax({
+            type: "POST",
+            url: "/admin/resetClientStatusList",
+            dataType: "text",
+            data: '{}',
+            success: function (data) {
+                setSuccess('<strong>Successfully send the reset client status list request to the Server.</strong> - Now just wait for the next refresh.');
+            },
+            error: function (data) {
+                setError('<strong>Failed to send the reset client status list request to the Server.</strong> \nError: ' + JSON.stringify(data, undefined, 2));
+            }
+        });
+    }
+
+    function uptime(data, type, row) {
+        if (type !== 'sort') {
+            let lastStatus = row.client_status.last_status_update * 1000;
+
+            if (isOnline(lastStatus)) {
+                return numeral(data / 1000).format('00:00:00:00');
+            } else {
+                return "";
+            }
+        }
+
+        return data;
+    }
+
+    function setMergedClientConfig(template, clientId) {
+        $.ajax({
+            type: "GET",
+            url: "/admin/getClientConfig?clientId=" + htmlDecode(clientId),
+            dataType: "json",
+            success: function (clientConfig) {
+                $.extend(true, clientConfig, template);
+
+                clientConfig = JSON.stringify(clientConfig, undefined, 2)
+
+                if ($('#replaceWorkerId').prop('checked')) {
+                    clientConfig = clientConfig.replace(new RegExp("@WORKER-ID@", 'g'), htmlDecode(clientId)).trim();
+                }
+
+                setClientConfig(clientId, clientConfig);
+            },
+            error: function (data) {
+                setError('<strong>Unable to fetch client config ' + clientId + ' for template merge</strong> - Please make sure it readable!');
+            }
+        });
+    }
+
+    function laststatus(data, type, row) {
+        if (type !== 'sort') {
+            let date = new Date(data * 1000 - clockDrift);
+            return '<span data-toggle="tooltip" title="' + date + '">' + jQuery.timeago(date) + '</span>';
+        }
+
+        return data;
+    }
+
+    function algoAndPowVariantName(data, type, row) {
+        let algo = row.client_status.current_algo_name;
+        let powVariant = row.client_status.current_pow_variant_name;
+
+        if (powVariant !== "") {
+            return algo + " / " + powVariant
+        } else {
+            return algo;
+        }
+    }
+
+    function version(data, type, row) {
+        let clientVersion = parseInt(row.client_status.version.split('.').join(""));
+
+        if (clientVersion < 1000) {
+            clientVersion = clientVersion * 10;
+        }
+
+        if (latestVersion > clientVersion) {
+            return '<span data-toggle="tooltip" title="Outdated"><div class="offline">' + data + '</div></span>';
+        } else {
+            return data;
+        }
+    }
+
+    function clientStatus(data, type, row) {
+        let lastStatus = row.client_status.last_status_update * 1000;
+
+        if (isOnline(lastStatus)) {
+            return data;
+        } else {
+            return "OFFLINE";
+        }
+    }
+
+    function checkbox(data, type, row) {
+        return '<div class="select-checkbox"><input type="checkbox"><div>'
+    }
+
+    function clientInfo(data, type, row) {
+        if (type !== 'sort') {
+            let lastStatus = row.client_status.last_status_update * 1000;
+            let online = isOnline(lastStatus);
+
+            let tooltip = "CPU: " + row.client_status.cpu_brand + " (" + row.client_status.cpu_sockets + ") [" + row.client_status.cpu_cores + " cores / " + row.client_status.cpu_threads + " threads]";
+            tooltip += '\n';
+            tooltip += "CPU Flags: " + (row.client_status.cpu_has_aes ? "AES-NI " : "");
+            tooltip += (row.client_status.cpu_is_x64 ? "x64 " : "");
+            tooltip += (row.client_status.cpu_is_vm ? "VM" : "");
+            tooltip += '\n';
+            tooltip += "CPU Cache L2/L3: " + cache(row.client_status.cpu_l2) + " MB/" + cache(row.client_status.cpu_l3) + " MB";
+            tooltip += '\n';
+            tooltip += "CPU Nodes: " + row.client_status.cpu_nodes;
+            tooltip += '\n';
+            tooltip += "Max CPU usage: " + (row.client_status.max_cpu_usage > 0 ? row.client_status.max_cpu_usage : "100") + "%";
+            tooltip += '\n';
+            tooltip += "Huge Pages: " + (row.client_status.hugepages_available ? " available, " : " unavailable, ");
+            tooltip += (row.client_status.hugepages_enabled ? "enabled (" + row.client_status.total_hugepages + "/" + row.client_status.total_pages + ")" : "disabled");
+            tooltip += '\n';
+            tooltip += "Used Threads: " + row.client_status.current_threads;
+            tooltip += (row.client_status.hash_factor > 1 ? " [" + row.client_status.hash_factor + "x multi hash mode]" : "");
+            tooltip += '\n';
+            tooltip += "Memory Free/Total: " + memory(row.client_status.free_memory) + " GB/" + memory(row.client_status.total_memory) + " GB";
+            tooltip += '\n';
+
+            if (row.client_status.gpu_info_list) {
+                for (let id in row.client_status.gpu_info_list) {
+                    tooltip += "GPU #" + row.client_status.gpu_info_list[id].gpu_info.device_idx + ": ";
+                    tooltip += row.client_status.gpu_info_list[id].gpu_info.name + ", "
+                    tooltip += "intensity: " + row.client_status.gpu_info_list[id].gpu_info.raw_intensity + " ";
+                    tooltip += "(" + row.client_status.gpu_info_list[id].gpu_info.work_size + "/" + row.client_status.gpu_info_list[id].gpu_info.max_work_size + "), ";
+                    tooltip += "cu: " + row.client_status.gpu_info_list[id].gpu_info.compute_units;
+                    tooltip += '\n';
+                }
+            }
+
+            tooltip += "Client IP: " + row.client_status.external_ip;
+            tooltip += '\n';
+            tooltip += "Version: " + row.client_status.version;
+            tooltip += '\n';
+            tooltip += "Status: " + online ? "Online" : "Offline";
+
+            if (online) {
+                return '<span data-toggle="tooltip" title="' + tooltip + '"><div class="online">' + data + '</div></span>';
+            } else {
+                return '<span data-toggle="tooltip" title="' + tooltip + '"><div class="offline">' + data + '</div></span>';
+            }
+        }
+
+        return data;
+    }
+
+    function round(data, type, row) {
+        return Math.round(data * 100) / 100;
+    }
+
+    function memory(data, type, row) {
+        return Math.round(data / 1024 / 1024 / 1024 * 10) / 10;
+    }
+
+    function cache(data, type, row) {
+        return Math.round(data / 1024 * 100) / 100;
+    }
+
+    function isOnline(lastStatus) {
+        let threshold = currentServerTime - THRESHOLD_IN_MS;
+        if (lastStatus > threshold) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    function setSuccess(info) {
+        $("#statusBar").after('<div class="alert alert-success" role="alert">' +
+            '<button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>' +
+            info + '</div>');
+
+        window.setTimeout(function () {
+            $(".alert-success").fadeTo(500, 0).slideUp(500, function () {
+                $(".alert-success").alert('close');
+            });
+        }, 5000);
+    }
+
+    function setError(error) {
+        $("#statusBar").after('<div class="alert alert-danger" role="alert">' +
+            '<button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>' +
+            error + '</div>');
+
+        window.setTimeout(function () {
+            $(".alert-danger").fadeTo(500, 0).slideUp(500, function () {
+                $(".alert-danger").alert('close');
+            });
+        }, 10000);
+    }
+
+    function setClientConfig(clientId, clientConfig) {
+        $.ajax({
+            url: "/admin/setClientConfig?clientId=" + htmlDecode(clientId),
+            type: 'POST',
+            dataType: "text",
+            data: clientConfig,
+            success: function (data) {
+                setSuccess('<strong>Successfully updated config for: ' + clientId + '</strong> - You need push the config to the miner to apply the config.');
+            },
+            error: function (data) {
+                setError('<strong>Failed to update config for: ' + clientId + '</strong> \nError: ' + JSON.stringify(data, undefined, 2));
+            }
+        });
+    }
+
+    function setTemplateConfig(templateId, templateConfig) {
+        $.ajax({
+            url: "/admin/setClientConfig?clientId=template_" + htmlDecode(templateId),
+            type: 'POST',
+            dataType: "text",
+            data: templateConfig,
+            success: function (data) {
+                setSuccess('<strong>Successfully stored template: ' + templateId + '</strong> - You need to assign it to miners to apply.');
+            },
+            error: function (data) {
+                setError('<strong>Failed to store template: ' + templateId + '</strong> \nError: ' + JSON.stringify(data, undefined, 2));
+            }
+        });
+    }
+
+    function deleteTemplateConfig(templateId) {
+        $.ajax({
+            url: "/admin/deleteClientConfig?clientId=template_" + htmlDecode(templateId),
+            type: 'POST',
+            dataType: "text",
+            data: '{}',
+            success: function (data) {
+                setSuccess('<strong>Successfully deleted template: ' + templateId + '</strong>');
+            },
+            error: function (data) {
+                setError('<strong>Failed to delete template: ' + templateId + '</strong> \nError: ' + JSON.stringify(data, undefined, 2));
+            }
+        });
+    }
+
+    function updateCharts(hashrateChart, minerChart) {
+
+        $.ajax({
+            url: '/admin/getClientStatistics',
+            dataType: 'json',
+        }).done(function (results) {
+
+            let algos = results["client_statistics"].map(function (e) {
+                return e.algo;
+            });
+
+            let statistics = results["client_statistics"].map(function (e) {
+                return e.statistics;
+            });
+
+            let hashrateDatasets = [], minerDatasets = [];
+            for (let j = 0; j < results["client_statistics"].length; j++) {
+                let hashrates = statistics[j].map(function (e) {
+                    return {
+                        x: new Date(e.timestamp),
+                        y: Math.round(e.hashrate * 100) / 100
+                    }
+                });
+
+                let miners = statistics[j].map(function (e) {
+                    return {
+                        x: new Date(e.timestamp),
+                        y: e.miner
+                    }
+                });
+
+                hashrateDatasets.push({label: algos[j], type: 'line', data: hashrates, spanGraphs: false, fill: true});
+                minerDatasets.push({label: algos[j], type: 'line', data: miners, spanGraphs: false, fill: false});
+            }
+
+            hashrateChart.data.datasets = hashrateDatasets;
+            hashrateChart.update();
+
+            minerChart.data.datasets = minerDatasets;
+            minerChart.update();
+        });
+    }
+
+    function htmlDecode(input) {
+        let doc = new DOMParser().parseFromString(input, "text/html");
+        return doc.documentElement.textContent;
+    }
+
+    function htmlEncode(input) {
+        return input.replaceAll("&", "&amp;")
+            .replaceAll("<", "&lt;")
+            .replaceAll(">", "&gt;");
+    }
+</script>
+</body>
+</html>

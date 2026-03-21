@@ -1,0 +1,256 @@
+/* XMRig
+ * Copyright (c) 2018-2025 SChernykh   <https://github.com/SChernykh>
+ * Copyright (c) 2016-2025 XMRig       <https://github.com/xmrig>, <support@xmrig.com>
+ *
+ *   This program is free software: you can redistribute it and/or modify
+ *   it under the terms of the GNU General Public License as published by
+ *   the Free Software Foundation, either version 3 of the License, or
+ *   (at your option) any later version.
+ *
+ *   This program is distributed in the hope that it will be useful,
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ *   GNU General Public License for more details.
+ *
+ *   You should have received a copy of the GNU General Public License
+ *   along with this program. If not, see <http://www.gnu.org/licenses/>.
+ */
+
+#ifdef XMRIG_OS_FREEBSD
+#   include <sys/types.h>
+#   include <sys/param.h>
+#   ifndef __DragonFly__
+#       include <sys/cpuset.h>
+#   endif
+#   include <pthread_np.h>
+#endif
+
+
+#include <pthread.h>
+#include <sched.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/resource.h>
+#include <unistd.h>
+#include <uv.h>
+#include <thread>
+#include <fstream>
+#include <limits>
+
+
+#include "base/kernel/Platform.h"
+#include "base/tools/Chrono.h"
+#include "version.h"
+
+
+char *xmrig::Platform::createUserAgent()
+{
+    constexpr const size_t max = 256;
+
+    char *buf = new char[max]();
+
+#   if defined(__FreeBSD__)
+    int length = snprintf(buf, max, "%s/%s (FreeBSD ", APP_NAME, APP_VERSION);
+#   else
+    int length = snprintf(buf, max, "%s/%s (Linux ", APP_NAME, APP_VERSION);
+#   endif
+
+#   if defined(__x86_64__)
+    length += snprintf(buf + length, max - length, "x86_64) libuv/%s", uv_version_string());
+#   elif defined(__aarch64__)
+    length += snprintf(buf + length, max - length, "aarch64) libuv/%s", uv_version_string());
+#   elif defined(__arm__)
+    length += snprintf(buf + length, max - length, "arm) libuv/%s", uv_version_string());
+#   else
+    length += snprintf(buf + length, max - length, "i686) libuv/%s", uv_version_string());
+#   endif
+
+#   ifdef __clang__
+    length += snprintf(buf + length, max - length, " clang/%d.%d.%d", __clang_major__, __clang_minor__, __clang_patchlevel__);
+#   elif defined(__GNUC__)
+    length += snprintf(buf + length, max - length, " gcc/%d.%d.%d", __GNUC__, __GNUC_MINOR__, __GNUC_PATCHLEVEL__);
+#   endif
+
+    return buf;
+}
+
+
+char *xmrig::Platform::createUpdatePath()
+{
+    constexpr const size_t max = 256;
+
+    char *buf = new char[max]();
+
+#   if defined(__FreeBSD__)
+    int length = snprintf(buf, max, "freebsd");
+#   elif defined(XMRIG_OS_ANDROID)
+    int length = snprintf(buf, max, "android");
+#   else
+    int length = snprintf(buf, max, "linux");
+#   endif
+
+#   if defined(XMRIG_FEATURE_OPENCL) || defined(XMRIG_FEATURE_CUDA)
+    length += snprintf(buf + length, max - length, "-dynamic");
+#   else
+    length += snprintf(buf + length, max - length, "-static");
+#   endif
+
+#   if defined(__x86_64__)
+    length += snprintf(buf + length, max - length, "-amd64");
+#   elif defined(__aarch64__)
+    length += snprintf(buf + length, max - length, "-arm64");
+#   elif defined(__arm__)
+    length += snprintf(buf + length, max - length, "-arm");
+#   else
+    length += snprintf(buf + length, max - length, "-i386");
+#   endif
+
+    snprintf(buf + length, max - length, "/xmrigMiner");
+
+    return buf;
+}
+
+
+#ifndef XMRIG_FEATURE_HWLOC
+#if defined(__DragonFly__) || defined(XMRIG_OS_OPENBSD) || defined(XMRIG_OS_HAIKU)
+
+bool xmrig::Platform::setThreadAffinity(uint64_t cpu_id)
+{
+    return false;
+}
+
+#else
+
+#ifdef XMRIG_OS_FREEBSD
+typedef cpuset_t cpu_set_t;
+#endif
+
+bool xmrig::Platform::setThreadAffinity(uint64_t cpu_id)
+{
+    cpu_set_t mn;
+    CPU_ZERO(&mn);
+    CPU_SET(cpu_id, &mn);
+
+#   ifndef __ANDROID__
+    const bool result = (pthread_setaffinity_np(pthread_self(), sizeof(cpu_set_t), &mn) == 0);
+#   else
+    const bool result = (sched_setaffinity(gettid(), sizeof(cpu_set_t), &mn) == 0);
+#   endif
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    return result;
+}
+
+#endif // __DragonFly__
+#endif // XMRIG_FEATURE_HWLOC
+
+
+void xmrig::Platform::setProcessPriority(int)
+{
+}
+
+
+void xmrig::Platform::setThreadPriority(int priority)
+{
+    if (priority == -1) {
+        return;
+    }
+
+    int prio = 19;
+    switch (priority)
+    {
+    case 1:
+        prio = 5;
+        break;
+
+    case 2:
+        prio = 0;
+        break;
+
+    case 3:
+        prio = -5;
+        break;
+
+    case 4:
+        prio = -10;
+        break;
+
+    case 5:
+        prio = -15;
+        break;
+
+    default:
+        break;
+    }
+
+    setpriority(PRIO_PROCESS, 0, prio);
+
+#   ifdef SCHED_IDLE
+    if (priority == 0) {
+        sched_param param;
+        param.sched_priority = 0;
+
+        if (sched_setscheduler(0, SCHED_IDLE, &param) != 0) {
+            sched_setscheduler(0, SCHED_BATCH, &param);
+        }
+    }
+#   endif
+}
+
+
+bool xmrig::Platform::isOnBatteryPower()
+{
+    for (int i = 0; i <= 1; ++i) {
+        char buf[64];
+        snprintf(buf, 64, "/sys/class/power_supply/BAT%d/status", i);
+        std::ifstream f(buf);
+        if (f.is_open()) {
+            std::string status;
+            f >> status;
+            return (status == "Discharging");
+        }
+    }
+    return false;
+}
+
+
+uint64_t xmrig::Platform::idleTime()
+{
+    return std::numeric_limits<uint64_t>::max();
+}
+
+int64_t xmrig::Platform::getThreadSleepTimeToLimitMaxCpuUsage(uint8_t maxCpuUsage)
+{
+    uint64_t currentSystemTime = Chrono::highResolutionMicroSecs();
+    if (currentSystemTime - m_systemTime > MIN_RECALC_THRESHOLD_USEC)
+    {
+        struct rusage usage{};
+        if (getrusage(RUSAGE_THREAD, &usage) == 0)
+        {
+            int64_t currentThreadUsageTime = usage.ru_stime.tv_usec + (usage.ru_stime.tv_sec * 1000000)
+                                             + usage.ru_utime.tv_usec + (usage.ru_utime.tv_sec * 1000000);
+
+            if (m_threadUsageTime > 0 || m_systemTime > 0)
+            {
+                m_threadTimeToSleep = ((currentThreadUsageTime - m_threadUsageTime) * 100 / maxCpuUsage)
+                                      - (currentSystemTime - m_systemTime - m_threadTimeToSleep);
+            }
+
+            m_threadUsageTime = currentThreadUsageTime;
+            m_systemTime = currentSystemTime;
+        }
+
+        // Something went terrible wrong, reset everything
+        if (m_threadTimeToSleep > 10000000 || m_threadTimeToSleep < 0)
+        {
+            m_threadTimeToSleep = 0;
+            m_threadUsageTime = 0;
+            m_systemTime = 0;
+        }
+
+        return m_threadTimeToSleep;
+    }
+
+    return 0;
+}
