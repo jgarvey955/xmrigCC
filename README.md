@@ -281,18 +281,3 @@ Misc:
 
 ## Donations
 * Minimum 1% (1 minutes in 100 minutes) can be set via config or command line option `--donate-level`.
-
-##### BenDroid (XMRigCC):
-XMR:  `4BEn3sSa2SsHBcwa9dNdKnGvvbyHPABr2JzoY7omn7DA2hPv84pVFvwDrcwMCWgz3dQVcrkw3gE9aTC9Mi5HxzkfF9ev1eH`
-
-BTC:  `3Gwq9tveCZtLAiXX7mxhjbrh38GPx1iXdB`
-
-ETH:  `0x799611a12F196848967E9002B7bF1d01872D88F8`
-
-
-## Contact
-* ben [at] graef.in
-* [telegram](https://t.me/XMRigCC)
-* [discord](https://discord.gg/r3rCKTB)
-* [twitter](https://twitter.com/XMRigCC)
-* [reddit](https://www.reddit.com/user/BenDr0id/)
