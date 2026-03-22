@@ -14,5 +14,4 @@ Testing/
 *.a
 *.cbp
 .cmake/api/v1/reply
-xmrig*
 *ninja*
