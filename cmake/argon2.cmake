@@ -1,4 +1,11 @@
 if (WITH_ARGON2)
+    if (NOT EXISTS "${CMAKE_SOURCE_DIR}/src/3rdparty/argon2/CMakeLists.txt")
+        message(WARNING "Argon2 sources not found at src/3rdparty/argon2, disabling WITH_ARGON2")
+        set(WITH_ARGON2 OFF)
+    endif()
+endif()
+
+if (WITH_ARGON2)
     add_definitions(/DXMRIG_ALGO_ARGON2)
 
     list(APPEND HEADERS_CRYPTO

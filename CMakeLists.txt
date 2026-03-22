@@ -3,6 +3,10 @@ project(xmrigcc)
 
 set(CMAKE_BUILD_TYPE "Release")
 
+if (DEFINED XMRIG_DEPS AND NOT IS_ABSOLUTE "${XMRIG_DEPS}")
+    get_filename_component(XMRIG_DEPS "${XMRIG_DEPS}" ABSOLUTE BASE_DIR "${CMAKE_SOURCE_DIR}")
+endif()
+
 find_program(CCACHE_PROGRAM ccache)
 if(CCACHE_PROGRAM)
     message(STATUS "-- XMRigCC: Found ccache package... Activating...")
