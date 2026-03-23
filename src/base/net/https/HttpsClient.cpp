@@ -19,6 +19,7 @@
 
 
 #include <cassert>
+#include <openssl/err.h>
 #include <openssl/ssl.h>
 #include <uv.h>
 
@@ -98,8 +99,9 @@ void xmrig::HttpsClient::read(const char *data, size_t size)
 
     if (!SSL_is_init_finished(m_ssl)) {
         const int rc = SSL_connect(m_ssl);
+        const int error = SSL_get_error(m_ssl, rc);
 
-        if (rc < 0 && SSL_get_error(m_ssl, rc) == SSL_ERROR_WANT_READ) {
+        if (rc < 0 && (error == SSL_ERROR_WANT_READ || error == SSL_ERROR_WANT_WRITE)) {
             flush(false);
         } else if (rc == 1) {
             X509 *cert = SSL_get_peer_certificate(m_ssl);
@@ -112,9 +114,13 @@ void xmrig::HttpsClient::read(const char *data, size_t size)
             m_ready = true;
 
             HttpClient::handshake();
-      }
+        }
+        else {
+            logSslError("TLS handshake failed", rc);
+            close(UV_EPROTO);
+        }
 
-      return;
+        return;
     }
 
     static char buf[16384]{};
@@ -126,16 +132,62 @@ void xmrig::HttpsClient::read(const char *data, size_t size)
 
     if (rc == 0) {
         close(UV_EOF);
+        return;
+    }
+
+    const int error = SSL_get_error(m_ssl, rc);
+    if (error == SSL_ERROR_WANT_WRITE) {
+        flush(false);
+        return;
+    }
+
+    if (error != SSL_ERROR_WANT_READ) {
+        logSslError("TLS read failed", rc);
+        close(UV_EPROTO);
     }
 }
 
 
-void xmrig::HttpsClient::write(std::string &&data, bool close)
+void xmrig::HttpsClient::write(std::string &&data, bool shouldClose)
 {
     const std::string body = std::move(data);
-    SSL_write(m_ssl, body.data(), body.size());
+    const int rc = SSL_write(m_ssl, body.data(), body.size());
+    if (rc <= 0) {
+        const int error = SSL_get_error(m_ssl, rc);
+        if (error == SSL_ERROR_WANT_READ || error == SSL_ERROR_WANT_WRITE) {
+            flush(shouldClose);
+            return;
+        }
 
-    flush(close);
+        logSslError("TLS write failed", rc);
+        close(UV_EPROTO);
+        return;
+    }
+
+    flush(shouldClose);
+}
+
+
+void xmrig::HttpsClient::logSslError(const char *message, int rc) const
+{
+    if (isQuiet()) {
+        return;
+    }
+
+    char buf[256] = { 0 };
+    const unsigned long error = ERR_get_error();
+    if (error != 0) {
+        ERR_error_string_n(error, buf, sizeof(buf));
+    }
+
+    LOG_ERR("[%s:%d] %s, rc=%d, ssl_error=%d%s%s",
+            host(),
+            port(),
+            message,
+            rc,
+            m_ssl ? SSL_get_error(m_ssl, rc) : -1,
+            buf[0] ? ", openssl_error=" : "",
+            buf);
 }
 
 

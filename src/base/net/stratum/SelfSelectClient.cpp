@@ -174,6 +174,7 @@ void xmrig::SelfSelectClient::getBlockTemplate()
     JsonRequest::create(doc, m_sequence++, "getblocktemplate", params);
 
     FetchRequest req(HTTP_POST, pool().daemon().host(), pool().daemon().port(), "/json_rpc", doc, pool().daemon().isTLS(), isQuiet());
+    req.fingerprint = pool().fingerprint();
     fetch(tag(), std::move(req), m_httpListener);
 }
 
@@ -286,6 +287,7 @@ void xmrig::SelfSelectClient::submitOriginDaemon(const JobResult& result)
     m_results[m_sequence] = SubmitResult(m_sequence, result.diff, result.actualDiff(), 0, result.backend);
 
     FetchRequest req(HTTP_POST, pool().daemon().host(), pool().daemon().port(), "/json_rpc", doc, pool().daemon().isTLS(), isQuiet());
+    req.fingerprint = pool().fingerprint();
     fetch(tag(), std::move(req), m_httpListener);
 
     m_originSubmitted++;

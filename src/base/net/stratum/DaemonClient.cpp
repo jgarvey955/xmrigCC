@@ -254,6 +254,9 @@ void xmrig::DaemonClient::setPool(const Pool &pool)
 
 void xmrig::DaemonClient::onHttpData(const HttpData &data)
 {
+    m_httpActive = false;
+    m_httpStarted = 0;
+
     if (data.status != 200) {
         return retry();
     }
@@ -329,6 +332,10 @@ void xmrig::DaemonClient::onTimer(const Timer *)
     if (Chrono::steadyMSecs() >= m_jobSteadyMs + m_pool.jobTimeout()) {
         m_prevHash = nullptr;
         m_blocktemplateRequestHash = nullptr;
+    }
+
+    if (m_httpActive) {
+        return;
     }
 
     if (m_state == ConnectingState) {
@@ -572,11 +579,19 @@ int64_t xmrig::DaemonClient::getBlockTemplate()
 
 int64_t xmrig::DaemonClient::rpcSend(const rapidjson::Document &doc, const std::map<std::string, std::string> &headers)
 {
+    if (m_httpActive) {
+        return -1;
+    }
+
     FetchRequest req(HTTP_POST, m_pool.host(), m_pool.port(), kJsonRPC, doc, m_pool.isTLS(), isQuiet());
+    req.fingerprint = m_pool.fingerprint();
+    req.timeout = httpTimeout();
     for (const auto &header : headers) {
         req.headers.insert(header);
     }
 
+    m_httpActive = true;
+    m_httpStarted = Chrono::steadyMSecs();
     fetch(tag(), std::move(req), m_httpListener);
 
     return m_sequence++;
@@ -585,6 +600,8 @@ int64_t xmrig::DaemonClient::rpcSend(const rapidjson::Document &doc, const std::
 
 void xmrig::DaemonClient::retry()
 {
+    m_httpActive = false;
+    m_httpStarted = 0;
     m_failures++;
     m_listener->onClose(this, static_cast<int>(m_failures));
 
@@ -610,8 +627,24 @@ void xmrig::DaemonClient::retry()
 
 void xmrig::DaemonClient::send(const char *path)
 {
+    if (m_httpActive) {
+        return;
+    }
+
     FetchRequest req(HTTP_GET, m_pool.host(), m_pool.port(), path, m_pool.isTLS(), isQuiet());
+    req.fingerprint = m_pool.fingerprint();
+    req.timeout = httpTimeout();
+    m_httpActive = true;
+    m_httpStarted = Chrono::steadyMSecs();
     fetch(tag(), std::move(req), m_httpListener);
+}
+
+
+uint64_t xmrig::DaemonClient::httpTimeout() const
+{
+    const uint64_t poll = std::max<uint64_t>(m_pool.pollInterval(), 1000);
+
+    return std::max<uint64_t>(5000, std::min<uint64_t>(m_pool.jobTimeout(), poll * 10));
 }
 
 

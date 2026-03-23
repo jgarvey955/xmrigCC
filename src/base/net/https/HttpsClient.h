@@ -51,6 +51,7 @@ protected:
     void read(const char *data, size_t size) override;
 
 private:
+    void logSslError(const char *message, int rc) const;
     void write(std::string &&data, bool close) override;
 
     bool verify(X509 *cert);

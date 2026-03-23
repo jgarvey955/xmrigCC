@@ -82,6 +82,7 @@ protected:
     inline void tick(uint64_t) override                                 {}
 
 private:
+    uint64_t httpTimeout() const;
     bool isOutdated(uint64_t height, const char *hash) const;
     bool parseJob(const rapidjson::Value &params, int *code);
     bool parseResponse(int64_t id, const rapidjson::Value &result, const rapidjson::Value &error);
@@ -105,10 +106,12 @@ private:
     String m_currentJobId;
     String m_prevHash;
     uint64_t m_jobSteadyMs = 0;
+    uint64_t m_httpStarted = 0;
     String m_tlsFingerprint;
     String m_tlsVersion;
     Timer *m_timer;
     uint64_t m_blocktemplateRequestHeight = 0;
+    bool m_httpActive = false;
     WalletAddress m_walletAddress;
 
 private:
