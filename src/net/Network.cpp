@@ -34,6 +34,7 @@
 #include "core/config/Config.h"
 #include "core/Controller.h"
 #include "core/Miner.h"
+#include "net/DiscordNotifier.h"
 #include "net/JobResult.h"
 #include "net/JobResults.h"
 #include "net/strategies/DonateStrategy.h"
@@ -70,6 +71,7 @@ xmrig::Network::Network(Controller *controller) :
 #   endif
 
     m_state = new NetworkState(this);
+    m_discord = new DiscordNotifier(controller->config(), m_state);
 
     const Pools &pools = controller->config()->pools();
     m_strategy = pools.createStrategy(m_state);
@@ -87,6 +89,7 @@ xmrig::Network::~Network()
     JobResults::stop();
 
     delete m_timer;
+    delete m_discord;
     delete m_donate;
     delete m_strategy;
     delete m_state;
@@ -145,6 +148,11 @@ void xmrig::Network::onActive(IStrategy *strategy, IClient *client)
 
 void xmrig::Network::onConfigChanged(Config *config, Config *previousConfig)
 {
+    if (m_discord) {
+        m_discord->setConfig(config);
+        m_discord->reset();
+    }
+
     if (config->pools() == previousConfig->pools() || !config->pools().active()) {
         return;
     }
@@ -224,7 +232,7 @@ void xmrig::Network::onPause(IStrategy *strategy)
 }
 
 
-void xmrig::Network::onResultAccepted(IStrategy *, IClient *, const SubmitResult &result, const char *error)
+void xmrig::Network::onResultAccepted(IStrategy *strategy, IClient *client, const SubmitResult &result, const char *error)
 {
     uint64_t diff     = result.diff;
     const char *scale = NetworkState::scaleDiff(diff);
@@ -236,6 +244,10 @@ void xmrig::Network::onResultAccepted(IStrategy *, IClient *, const SubmitResult
     else {
         LOG_INFO("%s " GREEN_BOLD("accepted") " (%" PRId64 "/%" PRId64 ") diff " WHITE_BOLD("%" PRIu64 "%s") " " BLACK_BOLD("(%" PRIu64 " ms)"),
                  backend_tag(result.backend), m_state->accepted(), m_state->rejected(), diff, scale, result.elapsed);
+    }
+
+    if (!m_donate || m_donate != strategy) {
+        m_discord->notify(client, result, error);
     }
 }
 

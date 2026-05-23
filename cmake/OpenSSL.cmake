@@ -18,6 +18,10 @@ if (WITH_TLS)
     find_package(OpenSSL)
 
     if (OPENSSL_FOUND)
+        if (BUILD_STATIC AND XMRIG_DEPS)
+            set(OPENSSL_LIBRARIES ${OPENSSL_SSL_LIBRARY} ${OPENSSL_CRYPTO_LIBRARY})
+        endif()
+
         set(TLS_SOURCES
             src/base/net/stratum/Tls.cpp
             src/base/net/stratum/Tls.h

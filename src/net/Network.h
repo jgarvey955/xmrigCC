@@ -38,6 +38,7 @@ namespace xmrig {
 
 
 class Controller;
+class DiscordNotifier;
 class IStrategy;
 class NetworkState;
 
@@ -87,6 +88,7 @@ private:
 #   endif
 
     Controller *m_controller;
+    DiscordNotifier *m_discord = nullptr;
     IStrategy *m_donate     = nullptr;
     IStrategy *m_strategy   = nullptr;
     NetworkState *m_state   = nullptr;

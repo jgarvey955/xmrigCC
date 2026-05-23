@@ -149,6 +149,18 @@ public:
         AlgoExtKey           = 1115,
         ProxyPasswordKey     = 1116,
         LoginFileKey         = 'L',
+        DiscordKey           = 1118,
+        DiscordWebhookKey    = 1119,
+        DiscordAcceptedIntervalKey = 1120,
+        DiscordRejectedKey   = 1121,
+        DiscordVerboseKey    = 1122,
+        DiscordMinDiffKey    = 1123,
+        DiscordUsernameKey   = 1124,
+        DiscordAvatarUrlKey  = 1125,
+        DiscordMentionKey    = 1126,
+        DiscordNoWorkerKey   = 1127,
+        DiscordNoTotalsKey   = 1128,
+        DiscordQuietKey      = 1129,
 
         // xmrig nvidia
         CudaMaxThreadsKey    = 1200,

@@ -36,6 +36,7 @@ namespace xmrig
 
 static const char *kAffinity    = "affinity";
 static const char *kAsterisk    = "*";
+static const char *kDiscord     = "discord";
 static const char *kEnabled     = "enabled";
 static const char *kIntensity   = "intensity";
 static const char *kThreads     = "threads";
@@ -121,10 +122,14 @@ void xmrig::ConfigTransform::transform(rapidjson::Document &doc, int key, const 
     case IConfig::CPUPriorityKey:  /* --cpu-priority */
     case IConfig::ThreadsKey:      /* --threads */
     case IConfig::HugePageSizeKey: /* --hugepage-size */
+    case IConfig::DiscordAcceptedIntervalKey: /* --discord-accepted-interval */
+    case IConfig::DiscordMinDiffKey: /* --discord-min-diff */
         return transformUint64(doc, key, static_cast<uint64_t>(strtol(arg, nullptr, 10)));
 
     case IConfig::HugePagesKey: /* --no-huge-pages */
     case IConfig::CPUKey:       /* --no-cpu */
+    case IConfig::DiscordNoWorkerKey: /* --discord-no-worker */
+    case IConfig::DiscordNoTotalsKey: /* --discord-no-totals */
         return transformBoolean(doc, key, false);
 
     case IConfig::CPUAffinityKey: /* --cpu-affinity */
@@ -153,6 +158,25 @@ void xmrig::ConfigTransform::transform(rapidjson::Document &doc, int key, const 
 
     case IConfig::PauseOnActiveKey: /* --pause-on-active */
         return set(doc, Config::kPauseOnActive, static_cast<uint64_t>(strtol(arg, nullptr, 10)));
+
+    case IConfig::DiscordKey: /* --discord */
+    case IConfig::DiscordRejectedKey: /* --discord-rejected */
+    case IConfig::DiscordVerboseKey: /* --discord-verbose */
+    case IConfig::DiscordQuietKey: /* --discord-log-errors */
+        return transformBoolean(doc, key, true);
+
+    case IConfig::DiscordWebhookKey: /* --discord-webhook */
+        set(doc, kDiscord, "webhook", arg);
+        return set(doc, kDiscord, "enabled", true);
+
+    case IConfig::DiscordUsernameKey: /* --discord-username */
+        return set(doc, kDiscord, "username", arg);
+
+    case IConfig::DiscordAvatarUrlKey: /* --discord-avatar-url */
+        return set(doc, kDiscord, "avatar-url", arg);
+
+    case IConfig::DiscordMentionKey: /* --discord-mention */
+        return set(doc, kDiscord, "mention", arg);
 
 #   ifdef XMRIG_ALGO_ARGON2
     case IConfig::Argon2ImplKey: /* --argon2-impl */
@@ -267,6 +291,24 @@ void xmrig::ConfigTransform::transformBoolean(rapidjson::Document &doc, int key,
     case IConfig::CPUKey:       /* --no-cpu */
         return set(doc, CpuConfig::kField, kEnabled, enable);
 
+    case IConfig::DiscordKey: /* --discord */
+        return set(doc, kDiscord, "enabled", enable);
+
+    case IConfig::DiscordRejectedKey: /* --discord-rejected */
+        return set(doc, kDiscord, "notify-rejected", enable);
+
+    case IConfig::DiscordVerboseKey: /* --discord-verbose */
+        return set(doc, kDiscord, "verbose", enable);
+
+    case IConfig::DiscordNoWorkerKey: /* --discord-no-worker */
+        return set(doc, kDiscord, "include-worker", enable);
+
+    case IConfig::DiscordNoTotalsKey: /* --discord-no-totals */
+        return set(doc, kDiscord, "include-totals", enable);
+
+    case IConfig::DiscordQuietKey: /* --discord-log-errors */
+        return set(doc, kDiscord, "quiet", !enable);
+
     default:
         break;
     }
@@ -297,8 +339,13 @@ void xmrig::ConfigTransform::transformUint64(rapidjson::Document &doc, int key, 
     case IConfig::HugePageSizeKey: /* --hugepage-size */
         return set(doc, CpuConfig::kField, CpuConfig::kHugePages, arg);
 
+    case IConfig::DiscordAcceptedIntervalKey: /* --discord-accepted-interval */
+        return set(doc, kDiscord, "accepted-interval", arg);
+
+    case IConfig::DiscordMinDiffKey: /* --discord-min-diff */
+        return set(doc, kDiscord, "min-diff", arg);
+
     default:
         break;
     }
 }
-

@@ -90,6 +90,21 @@ R"===(
     "donate-level": 5,
     "donate-over-proxy": 2,
     "log-file": null,
+    "discord": {
+        "enabled": false,
+        "webhook": "",
+        "notify-accepted": true,
+        "accepted-interval": 0,
+        "notify-rejected": false,
+        "verbose": true,
+        "include-worker": true,
+        "include-totals": true,
+        "min-diff": 0,
+        "username": "",
+        "avatar-url": "",
+        "mention": "",
+        "quiet": true
+    },
     "pools": [
         {
             "algo": null,

@@ -28,6 +28,7 @@
 #include "core/Controller.h"
 #include "crypto/common/Assembly.h"
 #include "crypto/common/VirtualMemory.h"
+#include "net/DiscordNotifier.h"
 #include "Summary.h"
 #include "version.h"
 
@@ -185,6 +186,38 @@ static void print_threads(const Config *config)
 }
 
 
+static void print_discord(const Config *config)
+{
+    const DiscordConfig &discord = config->discord();
+
+    if (!discord.enabled) {
+        Log::print(GREEN_BOLD(" * ") WHITE_BOLD("%-13s") RED_BOLD("disabled"), "DISCORD");
+        return;
+    }
+
+    if (discord.webhook.isEmpty()) {
+        Log::print(GREEN_BOLD(" * ") WHITE_BOLD("%-13s") YELLOW_BOLD("enabled") WHITE_BOLD(" webhook ") RED_BOLD("missing"), "DISCORD");
+        return;
+    }
+
+    const char *trigger = discord.acceptedInterval == 0 ? "per-accept" : "batched";
+    if (discord.acceptedInterval == 0) {
+        Log::print(GREEN_BOLD(" * ") WHITE_BOLD("%-13s") GREEN_BOLD("enabled") WHITE_BOLD(" %s%s%s%s"),
+                   "DISCORD", trigger,
+                   discord.verbose ? " verbose" : "",
+                   discord.includeWorker ? " worker" : "",
+                   discord.notifyRejected ? " rejected" : "");
+    }
+    else {
+        Log::print(GREEN_BOLD(" * ") WHITE_BOLD("%-13s") GREEN_BOLD("enabled") WHITE_BOLD(" %s %" PRIu64 "s%s%s%s"),
+                   "DISCORD", trigger, discord.acceptedInterval,
+                   discord.verbose ? " verbose" : "",
+                   discord.includeWorker ? " worker" : "",
+                   discord.notifyRejected ? " rejected" : "");
+    }
+}
+
+
 static void print_commands(Config *)
 {
     if (Log::isColors()) {
@@ -214,6 +247,7 @@ void xmrig::Summary::print(Controller *controller)
     print_memory(config);
     print_threads(config);
     config->pools().print();
+    print_discord(config);
 
 #   ifdef XMRIG_FEATURE_CC_CLIENT
     config->ccClient().print();
@@ -221,6 +255,5 @@ void xmrig::Summary::print(Controller *controller)
 
     print_commands(config);
 }
-
 
 

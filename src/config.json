@@ -57,9 +57,24 @@
         "cn/0": false,
         "cn-lite/0": false
     },
-    "donate-level": 3,
+    "donate-level": 5,
     "donate-over-proxy": 1,
     "log-file": null,
+    "discord": {
+        "enabled": false,
+        "webhook": "",
+        "notify-accepted": true,
+        "accepted-interval": 0,
+        "notify-rejected": false,
+        "verbose": true,
+        "include-worker": true,
+        "include-totals": true,
+        "min-diff": 0,
+        "username": "",
+        "avatar-url": "",
+        "mention": "",
+        "quiet": true
+    },
     "pools": [
         {
             "algo": null,

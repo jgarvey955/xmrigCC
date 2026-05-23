@@ -21,8 +21,8 @@
     * Extended remote shell execute for scripts with auto refreshing response log
     * Automatic refresh in remote log view
     * Fixed minor ui glitches
-* Dev-fee has been reduced to default 3% default, can be reduced to 1% (minimum) by
-  `--donate-level` or in config.json `"donate-level": 1,`
+* Dev-fee is default 5% and can be reduced to 5% (minimum) by
+  `--donate-level` or in config.json `"donate-level": 5,`
 * Rebase on latest xmrig-6.21.0
     * Fix for Zephyr solo mining
 # 3.3.3

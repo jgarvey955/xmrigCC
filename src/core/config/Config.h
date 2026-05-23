@@ -27,6 +27,7 @@
 #include "backend/cpu/CpuConfig.h"
 #include "base/kernel/config/BaseConfig.h"
 #include "base/tools/Object.h"
+#include "net/DiscordNotifier.h"
 
 
 namespace xmrig {
@@ -70,6 +71,7 @@ public:
 
     bool isPauseOnBattery() const;
     const CpuConfig &cpu() const;
+    const DiscordConfig &discord() const;
     uint32_t idleTime() const;
 
 #   ifdef XMRIG_FEATURE_OPENCL

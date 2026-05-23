@@ -78,6 +78,7 @@ class ConfigPrivate
 public:
     bool pauseOnBattery = false;
     CpuConfig cpu;
+    DiscordConfig discord;
     uint32_t idleTime   = 0;
 
 #   ifdef XMRIG_ALGO_RANDOMX
@@ -135,6 +136,12 @@ bool xmrig::Config::isPauseOnBattery() const
 const xmrig::CpuConfig &xmrig::Config::cpu() const
 {
     return d_ptr->cpu;
+}
+
+
+const xmrig::DiscordConfig &xmrig::Config::discord() const
+{
+    return d_ptr->discord;
 }
 
 
@@ -214,6 +221,7 @@ bool xmrig::Config::read(const IJsonReader &reader, const char *fileName)
 
     d_ptr->pauseOnBattery = reader.getBool(kPauseOnBattery, d_ptr->pauseOnBattery);
     d_ptr->setIdleTime(reader.getValue(kPauseOnActive));
+    d_ptr->discord.read(reader.getObject(DiscordConfig::kField));
 
     d_ptr->cpu.read(reader.getValue(CpuConfig::kField));
 
@@ -271,6 +279,7 @@ void xmrig::Config::getJSON(rapidjson::Document &doc) const
 #   endif
 
     doc.AddMember(StringRef(CpuConfig::kField),         cpu().toJSON(doc), allocator);
+    doc.AddMember(StringRef(DiscordConfig::kField),     discord().toJSON(doc), allocator);
 
 #   ifdef XMRIG_FEATURE_OPENCL
     doc.AddMember(StringRef(kOcl),                      cl().toJSON(doc), allocator);

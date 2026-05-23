@@ -1,6 +1,6 @@
 #!/bin/sh -e
 
-OPENSSL_VERSION="3.6.1"
+OPENSSL_VERSION="4.0.0"
 
 mkdir -p deps
 mkdir -p deps/include
@@ -12,7 +12,7 @@ wget -4 https://github.com/openssl/openssl/releases/download/openssl-${OPENSSL_V
 tar -xzf openssl-${OPENSSL_VERSION}.tar.gz
 
 cd openssl-${OPENSSL_VERSION}
-./config -no-shared -no-asm -no-zlib -no-comp -no-dgram -no-filenames -no-cms
+./config -no-shared -no-asm -no-zlib -no-comp -no-dgram -no-filenames -no-cms no-jitter no-fips-jitter
 make -j$(nproc || sysctl -n hw.ncpu || sysctl -n hw.logicalcpu)
 cp -fr include ../../deps
 cp libcrypto.a ../../deps/lib

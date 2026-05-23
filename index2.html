@@ -1,0 +1,1809 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>XMRigCC Multi-Miner Monitor</title>
+    <style>
+        :root {
+            --bg: #071017;
+            --panel: rgba(12, 24, 35, 0.94);
+            --panel-2: rgba(18, 34, 49, 0.96);
+            --line: rgba(120, 170, 204, 0.18);
+            --text: #eaf6ff;
+            --muted: #8eaec2;
+            --accent: #53d4ff;
+            --accent-2: #67f0bf;
+            --warn: #ffbe69;
+            --danger: #ff7d82;
+            --ok: #77ef9f;
+            --shadow: 0 22px 60px rgba(0, 0, 0, 0.38);
+            --radius: 18px;
+            --mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+            --sans: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        * { box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+
+        body {
+            margin: 0;
+            color: var(--text);
+            font-family: var(--sans);
+            background:
+                radial-gradient(circle at top left, rgba(83, 212, 255, 0.16), transparent 28%),
+                radial-gradient(circle at top right, rgba(103, 240, 191, 0.12), transparent 24%),
+                linear-gradient(180deg, #061018 0%, #0a121a 46%, #08111a 100%);
+        }
+
+        .shell {
+            width: min(1600px, calc(100vw - 24px));
+            margin: 0 auto;
+            padding: 18px 0 30px;
+        }
+
+        .panel,
+        .hero {
+            border: 1px solid var(--line);
+            border-radius: var(--radius);
+            background: var(--panel);
+            box-shadow: var(--shadow);
+            backdrop-filter: blur(10px);
+        }
+
+        .hero {
+            padding: 22px;
+            margin-bottom: 18px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .hero::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background:
+                linear-gradient(140deg, rgba(83, 212, 255, 0.08), transparent 35%),
+                linear-gradient(315deg, rgba(103, 240, 191, 0.08), transparent 32%);
+            pointer-events: none;
+        }
+
+        .hero-grid,
+        .grid {
+            display: grid;
+            gap: 18px;
+        }
+
+        .hero-grid {
+            grid-template-columns: 1.2fr 1fr;
+            position: relative;
+            z-index: 1;
+        }
+
+        .grid {
+            grid-template-columns: repeat(12, minmax(0, 1fr));
+        }
+
+        .span-12 { grid-column: span 12; }
+        .span-8 { grid-column: span 8; }
+        .span-7 { grid-column: span 7; }
+        .span-6 { grid-column: span 6; }
+        .span-5 { grid-column: span 5; }
+        .span-4 { grid-column: span 4; }
+
+        h1, h2, h3 {
+            margin: 0;
+            line-height: 1.08;
+        }
+
+        h1 { font-size: clamp(2rem, 4vw, 3.4rem); }
+        h2 { font-size: 1.2rem; }
+        h3 { font-size: 1rem; }
+
+        p { margin: 0; }
+
+        .headline {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            margin-bottom: 10px;
+        }
+
+        .headline-mark {
+            width: 14px;
+            height: 52px;
+            border-radius: 999px;
+            background: linear-gradient(180deg, var(--accent), var(--accent-2));
+            box-shadow: 0 0 24px rgba(83, 212, 255, 0.44);
+        }
+
+        .subline,
+        .small,
+        .panel-head p,
+        .field label,
+        .toggle-text,
+        .hint {
+            color: var(--muted);
+        }
+
+        .subline {
+            margin-bottom: 18px;
+            max-width: 72ch;
+        }
+
+        .hero-stats,
+        .metrics,
+        .kv-grid,
+        .controls-grid,
+        .toolbar,
+        .action-grid,
+        .monitor-grid {
+            display: grid;
+            gap: 12px;
+        }
+
+        .hero-stats { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+        .metrics { grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); }
+        .kv-grid { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+        .controls-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .action-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+        .monitor-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+
+        .stat,
+        .metric,
+        .kv,
+        .chart-card {
+            border: 1px solid var(--line);
+            border-radius: 16px;
+            background: var(--panel-2);
+            padding: 13px 14px;
+        }
+
+        .label {
+            color: var(--muted);
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+
+        .value {
+            margin-top: 4px;
+            font-size: 1.08rem;
+            font-weight: 700;
+        }
+
+        .mono,
+        textarea,
+        pre,
+        code,
+        table {
+            font-family: var(--mono);
+        }
+
+        .panel {
+            padding: 18px;
+        }
+
+        .panel-head {
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            align-items: flex-start;
+            margin-bottom: 14px;
+        }
+
+        .field {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .field label {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+
+        input,
+        textarea,
+        select,
+        button {
+            font: inherit;
+        }
+
+        input,
+        textarea,
+        select {
+            width: 100%;
+            border: 1px solid rgba(120, 170, 204, 0.22);
+            border-radius: 12px;
+            background: rgba(6, 14, 20, 0.86);
+            color: var(--text);
+            padding: 10px 12px;
+            outline: none;
+        }
+
+        textarea {
+            min-height: 260px;
+            resize: vertical;
+            line-height: 1.45;
+            font-size: 0.84rem;
+        }
+
+        input:focus,
+        textarea:focus,
+        select:focus {
+            border-color: rgba(83, 212, 255, 0.72);
+            box-shadow: 0 0 0 4px rgba(83, 212, 255, 0.12);
+        }
+
+        .toggle {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            min-height: 44px;
+            padding: 0 12px;
+            border-radius: 12px;
+            border: 1px solid rgba(120, 170, 204, 0.22);
+            background: rgba(6, 14, 20, 0.86);
+        }
+
+        .toggle input { width: auto; margin: 0; }
+
+        .button-row,
+        .status-row,
+        .chips,
+        .selection-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        button {
+            cursor: pointer;
+            border: 0;
+            border-radius: 12px;
+            padding: 11px 14px;
+            font-weight: 700;
+            letter-spacing: 0.02em;
+            transition: transform 140ms ease, opacity 140ms ease, filter 140ms ease;
+        }
+
+        button:hover { transform: translateY(-1px); filter: brightness(1.05); }
+        button:disabled { cursor: not-allowed; opacity: 0.45; transform: none; }
+
+        .primary { color: #04161f; background: linear-gradient(135deg, var(--accent), var(--accent-2)); }
+        .ghost { color: var(--text); background: rgba(255,255,255,0.06); border: 1px solid rgba(120,170,204,0.18); }
+        .warn { color: #2d1600; background: linear-gradient(135deg, #ffd28b, var(--warn)); }
+        .danger { color: #2d0611; background: linear-gradient(135deg, #ff9a8c, var(--danger)); }
+
+        .status-pill,
+        .chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            border-radius: 999px;
+            font-size: 0.82rem;
+            border: 1px solid transparent;
+            background: rgba(255,255,255,0.06);
+        }
+
+        .status-pill::before {
+            content: "";
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: currentColor;
+            box-shadow: 0 0 12px currentColor;
+        }
+
+        .ok { color: var(--ok); border-color: rgba(119,239,159,0.26); }
+        .warn-text { color: var(--warn); border-color: rgba(255,190,105,0.26); }
+        .danger-text { color: var(--danger); border-color: rgba(255,125,130,0.28); }
+
+        .notice {
+            margin-top: 14px;
+            padding: 12px 14px;
+            border-radius: 14px;
+            border: 1px solid var(--line);
+            background: rgba(255,255,255,0.05);
+            color: #d4edf9;
+        }
+
+        .scroll {
+            overflow: auto;
+            border-radius: 16px;
+            border: 1px solid var(--line);
+        }
+
+        table {
+            width: 100%;
+            min-width: 1280px;
+            border-collapse: collapse;
+            font-size: 0.83rem;
+        }
+
+        th,
+        td {
+            padding: 9px 10px;
+            border-bottom: 1px solid rgba(120,170,204,0.1);
+            text-align: left;
+            vertical-align: top;
+        }
+
+        th {
+            position: sticky;
+            top: 0;
+            background: #0f2230;
+            color: #bfe7fb;
+            z-index: 2;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        tbody tr {
+            background: rgba(255,255,255,0.01);
+        }
+
+        tbody tr:hover {
+            background: rgba(83, 212, 255, 0.06);
+        }
+
+        tbody tr.is-selected {
+            background: rgba(83, 212, 255, 0.12);
+        }
+
+        .right { text-align: right; }
+        .center { text-align: center; }
+
+        .mini-btn {
+            font-size: 0.78rem;
+            padding: 7px 10px;
+        }
+
+        .chart-wrap {
+            height: 240px;
+            border-radius: 12px;
+            overflow: hidden;
+            background: rgba(255,255,255,0.02);
+            border: 1px solid rgba(120,170,204,0.08);
+        }
+
+        canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        .two-col {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 12px;
+        }
+
+        .log-view {
+            min-height: 300px;
+            max-height: 520px;
+            overflow: auto;
+            border-radius: 16px;
+            border: 1px solid var(--line);
+            background: rgba(6, 14, 20, 0.86);
+            padding: 14px;
+            white-space: pre-wrap;
+            word-break: break-word;
+            line-height: 1.45;
+            font-size: 0.83rem;
+        }
+
+        .empty {
+            padding: 18px;
+            border-radius: 14px;
+            border: 1px dashed rgba(120,170,204,0.24);
+            color: var(--muted);
+            text-align: center;
+        }
+
+        .activity {
+            display: grid;
+            gap: 10px;
+        }
+
+        .activity-item {
+            padding: 10px 12px;
+            border-radius: 14px;
+            border: 1px solid var(--line);
+            background: rgba(255,255,255,0.03);
+        }
+
+        .activity-time {
+            color: var(--muted);
+            font-size: 0.78rem;
+            margin-bottom: 4px;
+        }
+
+        pre {
+            margin: 0;
+            white-space: pre-wrap;
+            word-break: break-word;
+            font-size: 0.83rem;
+            line-height: 1.45;
+        }
+
+        @media (max-width: 1250px) {
+            .hero-grid,
+            .grid,
+            .monitor-grid,
+            .two-col,
+            .action-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .span-12,
+            .span-8,
+            .span-7,
+            .span-6,
+            .span-5,
+            .span-4 {
+                grid-column: auto;
+            }
+        }
+
+        @media (max-width: 860px) {
+            .shell {
+                width: min(100vw, calc(100vw - 16px));
+                padding-top: 8px;
+            }
+
+            .hero,
+            .panel {
+                padding: 14px;
+            }
+
+            .hero-stats,
+            .controls-grid,
+            .metrics,
+            .kv-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="shell">
+    <section class="hero">
+        <div class="hero-grid">
+            <div>
+                <div class="headline">
+                    <div class="headline-mark"></div>
+                    <div>
+                        <h1>XMRigCC Fleet Monitor</h1>
+                    </div>
+                </div>
+                <p class="subline">
+                    Standalone local multi-miner dashboard for the xmrigCC server. No remote assets.
+                    Uses the CC server <span class="mono">/admin/*</span> endpoints directly for fleet status, charts, logs,
+                    configs, templates, and miner control.
+                </p>
+                <div id="topStatus" class="status-row"></div>
+                <div id="heroStats" class="hero-stats"></div>
+            </div>
+            <div class="panel" style="padding:18px;">
+                <h2>Connection</h2>
+                <p class="small" style="margin:8px 0 14px;">Admin endpoints require the CC server basic auth user and password.</p>
+                <div class="controls-grid">
+                    <div class="field">
+                        <label for="baseUrl">Server Base URL</label>
+                        <input id="baseUrl" type="text" value="http://127.0.0.1:3344" placeholder="http://127.0.0.1:3344">
+                    </div>
+                    <div class="field">
+                        <label for="refreshSeconds">Refresh Seconds</label>
+                        <input id="refreshSeconds" type="number" min="2" step="1" value="10">
+                    </div>
+                    <div class="field">
+                        <label for="adminUser">Admin User</label>
+                        <input id="adminUser" type="text" placeholder="required by /admin/*">
+                    </div>
+                    <div class="field">
+                        <label for="adminPass">Admin Password</label>
+                        <input id="adminPass" type="password" placeholder="required by /admin/*">
+                    </div>
+                    <div class="field">
+                        <label for="searchInput">Search</label>
+                        <input id="searchInput" type="text" placeholder="filter by miner, pool, ip, algo, cpu">
+                    </div>
+                    <div class="field">
+                        <label for="algoFilter">Algo Filter</label>
+                        <select id="algoFilter">
+                            <option value="">All algorithms</option>
+                        </select>
+                    </div>
+                    <div class="toggle">
+                        <input id="autoRefresh" type="checkbox" checked>
+                        <span class="toggle-text">Auto refresh status and statistics.</span>
+                    </div>
+                    <div class="toggle">
+                        <input id="hideOffline" type="checkbox">
+                        <span class="toggle-text">Hide offline miners.</span>
+                    </div>
+                </div>
+                <div class="button-row" style="margin-top:14px;">
+                    <button id="refreshBtn" class="primary">Refresh Fleet</button>
+                    <button id="clearSelectionBtn" class="ghost">Clear Selection</button>
+                    <button id="resetStatusBtn" class="danger">Reset Client Stats</button>
+                </div>
+                <div id="message" class="notice">Ready. Connect to the CC server and refresh.</div>
+            </div>
+        </div>
+    </section>
+
+    <section class="grid">
+        <section class="panel span-12">
+            <div class="panel-head">
+                <div>
+                    <h2>Fleet Summary</h2>
+                    <p>Online/offline state, total hashrate, shares, versions, pool distribution, and selection state.</p>
+                </div>
+            </div>
+            <div id="summaryMetrics" class="metrics"></div>
+            <div style="height:12px;"></div>
+            <div id="summaryMeta" class="kv-grid"></div>
+        </section>
+
+        <section class="panel span-12">
+            <div class="panel-head">
+                <div>
+                    <h2>Fleet Charts</h2>
+                    <p>Server-side rolling statistics from <span class="mono">/admin/getClientStatistics</span>.</p>
+                </div>
+            </div>
+            <div class="monitor-grid">
+                <div class="chart-card">
+                    <div class="panel-head" style="margin-bottom:10px;">
+                        <div>
+                            <h3>Hashrate By Algorithm</h3>
+                            <p id="hashrateLegend" class="hint">Waiting for statistics.</p>
+                        </div>
+                    </div>
+                    <div class="chart-wrap"><canvas id="hashrateCanvas" width="900" height="300"></canvas></div>
+                </div>
+                <div class="chart-card">
+                    <div class="panel-head" style="margin-bottom:10px;">
+                        <div>
+                            <h3>Miner Count By Algorithm</h3>
+                            <p id="minerLegend" class="hint">Waiting for statistics.</p>
+                        </div>
+                    </div>
+                    <div class="chart-wrap"><canvas id="minerCanvas" width="900" height="300"></canvas></div>
+                </div>
+            </div>
+        </section>
+
+        <section class="panel span-12">
+            <div class="panel-head">
+                <div>
+                    <h2>Miner Table</h2>
+                    <p>Full fleet monitor with live per-miner status, CPU and GPU info, hashrate windows, shares, and actions.</p>
+                </div>
+                <div class="chips" id="tableChips"></div>
+            </div>
+            <div id="minersTable" class="scroll"></div>
+        </section>
+
+        <section class="panel span-12">
+            <div class="panel-head">
+                <div>
+                    <h2>Selected Miners</h2>
+                    <p>Bulk control for the current selection.</p>
+                </div>
+            </div>
+            <div id="selectionMeta" class="kv-grid"></div>
+            <div style="height:12px;"></div>
+            <div id="selectionList" class="selection-list"></div>
+            <div style="height:12px;"></div>
+            <div class="action-grid">
+                <button id="pushConfigBtn" class="ghost">Push Config</button>
+                <button id="pullConfigBtn" class="ghost">Pull Config</button>
+                <button id="updateMinerBtn" class="warn">Update Miner</button>
+                <button id="assignTemplateBtn" class="ghost">Assign Template</button>
+                <button id="startBtn" class="primary">Start</button>
+                <button id="pauseBtn" class="warn">Pause</button>
+                <button id="shutdownBtn" class="danger">Stop Miner</button>
+                <button id="restartBtn" class="ghost">Restart</button>
+                <button id="rebootBtn" class="danger">Reboot Host</button>
+                <button id="removeBtn" class="ghost">Remove Status</button>
+                <button id="execBtn" class="ghost">Execute</button>
+                <button id="refreshSelectionBtn" class="ghost">Refresh Current</button>
+            </div>
+        </section>
+
+        <section class="panel span-7">
+            <div class="panel-head">
+                <div>
+                    <h2>Miner Config</h2>
+                    <p>Edit a selected miner config and write it back through the CC server.</p>
+                </div>
+            </div>
+            <div class="two-col">
+                <div class="field">
+                    <label for="configMinerSelect">Miner</label>
+                    <select id="configMinerSelect">
+                        <option value="">Choose a miner</option>
+                    </select>
+                </div>
+                <div class="field">
+                    <label for="executeCommand">Execute Command</label>
+                    <input id="executeCommand" type="text" placeholder="uname -a">
+                </div>
+            </div>
+            <div class="button-row" style="margin:12px 0;">
+                <button id="loadConfigBtn" class="ghost">Load Config</button>
+                <button id="saveConfigBtn" class="primary">Save Config</button>
+                <button id="formatConfigBtn" class="ghost">Format JSON</button>
+                <button id="runExecBtn" class="warn">Run Execute</button>
+            </div>
+            <textarea id="configEditor" spellcheck="false" placeholder="{ }"></textarea>
+        </section>
+
+        <section class="panel span-5">
+            <div class="panel-head">
+                <div>
+                    <h2>Templates</h2>
+                    <p>Manage template configs and assign them to selected miners.</p>
+                </div>
+            </div>
+            <div class="field">
+                <label for="templateSelect">Template</label>
+                <select id="templateSelect">
+                    <option value="">Choose a template</option>
+                </select>
+            </div>
+            <div class="field" style="margin-top:12px;">
+                <label for="templateName">Save As Template Name</label>
+                <input id="templateName" type="text" placeholder="template-name">
+            </div>
+            <div class="toggle" style="margin-top:12px;">
+                <input id="mergeTemplate" type="checkbox">
+                <span class="toggle-text">Merge template into target configs instead of replacing them.</span>
+            </div>
+            <div class="toggle" style="margin-top:12px;">
+                <input id="replaceWorkerId" type="checkbox" checked>
+                <span class="toggle-text">Replace <span class="mono">@WORKER-ID@</span> placeholders during assignment.</span>
+            </div>
+            <div class="button-row" style="margin:12px 0;">
+                <button id="loadTemplateBtn" class="ghost">Load Template</button>
+                <button id="saveTemplateBtn" class="primary">Save Template</button>
+                <button id="saveTemplateAsBtn" class="ghost">Save As</button>
+                <button id="deleteTemplateBtn" class="danger">Delete Template</button>
+            </div>
+            <textarea id="templateEditor" spellcheck="false" placeholder="{ }"></textarea>
+        </section>
+
+        <section class="panel span-6">
+            <div class="panel-head">
+                <div>
+                    <h2>Miner Log</h2>
+                    <p>Live log view for one miner from <span class="mono">/admin/getClientLog</span>.</p>
+                </div>
+            </div>
+            <div class="two-col">
+                <div class="field">
+                    <label for="logMinerSelect">Miner</label>
+                    <select id="logMinerSelect">
+                        <option value="">Choose a miner</option>
+                    </select>
+                </div>
+                <div class="toggle" style="margin-top:23px;">
+                    <input id="autoLogRefresh" type="checkbox" checked>
+                    <span class="toggle-text">Auto refresh selected miner log.</span>
+                </div>
+            </div>
+            <div class="button-row" style="margin:12px 0;">
+                <button id="loadLogBtn" class="ghost">Load Log</button>
+                <button id="loadExecLogBtn" class="ghost">Load Execute Output</button>
+            </div>
+            <div id="logViewer" class="log-view"></div>
+        </section>
+
+        <section class="panel span-6">
+            <div class="panel-head">
+                <div>
+                    <h2>Activity</h2>
+                    <p>Local dashboard activity and API events.</p>
+                </div>
+            </div>
+            <div id="activity" class="activity"></div>
+        </section>
+
+        <section class="panel span-12">
+            <div class="panel-head">
+                <div>
+                    <h2>Selected Miner Details</h2>
+                    <p>High-signal hardware and mining details for the first selected miner.</p>
+                </div>
+            </div>
+            <div id="selectedDetail" class="kv-grid"></div>
+            <div style="height:12px;"></div>
+            <div id="selectedGpuDetail" class="kv-grid"></div>
+        </section>
+
+        <section class="panel span-12">
+            <div class="panel-head">
+                <div>
+                    <h2>Raw Fleet JSON</h2>
+                    <p>Direct response from <span class="mono">/admin/getClientStatusList</span>.</p>
+                </div>
+            </div>
+            <div class="scroll"><pre id="rawStatus"></pre></div>
+        </section>
+    </section>
+</div>
+
+<script>
+(() => {
+    "use strict";
+
+    const THRESHOLD_MS = 60 * 1000;
+    const COLORS = ["#53d4ff", "#67f0bf", "#ffbe69", "#ff7d82", "#b084ff", "#f985e6", "#7fffd8", "#ffd166"];
+
+    const state = {
+        fleet: [],
+        statistics: [],
+        selected: new Set(),
+        currentServerTimeMs: 0,
+        currentVersion: "",
+        sortKey: "client_id",
+        sortDir: "asc",
+        timer: null,
+        logTimer: null,
+        currentConfigId: "",
+        currentLogId: "",
+        templates: [],
+        activity: []
+    };
+
+    const $ = (id) => document.getElementById(id);
+
+    const els = {
+        baseUrl: $("baseUrl"),
+        refreshSeconds: $("refreshSeconds"),
+        adminUser: $("adminUser"),
+        adminPass: $("adminPass"),
+        searchInput: $("searchInput"),
+        algoFilter: $("algoFilter"),
+        autoRefresh: $("autoRefresh"),
+        hideOffline: $("hideOffline"),
+        message: $("message"),
+        topStatus: $("topStatus"),
+        heroStats: $("heroStats"),
+        summaryMetrics: $("summaryMetrics"),
+        summaryMeta: $("summaryMeta"),
+        hashrateCanvas: $("hashrateCanvas"),
+        minerCanvas: $("minerCanvas"),
+        hashrateLegend: $("hashrateLegend"),
+        minerLegend: $("minerLegend"),
+        minersTable: $("minersTable"),
+        tableChips: $("tableChips"),
+        selectionMeta: $("selectionMeta"),
+        selectionList: $("selectionList"),
+        configMinerSelect: $("configMinerSelect"),
+        configEditor: $("configEditor"),
+        templateSelect: $("templateSelect"),
+        templateName: $("templateName"),
+        templateEditor: $("templateEditor"),
+        mergeTemplate: $("mergeTemplate"),
+        replaceWorkerId: $("replaceWorkerId"),
+        logMinerSelect: $("logMinerSelect"),
+        autoLogRefresh: $("autoLogRefresh"),
+        logViewer: $("logViewer"),
+        activity: $("activity"),
+        selectedDetail: $("selectedDetail"),
+        selectedGpuDetail: $("selectedGpuDetail"),
+        rawStatus: $("rawStatus"),
+        executeCommand: $("executeCommand")
+    };
+
+    const savePrefs = () => {
+        localStorage.setItem("xmrigcc.server.baseUrl", els.baseUrl.value.trim());
+        localStorage.setItem("xmrigcc.server.user", els.adminUser.value.trim());
+        localStorage.setItem("xmrigcc.server.pass", els.adminPass.value);
+        localStorage.setItem("xmrigcc.server.refresh", els.refreshSeconds.value);
+        localStorage.setItem("xmrigcc.server.autoRefresh", String(els.autoRefresh.checked));
+        localStorage.setItem("xmrigcc.server.hideOffline", String(els.hideOffline.checked));
+    };
+
+    const loadPrefs = () => {
+        els.baseUrl.value = localStorage.getItem("xmrigcc.server.baseUrl") || els.baseUrl.value;
+        els.adminUser.value = localStorage.getItem("xmrigcc.server.user") || "";
+        els.adminPass.value = localStorage.getItem("xmrigcc.server.pass") || "";
+        els.refreshSeconds.value = localStorage.getItem("xmrigcc.server.refresh") || els.refreshSeconds.value;
+        els.autoRefresh.checked = (localStorage.getItem("xmrigcc.server.autoRefresh") || "true") === "true";
+        els.hideOffline.checked = (localStorage.getItem("xmrigcc.server.hideOffline") || "false") === "true";
+    };
+
+    const sanitizeBase = (url) => url.replace(/\/+$/, "");
+
+    const authHeaders = (includeJson = false) => {
+        const headers = {};
+        if (includeJson) {
+            headers["Content-Type"] = "application/json";
+        }
+        const user = els.adminUser.value.trim();
+        const pass = els.adminPass.value;
+        if (user || pass) {
+            headers.Authorization = "Basic " + btoa(`${user}:${pass}`);
+        }
+        return headers;
+    };
+
+    const escapeHtml = (value) => String(value)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+
+    const pretty = (value) => JSON.stringify(value, null, 2);
+
+    const setMessage = (text, type = "info") => {
+        els.message.textContent = text;
+        els.message.style.borderColor = type === "error" ? "rgba(255,125,130,0.28)" : type === "warn" ? "rgba(255,190,105,0.26)" : "var(--line)";
+        els.message.style.background = type === "error" ? "rgba(255,125,130,0.1)" : type === "warn" ? "rgba(255,190,105,0.1)" : "rgba(255,255,255,0.05)";
+    };
+
+    const fmtNumber = (value, digits = 2) => {
+        const num = Number(value);
+        if (!Number.isFinite(num)) {
+            return "n/a";
+        }
+        return num.toLocaleString(undefined, {
+            maximumFractionDigits: digits,
+            minimumFractionDigits: digits
+        });
+    };
+
+    const fmtHash = (value) => Number.isFinite(Number(value)) ? `${fmtNumber(value, 2)} H/s` : "n/a";
+
+    const fmtBytes = (bytes) => {
+        const num = Number(bytes);
+        if (!Number.isFinite(num)) {
+            return "n/a";
+        }
+        const units = ["B", "KB", "MB", "GB", "TB"];
+        let value = num;
+        let idx = 0;
+        while (value >= 1024 && idx < units.length - 1) {
+            value /= 1024;
+            idx += 1;
+        }
+        return `${fmtNumber(value, value < 10 && idx > 0 ? 2 : 1)} ${units[idx]}`;
+    };
+
+    const fmtPct = (value) => Number.isFinite(value) ? `${fmtNumber(value, 1)}%` : "n/a";
+
+    const fmtDuration = (ms) => {
+        const total = Math.max(0, Math.floor(Number(ms) / 1000));
+        const d = Math.floor(total / 86400);
+        const h = Math.floor((total % 86400) / 3600);
+        const m = Math.floor((total % 3600) / 60);
+        const s = total % 60;
+        return [d ? `${d}d` : "", h ? `${h}h` : "", m ? `${m}m` : "", `${s}s`].filter(Boolean).join(" ");
+    };
+
+    const pct = (n, d) => {
+        const a = Number(n);
+        const b = Number(d);
+        if (!Number.isFinite(a) || !Number.isFinite(b) || b <= 0) {
+            return null;
+        }
+        return (a / b) * 100;
+    };
+
+    const boundedPush = (list, item, max = 50) => {
+        list.push(item);
+        if (list.length > max) {
+            list.splice(0, list.length - max);
+        }
+    };
+
+    const logActivity = (text, level = "info") => {
+        boundedPush(state.activity, { ts: Date.now(), text, level }, 60);
+        renderActivity();
+    };
+
+    const request = async (path, options = {}) => {
+        const response = await fetch(`${sanitizeBase(els.baseUrl.value.trim())}${path}`, {
+            ...options,
+            headers: {
+                ...authHeaders(Boolean(options.body)),
+                ...(options.headers || {})
+            }
+        });
+
+        const text = await response.text();
+        let json = null;
+        try {
+            json = text ? JSON.parse(text) : null;
+        } catch (error) {
+            json = null;
+        }
+
+        if (!response.ok) {
+            throw new Error(`${path} -> HTTP ${response.status}: ${text || response.statusText}`);
+        }
+
+        return json ?? text;
+    };
+
+    const isOnline = (client) => {
+        const last = Number(client.last_status_update || 0) * 1000;
+        const thresholdBase = state.currentServerTimeMs || Date.now();
+        return last > (thresholdBase - THRESHOLD_MS);
+    };
+
+    const statusLabel = (client) => {
+        if (!isOnline(client)) {
+            return "OFFLINE";
+        }
+        return client.current_status || "RUNNING";
+    };
+
+    const algoDisplay = (client) => client.current_pow_variant_name
+        ? `${client.current_algo_name} / ${client.current_pow_variant_name}`
+        : (client.current_algo_name || "n/a");
+
+    const gpuSummary = (client) => {
+        const list = client.gpu_info_list || [];
+        if (!list.length) {
+            return "none";
+        }
+        return list.map((entry) => {
+            const gpu = entry.gpu_info || {};
+            return `#${gpu.device_idx} ${gpu.name || gpu.type || "GPU"} i:${gpu.intensity || 0}`;
+        }).join(" | ");
+    };
+
+    const memoryGb = (value) => Number.isFinite(Number(value)) ? fmtNumber(Number(value) / 1024 / 1024 / 1024, 1) : "n/a";
+
+    const renderMetricCards = (items, target) => {
+        target.innerHTML = items.map((item) => `
+            <div class="metric">
+                <div class="label">${escapeHtml(item.label)}</div>
+                <div class="value">${escapeHtml(item.value)}</div>
+            </div>
+        `).join("");
+    };
+
+    const renderKvGrid = (items, target) => {
+        target.innerHTML = items.map((item) => `
+            <div class="kv">
+                <div class="label">${escapeHtml(item.key)}</div>
+                <div class="value" style="font-size:0.92rem;word-break:break-word;">${escapeHtml(item.value)}</div>
+            </div>
+        `).join("");
+    };
+
+    const chip = (text, cls = "") => `<span class="chip ${cls}">${escapeHtml(text)}</span>`;
+    const pill = (text, cls = "") => `<span class="status-pill ${cls}">${escapeHtml(text)}</span>`;
+
+    const getFilteredFleet = () => {
+        const search = els.searchInput.value.trim().toLowerCase();
+        const algo = els.algoFilter.value;
+
+        return state.fleet
+            .filter((client) => !els.hideOffline.checked || isOnline(client))
+            .filter((client) => !algo || client.current_algo_name === algo)
+            .filter((client) => {
+                if (!search) {
+                    return true;
+                }
+                const haystack = [
+                    client.client_id,
+                    client.external_ip,
+                    client.current_pool,
+                    client.current_pool_user,
+                    client.current_algo_name,
+                    client.current_pow_variant_name,
+                    client.cpu_brand,
+                    client.version
+                ].join(" ").toLowerCase();
+                return haystack.includes(search);
+            });
+    };
+
+    const compare = (a, b, key) => {
+        const left = a[key];
+        const right = b[key];
+        if (typeof left === "number" && typeof right === "number") {
+            return left - right;
+        }
+        return String(left ?? "").localeCompare(String(right ?? ""), undefined, { numeric: true, sensitivity: "base" });
+    };
+
+    const getSortedFleet = () => {
+        const rows = getFilteredFleet().slice();
+        rows.sort((a, b) => {
+            const result = compare(a, b, state.sortKey);
+            return state.sortDir === "asc" ? result : -result;
+        });
+        return rows;
+    };
+
+    const updateAlgoFilter = () => {
+        const current = els.algoFilter.value;
+        const algos = [...new Set(state.fleet.map((client) => client.current_algo_name).filter(Boolean))].sort();
+        els.algoFilter.innerHTML = `<option value="">All algorithms</option>${algos.map((algo) => `<option value="${escapeHtml(algo)}">${escapeHtml(algo)}</option>`).join("")}`;
+        els.algoFilter.value = algos.includes(current) ? current : "";
+    };
+
+    const updateMinerSelectors = () => {
+        const options = ['<option value="">Choose a miner</option>']
+            .concat(state.fleet.map((client) => `<option value="${escapeHtml(client.client_id)}">${escapeHtml(client.client_id)} (${escapeHtml(client.external_ip || "n/a")})</option>`));
+        const html = options.join("");
+        els.configMinerSelect.innerHTML = html;
+        els.logMinerSelect.innerHTML = html;
+    };
+
+    const drawLineChart = (canvas, datasets, formatter) => {
+        const ctx = canvas.getContext("2d");
+        const width = canvas.width;
+        const height = canvas.height;
+        ctx.clearRect(0, 0, width, height);
+        ctx.fillStyle = "#0a1620";
+        ctx.fillRect(0, 0, width, height);
+
+        const values = datasets.flatMap((set) => set.points.map((point) => point.y).filter((y) => Number.isFinite(y)));
+        const margin = { top: 18, right: 18, bottom: 28, left: 52 };
+        const innerWidth = width - margin.left - margin.right;
+        const innerHeight = height - margin.top - margin.bottom;
+
+        if (!values.length) {
+            ctx.fillStyle = "#8eaec2";
+            ctx.font = "16px Segoe UI";
+            ctx.textAlign = "center";
+            ctx.fillText("No data to display", width / 2, height / 2);
+            return;
+        }
+
+        const minY = 0;
+        const rawMaxY = Math.max(...values);
+        const maxY = rawMaxY <= minY ? 1 : rawMaxY;
+        const pointCount = Math.max(...datasets.map((set) => set.points.length));
+        const stepX = pointCount > 1 ? innerWidth / (pointCount - 1) : innerWidth;
+
+        ctx.strokeStyle = "rgba(120,170,204,0.12)";
+        ctx.lineWidth = 1;
+        for (let i = 0; i <= 4; i += 1) {
+            const y = margin.top + (innerHeight / 4) * i;
+            ctx.beginPath();
+            ctx.moveTo(margin.left, y);
+            ctx.lineTo(width - margin.right, y);
+            ctx.stroke();
+        }
+
+        ctx.fillStyle = "#8eaec2";
+        ctx.font = "11px SFMono-Regular, Consolas, monospace";
+        ctx.textAlign = "right";
+        for (let i = 0; i <= 4; i += 1) {
+            const value = maxY - ((maxY - minY) / 4) * i;
+            const y = margin.top + (innerHeight / 4) * i + 4;
+            ctx.fillText(formatter(value), margin.left - 8, y);
+        }
+
+        datasets.forEach((set) => {
+            ctx.strokeStyle = set.color;
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            set.points.forEach((point, index) => {
+                const x = margin.left + (stepX * index);
+                const ratio = (point.y - minY) / (maxY - minY);
+                const y = margin.top + innerHeight - (ratio * innerHeight);
+                if (index === 0) {
+                    ctx.moveTo(x, y);
+                } else {
+                    ctx.lineTo(x, y);
+                }
+            });
+            ctx.stroke();
+        });
+    };
+
+    const renderCharts = () => {
+        const stats = state.statistics || [];
+        const hashrateSets = stats.map((entry, index) => ({
+            label: entry.algo,
+            color: COLORS[index % COLORS.length],
+            points: (entry.statistics || []).map((point) => ({ x: point.timestamp, y: Number(point.hashrate) || 0 }))
+        }));
+        const minerSets = stats.map((entry, index) => ({
+            label: entry.algo,
+            color: COLORS[index % COLORS.length],
+            points: (entry.statistics || []).map((point) => ({ x: point.timestamp, y: Number(point.miner) || 0 }))
+        }));
+
+        drawLineChart(els.hashrateCanvas, hashrateSets, (value) => fmtNumber(value, 0));
+        drawLineChart(els.minerCanvas, minerSets, (value) => fmtNumber(value, 0));
+
+        els.hashrateLegend.textContent = hashrateSets.length
+            ? hashrateSets.map((set) => `${set.label}: ${fmtHash(set.points.at(-1)?.y)}`).join(" · ")
+            : "Waiting for statistics.";
+        els.minerLegend.textContent = minerSets.length
+            ? minerSets.map((set) => `${set.label}: ${fmtNumber(set.points.at(-1)?.y ?? 0, 0)} miners`).join(" · ")
+            : "Waiting for statistics.";
+    };
+
+    const renderSummary = () => {
+        const fleet = getFilteredFleet();
+        const online = fleet.filter(isOnline);
+        const paused = online.filter((client) => client.current_status === "PAUSED");
+        const medium = fleet.reduce((sum, client) => sum + (Number(client.hashrate_medium) || 0), 0);
+        const good = fleet.reduce((sum, client) => sum + (Number(client.shares_good) || 0), 0);
+        const total = fleet.reduce((sum, client) => sum + (Number(client.shares_total) || 0), 0);
+        const avgTime = fleet.length ? fleet.reduce((sum, client) => sum + (Number(client.avg_time) || 0), 0) / fleet.length : 0;
+        const pools = [...new Set(fleet.map((client) => client.current_pool).filter(Boolean))];
+        const versions = [...new Set(fleet.map((client) => client.version).filter(Boolean))];
+
+        els.topStatus.innerHTML = [
+            pill(`${online.length} Online`, "ok"),
+            pill(`${fleet.length - online.length} Offline`, fleet.length - online.length ? "danger-text" : "ok"),
+            pill(`${paused.length} Paused`, paused.length ? "warn-text" : "ok"),
+            pill(`Selection ${state.selected.size}`, state.selected.size ? "ok" : "")
+        ].join("");
+
+        renderMetricCards([
+            { label: "Displayed Miners", value: fmtNumber(fleet.length, 0) },
+            { label: "Online Miners", value: fmtNumber(online.length, 0) },
+            { label: "Total 60s Hashrate", value: fmtHash(medium) },
+            { label: "Share Acceptance", value: fmtPct(pct(good, total)) },
+            { label: "Shares Good", value: fmtNumber(good, 0) },
+            { label: "Shares Total", value: fmtNumber(total, 0) },
+            { label: "Average Share Time", value: `${fmtNumber(avgTime, 1)} s` },
+            { label: "Algorithms", value: fmtNumber(new Set(fleet.map((client) => client.current_algo_name).filter(Boolean)).size, 0) }
+        ], $("heroStats"));
+
+        renderMetricCards([
+            { label: "Fleet 10s Hashrate", value: fmtHash(fleet.reduce((sum, client) => sum + (Number(client.hashrate_short) || 0), 0)) },
+            { label: "Fleet 15m Hashrate", value: fmtHash(fleet.reduce((sum, client) => sum + (Number(client.hashrate_long) || 0), 0)) },
+            { label: "Fleet Peak", value: fmtHash(fleet.reduce((sum, client) => sum + (Number(client.hashrate_highest) || 0), 0)) },
+            { label: "Total Hashes", value: fmtNumber(fleet.reduce((sum, client) => sum + (Number(client.hashes_total) || 0), 0), 0) },
+            { label: "Distinct Pools", value: fmtNumber(pools.length, 0) },
+            { label: "Distinct Versions", value: fmtNumber(versions.length, 0) },
+            { label: "Server Time", value: state.currentServerTimeMs ? new Date(state.currentServerTimeMs).toLocaleString() : "n/a" },
+            { label: "Server Version", value: state.currentVersion || "n/a" }
+        ], $("summaryMetrics"));
+
+        renderKvGrid([
+            { key: "Pools", value: pools.join(" | ") || "none" },
+            { key: "Versions", value: versions.join(", ") || "none" },
+            { key: "Algorithms", value: [...new Set(fleet.map((client) => algoDisplay(client)).filter(Boolean))].join(" | ") || "none" },
+            { key: "Search Filter", value: els.searchInput.value.trim() || "none" },
+            { key: "Algo Filter", value: els.algoFilter.value || "all" },
+            { key: "Hide Offline", value: els.hideOffline.checked ? "true" : "false" },
+            { key: "Auto Refresh", value: els.autoRefresh.checked ? `true (${els.refreshSeconds.value}s)` : "false" },
+            { key: "Selected Miners", value: [...state.selected].join(", ") || "none" }
+        ], $("summaryMeta"));
+    };
+
+    const rowValue = (client, key) => {
+        switch (key) {
+            case "status": return statusLabel(client);
+            case "algo": return algoDisplay(client);
+            case "pool": return client.current_pool || "";
+            case "client_id": return client.client_id || "";
+            case "hashrate_medium": return Number(client.hashrate_medium) || 0;
+            case "hashrate_short": return Number(client.hashrate_short) || 0;
+            case "shares_good": return Number(client.shares_good) || 0;
+            case "last_status_update": return Number(client.last_status_update) || 0;
+            default: return client[key];
+        }
+    };
+
+    const renderTable = () => {
+        const rows = getFilteredFleet().slice().sort((a, b) => {
+            const left = rowValue(a, state.sortKey);
+            const right = rowValue(b, state.sortKey);
+            const result = typeof left === "number" && typeof right === "number"
+                ? left - right
+                : String(left ?? "").localeCompare(String(right ?? ""), undefined, { numeric: true, sensitivity: "base" });
+            return state.sortDir === "asc" ? result : -result;
+        });
+
+        els.tableChips.innerHTML = [
+            chip(`Rows ${rows.length}`),
+            chip(`Selected ${state.selected.size}`),
+            chip(`Sort ${state.sortKey} ${state.sortDir}`)
+        ].join("");
+
+        if (!rows.length) {
+            els.minersTable.innerHTML = '<div class="empty">No miners match the current filters.</div>';
+            return;
+        }
+
+        const head = [
+            ["sel", ""],
+            ["status", "Status"],
+            ["client_id", "Miner"],
+            ["external_ip", "IP"],
+            ["version", "Version"],
+            ["algo", "Algo / Pow"],
+            ["pool", "Pool"],
+            ["cpu_brand", "CPU"],
+            ["current_threads", "Threads"],
+            ["hp", "HP %"],
+            ["hashrate_short", "10s"],
+            ["hashrate_medium", "60s"],
+            ["hashrate_long", "15m"],
+            ["hashrate_highest", "Peak"],
+            ["shares", "Shares"],
+            ["hashes_total", "Hashes"],
+            ["avg_time", "Avg"],
+            ["uptime", "Uptime"],
+            ["last_status_update", "Last Update"],
+            ["gpu", "GPU"],
+            ["actions", "Actions"]
+        ];
+
+        const headerHtml = head.map(([key, label]) => `<th data-sort="${escapeHtml(key)}">${escapeHtml(label)}</th>`).join("");
+        const bodyHtml = rows.map((client) => {
+            const hp = pct(client.total_hugepages, client.total_pages);
+            const lastUpdateMs = Number(client.last_status_update || 0) * 1000;
+            const selected = state.selected.has(client.client_id);
+            const status = statusLabel(client);
+            const statusClass = status === "OFFLINE" ? "danger-text" : status === "PAUSED" ? "warn-text" : "ok";
+            const shares = `${client.shares_good || 0}/${client.shares_total || 0}`;
+
+            return `
+                <tr class="${selected ? "is-selected" : ""}" data-client-id="${escapeHtml(client.client_id)}">
+                    <td class="center"><input type="checkbox" data-select="${escapeHtml(client.client_id)}" ${selected ? "checked" : ""}></td>
+                    <td><span class="chip ${statusClass}">${escapeHtml(status)}</span></td>
+                    <td>${escapeHtml(client.client_id || "")}</td>
+                    <td>${escapeHtml(client.external_ip || "")}</td>
+                    <td>${escapeHtml(client.version || "")}</td>
+                    <td>${escapeHtml(algoDisplay(client))}</td>
+                    <td title="${escapeHtml(client.current_pool_user || "")}">${escapeHtml(client.current_pool || "")}</td>
+                    <td title="${escapeHtml(client.cpu_brand || "")}">${escapeHtml(client.cpu_brand || "")}</td>
+                    <td class="right">${escapeHtml(String(client.current_threads ?? 0))}</td>
+                    <td class="right">${escapeHtml(hp === null ? "n/a" : fmtPct(hp))}</td>
+                    <td class="right">${escapeHtml(fmtNumber(client.hashrate_short || 0, 2))}</td>
+                    <td class="right">${escapeHtml(fmtNumber(client.hashrate_medium || 0, 2))}</td>
+                    <td class="right">${escapeHtml(fmtNumber(client.hashrate_long || 0, 2))}</td>
+                    <td class="right">${escapeHtml(fmtNumber(client.hashrate_highest || 0, 2))}</td>
+                    <td class="right">${escapeHtml(shares)}</td>
+                    <td class="right">${escapeHtml(fmtNumber(client.hashes_total || 0, 0))}</td>
+                    <td class="right">${escapeHtml(fmtNumber(client.avg_time || 0, 0))}s</td>
+                    <td>${escapeHtml(fmtDuration(Number(client.uptime || 0)))}</td>
+                    <td>${escapeHtml(lastUpdateMs ? new Date(lastUpdateMs).toLocaleString() : "n/a")}</td>
+                    <td title="${escapeHtml(gpuSummary(client))}">${escapeHtml(gpuSummary(client))}</td>
+                    <td>
+                        <div class="button-row">
+                            <button class="mini-btn ghost" data-log="${escapeHtml(client.client_id)}">Log</button>
+                            <button class="mini-btn ghost" data-config="${escapeHtml(client.client_id)}">Config</button>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        }).join("");
+
+        els.minersTable.innerHTML = `<table><thead><tr>${headerHtml}</tr></thead><tbody>${bodyHtml}</tbody></table>`;
+
+        els.minersTable.querySelectorAll("th[data-sort]").forEach((th) => {
+            th.addEventListener("click", () => {
+                const key = th.dataset.sort;
+                if (key === "sel" || key === "actions" || key === "hp" || key === "shares" || key === "gpu") {
+                    return;
+                }
+                if (state.sortKey === key) {
+                    state.sortDir = state.sortDir === "asc" ? "desc" : "asc";
+                } else {
+                    state.sortKey = key;
+                    state.sortDir = key === "hashrate_medium" ? "desc" : "asc";
+                }
+                renderTable();
+            });
+        });
+
+        els.minersTable.querySelectorAll("input[data-select]").forEach((input) => {
+            input.addEventListener("change", () => {
+                const id = input.dataset.select;
+                if (input.checked) {
+                    state.selected.add(id);
+                } else {
+                    state.selected.delete(id);
+                }
+                renderSelection();
+                renderTable();
+            });
+        });
+
+        els.minersTable.querySelectorAll("button[data-log]").forEach((button) => {
+            button.addEventListener("click", async () => {
+                const id = button.dataset.log;
+                els.logMinerSelect.value = id;
+                await loadLog(id, false);
+            });
+        });
+
+        els.minersTable.querySelectorAll("button[data-config]").forEach((button) => {
+            button.addEventListener("click", async () => {
+                const id = button.dataset.config;
+                els.configMinerSelect.value = id;
+                await loadConfig(id);
+            });
+        });
+    };
+
+    const renderSelection = () => {
+        const selected = state.fleet.filter((client) => state.selected.has(client.client_id));
+        const hashrate = selected.reduce((sum, client) => sum + (Number(client.hashrate_medium) || 0), 0);
+        renderKvGrid([
+            { key: "Selected Count", value: String(selected.length) },
+            { key: "Selected 60s Hashrate", value: fmtHash(hashrate) },
+            { key: "Selected Online", value: String(selected.filter(isOnline).length) },
+            { key: "Selected Pools", value: [...new Set(selected.map((client) => client.current_pool).filter(Boolean))].join(" | ") || "none" }
+        ], els.selectionMeta);
+
+        els.selectionList.innerHTML = selected.length
+            ? selected.map((client) => chip(`${client.client_id} · ${statusLabel(client)} · ${fmtNumber(client.hashrate_medium || 0, 2)} H/s`, isOnline(client) ? "ok" : "danger-text")).join("")
+            : '<div class="empty" style="width:100%;">No miners selected.</div>';
+
+        if (!els.configMinerSelect.value && selected.length === 1) {
+            els.configMinerSelect.value = selected[0].client_id;
+        }
+        if (!els.logMinerSelect.value && selected.length === 1) {
+            els.logMinerSelect.value = selected[0].client_id;
+        }
+
+        renderSelectedDetails(selected[0] || null);
+    };
+
+    const renderSelectedDetails = (client) => {
+        if (!client) {
+            els.selectedDetail.innerHTML = '<div class="empty">Select a miner to inspect it.</div>';
+            els.selectedGpuDetail.innerHTML = "";
+            return;
+        }
+
+        renderKvGrid([
+            { key: "Miner", value: client.client_id || "n/a" },
+            { key: "Status", value: statusLabel(client) },
+            { key: "IP", value: client.external_ip || "n/a" },
+            { key: "Version", value: client.version || "n/a" },
+            { key: "Algo", value: algoDisplay(client) },
+            { key: "Pool", value: client.current_pool || "n/a" },
+            { key: "Pool User", value: client.current_pool_user || "n/a" },
+            { key: "CPU", value: client.cpu_brand || "n/a" },
+            { key: "CPU Flags", value: `${client.cpu_has_aes ? "AES " : ""}${client.cpu_is_x64 ? "x64 " : ""}${client.cpu_is_vm ? "VM" : ""}`.trim() || "none" },
+            { key: "CPU Topology", value: `${client.cpu_sockets || 0} sockets / ${client.cpu_cores || 0} cores / ${client.cpu_threads || 0} threads / ${client.cpu_nodes || 0} NUMA` },
+            { key: "Cache L2 / L3", value: `${fmtNumber((client.cpu_l2 || 0) / 1024, 2)} MB / ${fmtNumber((client.cpu_l3 || 0) / 1024, 2)} MB` },
+            { key: "Huge Pages", value: `${client.hugepages_available ? "available" : "unavailable"}, ${client.hugepages_enabled ? `enabled (${client.total_hugepages || 0}/${client.total_pages || 0})` : "disabled"}` },
+            { key: "Threads / Ways", value: `${client.current_threads || 0} / ${client.current_ways || 0}` },
+            { key: "Hash Factor", value: String(client.hash_factor || 0) },
+            { key: "Max CPU Usage", value: `${client.max_cpu_usage === -1 ? 100 : (client.max_cpu_usage || 0)}%` },
+            { key: "Memory Free / Total", value: `${memoryGb(client.free_memory)} GB / ${memoryGb(client.total_memory)} GB` },
+            { key: "Hashrates", value: `${fmtNumber(client.hashrate_short || 0, 2)} / ${fmtNumber(client.hashrate_medium || 0, 2)} / ${fmtNumber(client.hashrate_long || 0, 2)} / ${fmtNumber(client.hashrate_highest || 0, 2)} H/s` },
+            { key: "Shares", value: `${client.shares_good || 0}/${client.shares_total || 0}, avg ${client.avg_time || 0}s` },
+            { key: "Uptime", value: fmtDuration(client.uptime || 0) }
+        ], els.selectedDetail);
+
+        const gpus = client.gpu_info_list || [];
+        els.selectedGpuDetail.innerHTML = gpus.length
+            ? gpus.map((entry) => {
+                const gpu = entry.gpu_info || {};
+                return `
+                    <div class="kv">
+                        <div class="label">GPU #${escapeHtml(String(gpu.device_idx ?? "?"))}</div>
+                        <div class="value" style="font-size:0.92rem;line-height:1.45;">
+                            ${escapeHtml(gpu.name || gpu.type || "GPU")}<br>
+                            ${escapeHtml(`bus ${gpu.busId || "n/a"} · intensity ${gpu.intensity || 0} · work ${gpu.work_size || 0}`)}<br>
+                            ${escapeHtml(`threads ${gpu.threads || 0} · CU ${gpu.compute_units || 0} · block ${gpu.block || 0}`)}<br>
+                            ${escapeHtml(`memory ${fmtBytes(gpu.memory || 0)} free ${fmtBytes(gpu.free_mem || 0)} · clock ${gpu.clock || 0}`)}
+                        </div>
+                    </div>
+                `;
+            }).join("")
+            : '<div class="empty">No GPU info reported.</div>';
+    };
+
+    const renderActivity = () => {
+        els.activity.innerHTML = state.activity.length
+            ? state.activity.slice().reverse().map((entry) => `
+                <div class="activity-item">
+                    <div class="activity-time">${escapeHtml(new Date(entry.ts).toLocaleString())} · ${escapeHtml(entry.level)}</div>
+                    <div>${escapeHtml(entry.text)}</div>
+                </div>
+            `).join("")
+            : '<div class="empty">No activity yet.</div>';
+    };
+
+    const refreshFleet = async () => {
+        savePrefs();
+        setMessage("Refreshing fleet...", "info");
+        const [statusPayload, statisticsPayload] = await Promise.all([
+            request("/admin/getClientStatusList"),
+            request("/admin/getClientStatistics")
+        ]);
+
+        state.currentServerTimeMs = Number(statusPayload.current_server_time || 0) * 1000;
+        state.currentVersion = statusPayload.current_version || "";
+        state.fleet = (statusPayload.client_status_list || []).map((entry) => entry.client_status || {});
+        state.statistics = statisticsPayload.client_statistics || [];
+
+        const validIds = new Set(state.fleet.map((client) => client.client_id));
+        state.selected.forEach((id) => {
+            if (!validIds.has(id)) {
+                state.selected.delete(id);
+            }
+        });
+
+        updateAlgoFilter();
+        updateMinerSelectors();
+        renderSummary();
+        renderCharts();
+        renderTable();
+        renderSelection();
+        els.rawStatus.textContent = pretty(statusPayload);
+        setMessage(`Fleet refreshed at ${new Date().toLocaleTimeString()}.`, "info");
+        logActivity(`Fleet refresh completed. Loaded ${state.fleet.length} miners.`, "info");
+    };
+
+    const refreshTemplates = async () => {
+        const data = await request("/admin/getClientConfigTemplates");
+        state.templates = data.templates || [];
+        els.templateSelect.innerHTML = `<option value="">Choose a template</option>${state.templates.map((name) => `<option value="${escapeHtml(name)}">${escapeHtml(name)}</option>`).join("")}`;
+        logActivity(`Loaded ${state.templates.length} template(s).`, "info");
+    };
+
+    const loadConfig = async (clientId) => {
+        if (!clientId) {
+            setMessage("Choose a miner first.", "warn");
+            return;
+        }
+        const config = await request(`/admin/getClientConfig?clientId=${encodeURIComponent(clientId)}`);
+        state.currentConfigId = clientId;
+        els.configMinerSelect.value = clientId;
+        els.configEditor.value = pretty(config);
+        logActivity(`Loaded config for ${clientId}.`, "info");
+    };
+
+    const saveConfig = async () => {
+        const clientId = els.configMinerSelect.value;
+        if (!clientId) {
+            setMessage("Choose a miner config target first.", "warn");
+            return;
+        }
+        let parsed;
+        try {
+            parsed = JSON.parse(els.configEditor.value);
+        } catch (error) {
+            setMessage(`Invalid JSON: ${error}`, "error");
+            return;
+        }
+        await request(`/admin/setClientConfig?clientId=${encodeURIComponent(clientId)}`, {
+            method: "POST",
+            body: JSON.stringify(parsed, null, 2)
+        });
+        setMessage(`Config saved for ${clientId}. Push it to the miner to apply.`, "info");
+        logActivity(`Saved config for ${clientId}.`, "info");
+    };
+
+    const loadTemplate = async (name) => {
+        if (!name) {
+            setMessage("Choose a template first.", "warn");
+            return;
+        }
+        const config = await request(`/admin/getClientConfig?clientId=${encodeURIComponent(`template_${name}`)}`);
+        els.templateSelect.value = name;
+        els.templateEditor.value = pretty(config);
+        logActivity(`Loaded template ${name}.`, "info");
+    };
+
+    const saveTemplate = async (name, useEditorContents = true) => {
+        if (!name) {
+            setMessage("Template name is required.", "warn");
+            return;
+        }
+        let parsed;
+        try {
+            parsed = JSON.parse(useEditorContents ? els.templateEditor.value : "{}");
+        } catch (error) {
+            setMessage(`Invalid template JSON: ${error}`, "error");
+            return;
+        }
+        await request(`/admin/setClientConfig?clientId=${encodeURIComponent(`template_${name}`)}`, {
+            method: "POST",
+            body: JSON.stringify(parsed, null, 2)
+        });
+        await refreshTemplates();
+        els.templateSelect.value = name;
+        setMessage(`Template ${name} saved.`, "info");
+        logActivity(`Saved template ${name}.`, "info");
+    };
+
+    const deleteTemplate = async () => {
+        const name = els.templateSelect.value;
+        if (!name) {
+            setMessage("Choose a template first.", "warn");
+            return;
+        }
+        if (!confirm(`Delete template ${name}?`)) {
+            return;
+        }
+        await request(`/admin/deleteClientConfig?clientId=${encodeURIComponent(`template_${name}`)}`, {
+            method: "POST",
+            body: "{}"
+        });
+        els.templateEditor.value = "";
+        await refreshTemplates();
+        setMessage(`Template ${name} deleted.`, "info");
+        logActivity(`Deleted template ${name}.`, "warn");
+    };
+
+    const selectedMiners = () => state.fleet.filter((client) => state.selected.has(client.client_id));
+
+    const sendCommand = async (command, payload = "") => {
+        const targets = selectedMiners();
+        if (!targets.length) {
+            setMessage("Select at least one miner first.", "warn");
+            return;
+        }
+        await Promise.all(targets.map((client) => request(`/admin/setClientCommand?clientId=${encodeURIComponent(client.client_id)}`, {
+            method: "POST",
+            body: JSON.stringify({ control_command: { command, payload } })
+        })));
+        setMessage(`${command} sent to ${targets.length} miner(s).`, "info");
+        logActivity(`Sent ${command} to ${targets.map((client) => client.client_id).join(", ")}${payload ? ` with payload ${payload}` : ""}.`, "info");
+    };
+
+    const removeSelected = async () => {
+        const targets = selectedMiners();
+        if (!targets.length) {
+            setMessage("Select at least one miner first.", "warn");
+            return;
+        }
+        await Promise.all(targets.map((client) => request(`/admin/removeClientStatus?clientId=${encodeURIComponent(client.client_id)}`, {
+            method: "POST",
+            body: ""
+        })));
+        logActivity(`Removed status entries for ${targets.map((client) => client.client_id).join(", ")}.`, "warn");
+        await refreshFleet();
+    };
+
+    const assignTemplate = async () => {
+        const templateName = els.templateSelect.value;
+        const targets = selectedMiners();
+        if (!templateName || !targets.length) {
+            setMessage("Choose a template and select at least one miner.", "warn");
+            return;
+        }
+        const template = await request(`/admin/getClientConfig?clientId=${encodeURIComponent(`template_${templateName}`)}`);
+
+        for (const client of targets) {
+            let nextConfig;
+            if (els.mergeTemplate.checked) {
+                const current = await request(`/admin/getClientConfig?clientId=${encodeURIComponent(client.client_id)}`);
+                nextConfig = mergeObjects(current, template);
+            } else {
+                nextConfig = JSON.parse(JSON.stringify(template));
+            }
+
+            if (nextConfig["cc-client"]) {
+                nextConfig["cc-client"]["worker-id"] = client.client_id;
+            }
+
+            let jsonText = JSON.stringify(nextConfig, null, 2);
+            if (els.replaceWorkerId.checked) {
+                jsonText = jsonText.replace(/@WORKER-ID@/g, client.client_id);
+            }
+
+            await request(`/admin/setClientConfig?clientId=${encodeURIComponent(client.client_id)}`, {
+                method: "POST",
+                body: jsonText
+            });
+        }
+
+        setMessage(`Assigned template ${templateName} to ${targets.length} miner(s).`, "info");
+        logActivity(`Assigned template ${templateName} to ${targets.map((client) => client.client_id).join(", ")}.`, "info");
+    };
+
+    const mergeObjects = (base, patch) => {
+        if (Array.isArray(base) || Array.isArray(patch) || typeof base !== "object" || typeof patch !== "object" || !base || !patch) {
+            return JSON.parse(JSON.stringify(patch));
+        }
+        const out = JSON.parse(JSON.stringify(base));
+        Object.keys(patch).forEach((key) => {
+            if (key in out && typeof out[key] === "object" && out[key] && typeof patch[key] === "object" && patch[key] && !Array.isArray(out[key]) && !Array.isArray(patch[key])) {
+                out[key] = mergeObjects(out[key], patch[key]);
+            } else {
+                out[key] = JSON.parse(JSON.stringify(patch[key]));
+            }
+        });
+        return out;
+    };
+
+    const loadLog = async (clientId, executeOnly) => {
+        if (!clientId) {
+            setMessage("Choose a miner first.", "warn");
+            return;
+        }
+        const data = await request(`/admin/getClientLog?clientId=${encodeURIComponent(clientId)}`);
+        let text = data.client_log || "";
+        if (executeOnly) {
+            const matches = [...text.matchAll(/\[exec\][\s\S]*?(?=\n\[exec\]|\s*$)/g)];
+            text = matches.map((match) => match[0]).join("\n\n").trim() || "[no execute output found]";
+        } else {
+            text = text.replace(/\[exec\][\s\S]*/g, "[execute output truncated]").trim();
+        }
+        els.logMinerSelect.value = clientId;
+        state.currentLogId = clientId;
+        els.logViewer.textContent = text || "[no log data]";
+        logActivity(`Loaded ${executeOnly ? "execute" : "miner"} log for ${clientId}.`, "info");
+    };
+
+    const refreshLogSchedule = () => {
+        if (state.logTimer) {
+            clearInterval(state.logTimer);
+            state.logTimer = null;
+        }
+        if (!els.autoLogRefresh.checked || !state.currentLogId) {
+            return;
+        }
+        const seconds = Math.max(2, Number(els.refreshSeconds.value) || 10);
+        state.logTimer = setInterval(() => {
+            loadLog(state.currentLogId, false).catch((error) => setMessage(String(error), "error"));
+        }, seconds * 1000);
+    };
+
+    const resetSchedule = () => {
+        if (state.timer) {
+            clearInterval(state.timer);
+            state.timer = null;
+        }
+        if (!els.autoRefresh.checked) {
+            return;
+        }
+        const seconds = Math.max(2, Number(els.refreshSeconds.value) || 10);
+        state.timer = setInterval(() => {
+            refreshFleet().catch((error) => {
+                setMessage(String(error), "error");
+                logActivity(`Fleet refresh failed: ${error}`, "error");
+            });
+        }, seconds * 1000);
+    };
+
+    const bind = (id, fn) => $(id).addEventListener("click", () => fn().catch((error) => {
+        setMessage(String(error), "error");
+        logActivity(String(error), "error");
+    }));
+
+    bind("refreshBtn", async () => {
+        await refreshFleet();
+        await refreshTemplates();
+    });
+    bind("clearSelectionBtn", async () => {
+        state.selected.clear();
+        renderSelection();
+        renderTable();
+    });
+    bind("resetStatusBtn", async () => {
+        if (!confirm("Reset all stored client statistics on the CC server?")) {
+            return;
+        }
+        await request("/admin/resetClientStatusList", { method: "POST", body: "{}" });
+        logActivity("Reset client status list on CC server.", "warn");
+        await refreshFleet();
+    });
+    bind("loadConfigBtn", async () => loadConfig(els.configMinerSelect.value));
+    bind("saveConfigBtn", saveConfig);
+    bind("formatConfigBtn", async () => {
+        els.configEditor.value = pretty(JSON.parse(els.configEditor.value));
+    });
+    bind("loadTemplateBtn", async () => loadTemplate(els.templateSelect.value));
+    bind("saveTemplateBtn", async () => saveTemplate(els.templateSelect.value));
+    bind("saveTemplateAsBtn", async () => saveTemplate(els.templateName.value.trim()));
+    bind("deleteTemplateBtn", deleteTemplate);
+    bind("assignTemplateBtn", assignTemplate);
+    bind("loadLogBtn", async () => loadLog(els.logMinerSelect.value, false));
+    bind("loadExecLogBtn", async () => loadLog(els.logMinerSelect.value, true));
+    bind("runExecBtn", async () => {
+        const clientId = els.configMinerSelect.value || els.logMinerSelect.value;
+        if (!clientId) {
+            setMessage("Choose a miner first.", "warn");
+            return;
+        }
+        const command = els.executeCommand.value.trim();
+        if (!command) {
+            setMessage("Enter a shell command first.", "warn");
+            return;
+        }
+        state.selected = new Set([clientId]);
+        renderSelection();
+        await sendCommand("EXECUTE", command);
+    });
+
+    bind("pushConfigBtn", async () => sendCommand("UPDATE_CONFIG"));
+    bind("pullConfigBtn", async () => sendCommand("PUBLISH_CONFIG"));
+    bind("updateMinerBtn", async () => sendCommand("UPDATE"));
+    bind("startBtn", async () => sendCommand("START"));
+    bind("pauseBtn", async () => sendCommand("STOP"));
+    bind("shutdownBtn", async () => {
+        if (!confirm("Stop the selected miner process(es)?")) {
+            return;
+        }
+        await sendCommand("SHUTDOWN");
+    });
+    bind("restartBtn", async () => sendCommand("RESTART"));
+    bind("rebootBtn", async () => {
+        if (!confirm("Reboot the selected host(s)?")) {
+            return;
+        }
+        await sendCommand("REBOOT");
+    });
+    bind("removeBtn", removeSelected);
+    bind("execBtn", async () => {
+        const command = prompt("Command to execute on selected miners:");
+        if (!command) {
+            return;
+        }
+        await sendCommand("EXECUTE", command);
+    });
+    bind("refreshSelectionBtn", async () => {
+        await refreshFleet();
+        if (state.currentLogId) {
+            await loadLog(state.currentLogId, false);
+        }
+        if (els.configMinerSelect.value) {
+            await loadConfig(els.configMinerSelect.value);
+        }
+    });
+
+    [els.baseUrl, els.adminUser, els.adminPass, els.refreshSeconds].forEach((el) => {
+        el.addEventListener("change", () => {
+            savePrefs();
+            resetSchedule();
+            refreshLogSchedule();
+        });
+    });
+    [els.searchInput, els.algoFilter, els.hideOffline].forEach((el) => {
+        el.addEventListener("input", () => {
+            renderSummary();
+            renderTable();
+            renderSelection();
+        });
+        el.addEventListener("change", () => {
+            renderSummary();
+            renderTable();
+            renderSelection();
+        });
+    });
+    els.autoRefresh.addEventListener("change", () => {
+        savePrefs();
+        resetSchedule();
+    });
+    els.autoLogRefresh.addEventListener("change", refreshLogSchedule);
+    els.configMinerSelect.addEventListener("change", () => {
+        state.currentConfigId = els.configMinerSelect.value;
+    });
+    els.logMinerSelect.addEventListener("change", () => {
+        state.currentLogId = els.logMinerSelect.value;
+        refreshLogSchedule();
+    });
+    els.templateSelect.addEventListener("change", () => {
+        els.templateName.value = els.templateSelect.value;
+    });
+
+    loadPrefs();
+    renderActivity();
+    resetSchedule();
+
+    Promise.all([refreshFleet(), refreshTemplates()])
+        .then(() => {
+            refreshLogSchedule();
+        })
+        .catch((error) => {
+            setMessage(String(error), "error");
+            logActivity(`Initial load failed: ${error}`, "error");
+        });
+})();
+</script>
+</body>
+</html>

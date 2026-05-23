@@ -87,6 +87,7 @@ set(HEADERS
     src/core/Miner.h
     src/core/Taskbar.h
     src/net/interfaces/IJobResultListener.h
+    src/net/DiscordNotifier.h
     src/net/JobResult.h
     src/net/JobResults.h
     src/net/Network.h
@@ -137,6 +138,7 @@ set(SOURCES
     src/core/Controller.cpp
     src/core/Miner.cpp
     src/core/Taskbar.cpp
+    src/net/DiscordNotifier.cpp
     src/net/JobResults.cpp
     src/net/Network.cpp
     src/net/strategies/DonateStrategy.cpp

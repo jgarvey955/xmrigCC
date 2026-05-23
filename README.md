@@ -165,7 +165,7 @@ Network:
   -r, --retries=N               number of times to retry before switch to backup server (default: 5)
   -R, --retry-pause=N           time to pause between retries (default: 5)
       --user-agent              set custom user-agent string for pool
-      --donate-level=N          donate level, can be reduced to 1% [1 minute in 100] (minimum) (default: 3%)
+      --donate-level=N          donate level, can be reduced to 5% (minimum) (default: 5%)
 
 CPU backend:
       --no-cpu                  disable CPU mining backend
@@ -280,4 +280,4 @@ Misc:
 
 
 ## Donations
-* Minimum 1% (1 minutes in 100 minutes) can be set via config or command line option `--donate-level`.
+* Minimum 5% can be set via config or command line option `--donate-level`.

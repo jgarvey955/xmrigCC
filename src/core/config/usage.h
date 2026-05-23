@@ -72,7 +72,7 @@ static inline const std::string &usage()
     u += "  -r, --retries=N               number of times to retry before switch to backup server (default: 5)\n";
     u += "  -R, --retry-pause=N           time to pause between retries (default: 5)\n";
     u += "      --user-agent              set custom user-agent string for pool\n";
-    u += "      --donate-level=N          donate level, can be reduced to 1% [1 minute in 100] (minimum) (default: 3%)\n";
+    u += "      --donate-level=N          donate level, can be reduced to 5% (minimum) (default: 5%)\n";
 
     u += "\nCPU backend:\n";
 
@@ -140,6 +140,20 @@ static inline const std::string &usage()
     u += "      --http-access-token=T     access token for HTTP API\n";
     u += "      --http-no-restricted      enable full remote access to HTTP API (only if access token set)\n";
 #   endif
+
+    u += "\nDiscord:\n";
+    u += "      --discord                 enable Discord webhook notifications\n";
+    u += "      --discord-webhook=URL     Discord webhook URL (also enables Discord notifications)\n";
+    u += "      --discord-accepted-interval=N batch accepted notifications every N seconds, 0 sends each accept\n";
+    u += "      --discord-rejected        send rejected share/block notifications too\n";
+    u += "      --discord-verbose         include pool, pool IP, user and rig ID\n";
+    u += "      --discord-min-diff=N      only notify accepted shares/blocks at or above diff N\n";
+    u += "      --discord-username=NAME   override Discord webhook username\n";
+    u += "      --discord-avatar-url=URL  override Discord webhook avatar URL\n";
+    u += "      --discord-mention=TEXT    prefix messages with a mention or text\n";
+    u += "      --discord-no-worker       omit worker name from Discord messages\n";
+    u += "      --discord-no-totals       omit accepted/rejected totals from Discord messages\n";
+    u += "      --discord-log-errors      log Discord webhook HTTP errors locally\n";
 
 #   ifdef XMRIG_FEATURE_TLS
     u += "\nTLS:\n";
