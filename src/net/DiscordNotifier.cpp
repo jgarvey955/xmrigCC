@@ -48,6 +48,30 @@ static void appendLine(std::string &out, const char *key, const char *value)
 }
 
 
+static std::string poolNameWithIp(IClient *client)
+{
+    const Pool &pool = client->pool();
+    const char *url = pool.url().data();
+    std::string name = url ? url : "";
+    const char *ip = client->ip().data();
+
+    if (ip && strlen(ip) > 0) {
+        name += " (";
+        name += ip;
+        name += ")";
+    }
+
+    if (pool.coin().isValid()) {
+        name += std::string(" coin ") + pool.coin().name();
+    }
+    else {
+        name += std::string(" algo ") + (pool.algorithm().isValid() ? pool.algorithm().name() : "auto");
+    }
+
+    return name;
+}
+
+
 } // namespace xmrig
 
 
@@ -225,8 +249,8 @@ std::string xmrig::DiscordNotifier::acceptedMessage(IClient *client, const Submi
     }
 
     if (config.verbose && client) {
-        appendLine(out, "Pool", client->pool().printableName().c_str());
-        appendLine(out, "Pool IP", client->ip().data());
+        const std::string pool = poolNameWithIp(client);
+        appendLine(out, "Pool", pool.c_str());
         appendLine(out, "User", client->pool().user().data());
         appendLine(out, "Rig ID", client->pool().rigId().data());
     }
