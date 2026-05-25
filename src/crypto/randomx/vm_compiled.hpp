@@ -44,6 +44,7 @@ namespace randomx {
 		inline CompiledVm() {}
 		void* operator new(size_t, void* ptr) { return ptr; }
 		void operator delete(void*) {}
+		void operator delete(void*, void*) {}
 
 		void setDataset(randomx_dataset* dataset) override;
 		void run(void* seed) override;

@@ -57,7 +57,7 @@ bool xmrig::AutoClient::parseLogin(const rapidjson::Value &result, int *code)
 
     try {
         setExtraNonce(Json::getValue(result, "extra_nonce"));
-    } catch (const std::exception &ex) {
+    } catch (const std::exception &) {
         *code = 6;
         return false;
     }

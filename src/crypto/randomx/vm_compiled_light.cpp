@@ -55,7 +55,7 @@ namespace randomx {
 		compiler.enableWriting();
 #		endif
 
-		compiler.generateProgramLight(program, config, datasetOffset);
+		compiler.generateProgramLight(program, config, static_cast<uint32_t>(datasetOffset));
 
 		CompiledVm<softAes>::execute();
 	}

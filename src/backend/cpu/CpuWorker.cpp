@@ -261,7 +261,7 @@ void xmrig::CpuWorker<N>::start()
             consumeJob();
         }
 
-        int maxUsagePerThread = (static_cast<double>(Cpu::info()->threads()) / static_cast<double>(m_threads*threads())) * m_maxCpuUsage;
+        int maxUsagePerThread = static_cast<int>((static_cast<double>(Cpu::info()->threads()) / static_cast<double>(m_threads*threads())) * m_maxCpuUsage);
         bool limitCpuUsage = m_maxCpuUsage > 0 && m_maxCpuUsage < 100 && maxUsagePerThread < 100;
 
 #       ifdef XMRIG_ALGO_RANDOMX
@@ -510,7 +510,7 @@ template<size_t N>
 void xmrig::CpuWorker<N>::allocateCnCtx()
 {
     if (m_ctx[0] == nullptr) {
-        int shift = 0;
+        size_t shift = 0;
 
 #       ifdef XMRIG_ALGO_CN_HEAVY
         // cn-heavy optimization for Zen3 CPUs

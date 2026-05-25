@@ -705,7 +705,7 @@ fugue_init(sph_fugue_context *sc, size_t z_len,
 	if (plen < 4) { \
 		unsigned count = 4 - plen; \
 		if (len < count) \
-			count = len; \
+			count = (unsigned) len; \
 		plen += count; \
 		while (count -- > 0) { \
 			p = (p << 8) | *(const unsigned char *)data; \

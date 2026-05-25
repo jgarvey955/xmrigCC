@@ -219,6 +219,8 @@ static PFN_QUERYWORKINGSETEX QueryWorkingSetExProc;
 
 typedef NTSTATUS (WINAPI *PFN_RTLGETVERSION)(OSVERSIONINFOEX*);
 PFN_RTLGETVERSION RtlGetVersionProc;
+typedef BOOL (WINAPI *PFN_GETVERSIONEXA)(LPOSVERSIONINFOA);
+static PFN_GETVERSIONEXA GetVersionExAProc;
 
 static void hwloc_win_get_function_ptrs(void)
 {
@@ -254,6 +256,8 @@ static void hwloc_win_get_function_ptrs(void)
 	(PFN_VIRTUALALLOCEXNUMA) GetProcAddress(kernel32, "VirtualAllocExNuma");
       VirtualFreeExProc =
 	(PFN_VIRTUALFREEEX) GetProcAddress(kernel32, "VirtualFreeEx");
+      GetVersionExAProc =
+	(PFN_GETVERSIONEXA) GetProcAddress(kernel32, "GetVersionExA");
     }
 
     if (!QueryWorkingSetExProc) {
@@ -1022,7 +1026,8 @@ hwloc_look_windows(struct hwloc_backend *backend, struct hwloc_disc_status *dsta
      * (manifest of the program, not of libhwloc.dll), they may return old versions
      * if the currently-running Windows is not listed in the manifest.
      */
-    GetVersionEx((LPOSVERSIONINFO)&osvi);
+    if (GetVersionExAProc)
+      GetVersionExAProc((LPOSVERSIONINFOA)&osvi);
   }
 
   if (osvi.dwMajorVersion >= 10) {

@@ -81,7 +81,7 @@ void randomx_vm::initialize() {
 	store64(&reg.a[3].lo, randomx::getSmallPositiveFloatBits(program.getEntropy(6)));
 	store64(&reg.a[3].hi, randomx::getSmallPositiveFloatBits(program.getEntropy(7)));
 	mem.ma = program.getEntropy(8) & CacheLineAlignMask;
-	mem.mx = program.getEntropy(10);
+	mem.mx = static_cast<randomx::addr_t>(program.getEntropy(10));
 	auto addressRegisters = program.getEntropy(12);
 	config.readReg0 = 0 + (addressRegisters & 1);
 	addressRegisters >>= 1;

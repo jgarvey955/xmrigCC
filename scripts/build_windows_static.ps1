@@ -58,31 +58,26 @@ function Invoke-SelfInDevShell {
         throw "cl.exe was not found in PATH, and VsDevCmd.bat could not be located. Run this from an x64 Native Tools Command Prompt for Visual Studio 2022."
     }
 
-    Write-Step "cl.exe not found; relaunching inside Visual Studio x64 developer environment"
+    Write-Step "cl.exe not found; importing Visual Studio x64 developer environment"
 
-    $switches = @()
-    if ($WithOpenCL) { $switches += "-WithOpenCL" }
-    if ($WithCuda) { $switches += "-WithCuda" }
-    if ($Clean) { $switches += "-Clean" }
-    if ($SkipBuild) { $switches += "-SkipBuild" }
-    $switchText = $switches -join " "
-
-    $cmdFile = Join-Path $env:TEMP ("xmrigcc-build-devshell-{0}.cmd" -f ([guid]::NewGuid().ToString("N")))
-    $cmdBody = @"
-@echo off
-call "$devCmd" -arch=x64 -host_arch=x64
-if errorlevel 1 exit /b %errorlevel%
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$PSCommandPath" -SourceDir "$SourceDir" -BuildDir "$BuildDir" -DepsDir "$DepsDir" -InDevShell $switchText
-exit /b %errorlevel%
-"@
-
-    Set-Content -Path $cmdFile -Value $cmdBody -Encoding ASCII
-    try {
-        & cmd.exe /d /c "`"$cmdFile`""
-        exit $LASTEXITCODE
+    $environment = & cmd.exe /d /s /c "`"$devCmd`" -arch=x64 -host_arch=x64 >nul && set"
+    if ($LASTEXITCODE -ne 0) {
+        throw "VsDevCmd.bat failed with exit code $LASTEXITCODE."
     }
-    finally {
-        Remove-Item -LiteralPath $cmdFile -Force -ErrorAction SilentlyContinue
+
+    foreach ($line in $environment) {
+        $equalsIndex = $line.IndexOf("=")
+        if ($equalsIndex -le 0) {
+            continue
+        }
+
+        $name = $line.Substring(0, $equalsIndex)
+        $value = $line.Substring($equalsIndex + 1)
+        Set-Item -Path "Env:$name" -Value $value
+    }
+
+    if (-not (Get-Command "cl.exe" -ErrorAction SilentlyContinue)) {
+        throw "Visual Studio developer environment was imported, but cl.exe is still not available."
     }
 }
 

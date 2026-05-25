@@ -47,7 +47,7 @@ inline static void printCount(uint64_t accepted, uint64_t rejected)
         color       = 1;
     }
     else if (rejected) {
-        percent     = static_cast<float>(accepted) / (accepted + rejected) * 100.0;
+        percent     = static_cast<float>(static_cast<double>(accepted) / (accepted + rejected) * 100.0);
         color       = 3;
     }
 
@@ -160,7 +160,7 @@ rapidjson::Value xmrig::NetworkState::getResults(rapidjson::Document &doc, int v
     results.AddMember("hashes_total",  m_hashes, allocator);
 
     Value best(kArrayType);
-    best.Reserve(m_topDiff.size(), allocator);
+    best.Reserve(static_cast<rapidjson::SizeType>(m_topDiff.size()), allocator);
 
     for (uint64_t i : m_topDiff) {
         best.PushBack(i, allocator);
@@ -374,7 +374,7 @@ void xmrig::NetworkState::getConnection(ClientStatus& clientStatus) const
 void xmrig::NetworkState::getResults(ClientStatus& clientStatus) const
 {
     clientStatus.setHashesTotal(m_hashes);
-    clientStatus.setAvgTime(avgTime()/1000);
+    clientStatus.setAvgTime(static_cast<uint32_t>(avgTime()/1000));
     clientStatus.setSharesGood(m_accepted);
     clientStatus.setSharesTotal(m_accepted+m_rejected);
 }

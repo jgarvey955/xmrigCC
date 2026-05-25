@@ -271,7 +271,7 @@ void KPHash::calculate(const KPCache& light_cache, uint32_t block_height, const 
     cache.cache_size = light_cache.size();
     cache.block_number = block_height;
 
-    cache.num_parent_nodes = cache.cache_size / sizeof(node);
+    cache.num_parent_nodes = static_cast<uint32_t>(cache.cache_size / sizeof(node));
     KPCache::calculate_fast_mod_data(cache.num_parent_nodes, cache.reciprocal, cache.increment, cache.shift);
 
     uint32_t z0 = z;

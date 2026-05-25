@@ -74,7 +74,7 @@ bool KPCache::init(uint32_t epoch)
     cache.cache = m_memory->raw();
     cache.cache_size = size;
 
-    cache.num_parent_nodes = cache.cache_size / sizeof(node);
+    cache.num_parent_nodes = static_cast<uint32_t>(cache.cache_size / sizeof(node));
     calculate_fast_mod_data(cache.num_parent_nodes, cache.reciprocal, cache.increment, cache.shift);
 
     const uint64_t cache_nodes = (size + sizeof(node) * 4 - 1) / sizeof(node);
@@ -88,8 +88,8 @@ bool KPCache::init(uint32_t epoch)
         threads.reserve(n);
 
         for (uint64_t i = 0; i < n; ++i) {
-            const uint32_t a = (cache_nodes * i) / n;
-            const uint32_t b = (cache_nodes * (i + 1)) / n;
+            const uint32_t a = static_cast<uint32_t>((cache_nodes * i) / n);
+            const uint32_t b = static_cast<uint32_t>((cache_nodes * (i + 1)) / n);
 
             threads.emplace_back([this, a, b, &cache]() {
                 uint32_t j = a;

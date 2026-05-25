@@ -55,7 +55,7 @@ static inline void random_scalar(ec_scalar& res)
 
 static void hash_to_scalar(const void* data, size_t length, ec_scalar& res)
 {
-    xmrig::keccak((const uint8_t*) data, length, (uint8_t*) &res, sizeof(res));
+    xmrig::keccak((const uint8_t*) data, static_cast<int>(length), (uint8_t*) &res, static_cast<int>(sizeof(res)));
     sc_reduce32((uint8_t*) &res);
 }
 
@@ -77,7 +77,7 @@ static void derivation_to_scalar(const uint8_t* derivation, size_t output_index,
     }
     *(end++) = static_cast<uint8_t>(k);
 
-    hash_to_scalar(&buf, end - reinterpret_cast<uint8_t*>(&buf), res);
+    hash_to_scalar(&buf, static_cast<size_t>(end - reinterpret_cast<uint8_t*>(&buf)), res);
 }
 
 

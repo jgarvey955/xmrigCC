@@ -37,7 +37,7 @@ struct RawSMBIOSData {
     uint8_t	SMBIOSMinorVersion;
     uint8_t	DmiRevision;
     uint32_t Length;
-    uint8_t	SMBIOSTableData[];
+    uint8_t	SMBIOSTableData[1];
 };
 
 

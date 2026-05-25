@@ -57,7 +57,7 @@ void xmrig::DmiReader::toJSON(rapidjson::Value &out, rapidjson::Document &doc) c
     out.SetObject();
 
     Value memory(kArrayType);
-    memory.Reserve(m_memory.size(), allocator);
+    memory.Reserve(static_cast<rapidjson::SizeType>(m_memory.size()), allocator);
 
     for (const auto &value : m_memory) {
         memory.PushBack(value.toJSON(doc), allocator);

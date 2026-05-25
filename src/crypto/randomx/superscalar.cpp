@@ -151,7 +151,7 @@ namespace randomx {
 			return name_;
 		}
 		int getSize() const {
-			return ops_.size();
+			return static_cast<int>(ops_.size());
 		}
 		bool isSimple() const {
 			return getSize() == 1;

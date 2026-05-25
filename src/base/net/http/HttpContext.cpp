@@ -46,7 +46,7 @@ public:
         m_ctx(ctx),
         m_body(std::move(body))
     {
-        m_buf = uv_buf_init(&m_body.front(), m_body.size());
+        m_buf = uv_buf_init(&m_body.front(), static_cast<unsigned int>(m_body.size()));
     }
 
     inline ~HttpWriteBaton()

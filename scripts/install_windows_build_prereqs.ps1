@@ -21,6 +21,102 @@ function Assert-Command {
     }
 }
 
+function Add-PathDirectory {
+    param([string]$Directory)
+
+    if ((Test-Path $Directory) -and
+        (($env:PATH -split ';') -notcontains $Directory)) {
+        $env:PATH = "$Directory;$env:PATH"
+    }
+}
+
+function Download-File {
+    param(
+        [string]$Uri,
+        [string]$OutFile
+    )
+
+    Write-Host "Downloading $Uri"
+    Invoke-WebRequest -Uri $Uri -OutFile $OutFile -UseBasicParsing
+}
+
+function Install-AppxIfPresent {
+    param([string]$Path)
+
+    if (Test-Path -LiteralPath $Path) {
+        Write-Host "Installing $Path"
+        Add-AppxPackage -Path $Path -ErrorAction Stop
+    }
+}
+
+function Install-WingetDependencies {
+    param([string]$WorkDir)
+
+    $vclibs = Join-Path $WorkDir "Microsoft.VCLibs.x64.14.00.Desktop.appx"
+    Download-File "https://aka.ms/Microsoft.VCLibs.x64.14.00.Desktop.appx" $vclibs
+    Install-AppxIfPresent $vclibs
+
+    $xamlPackage = Join-Path $WorkDir "Microsoft.UI.Xaml.2.8.nupkg"
+    $xamlDir = Join-Path $WorkDir "Microsoft.UI.Xaml.2.8"
+    Download-File "https://www.nuget.org/api/v2/package/Microsoft.UI.Xaml/2.8.6" $xamlPackage
+
+    if (Test-Path -LiteralPath $xamlDir) {
+        Remove-Item -LiteralPath $xamlDir -Recurse -Force
+    }
+
+    Expand-Archive -LiteralPath $xamlPackage -DestinationPath $xamlDir -Force
+    $xamlAppx = Join-Path $xamlDir "tools\AppX\x64\Release\Microsoft.UI.Xaml.2.8.appx"
+    Install-AppxIfPresent $xamlAppx
+}
+
+function Repair-ExistingWingetPackage {
+    $package = Get-AppxPackage -Name "Microsoft.DesktopAppInstaller" -ErrorAction SilentlyContinue |
+        Select-Object -First 1
+
+    if (-not $package -or -not $package.InstallLocation) {
+        return
+    }
+
+    $manifest = Join-Path $package.InstallLocation "AppXManifest.xml"
+    if (Test-Path -LiteralPath $manifest) {
+        Write-Step "Repairing existing App Installer registration"
+        Add-AppxPackage -DisableDevelopmentMode -Register $manifest -ErrorAction SilentlyContinue
+    }
+}
+
+function Ensure-Winget {
+    Write-Step "Checking winget"
+
+    Add-PathDirectory (Join-Path $env:LOCALAPPDATA "Microsoft\WindowsApps")
+    if (Get-Command winget.exe -ErrorAction SilentlyContinue) {
+        return
+    }
+
+    Repair-ExistingWingetPackage
+    Add-PathDirectory (Join-Path $env:LOCALAPPDATA "Microsoft\WindowsApps")
+    if (Get-Command winget.exe -ErrorAction SilentlyContinue) {
+        return
+    }
+
+    Write-Step "Installing winget / App Installer"
+    $workDir = Join-Path $env:TEMP ("winget-bootstrap-{0}" -f ([guid]::NewGuid().ToString("N")))
+    New-Item -ItemType Directory -Force -Path $workDir | Out-Null
+
+    try {
+        Install-WingetDependencies $workDir
+
+        $bundle = Join-Path $workDir "Microsoft.DesktopAppInstaller.msixbundle"
+        Download-File "https://aka.ms/getwinget" $bundle
+        Add-AppxPackage -Path $bundle -ErrorAction Stop
+    }
+    finally {
+        Remove-Item -LiteralPath $workDir -Recurse -Force -ErrorAction SilentlyContinue
+    }
+
+    Add-PathDirectory (Join-Path $env:LOCALAPPDATA "Microsoft\WindowsApps")
+    Assert-Command "winget.exe"
+}
+
 function Test-WingetPackageInstalled {
     param([string]$Id)
 
@@ -109,8 +205,7 @@ function Ensure-VSBuildToolsWorkload {
     }
 }
 
-Write-Step "Checking winget"
-Assert-Command "winget.exe"
+Ensure-Winget
 
 if (-not $SkipVisualStudio) {
     Install-WingetPackage `

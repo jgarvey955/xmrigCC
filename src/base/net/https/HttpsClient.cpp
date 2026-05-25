@@ -95,7 +95,7 @@ void xmrig::HttpsClient::handshake()
 
 void xmrig::HttpsClient::read(const char *data, size_t size)
 {
-    BIO_write(m_read, data, size);
+    BIO_write(m_read, data, static_cast<int>(size));
 
     if (!SSL_is_init_finished(m_ssl)) {
         const int rc = SSL_connect(m_ssl);
@@ -151,7 +151,7 @@ void xmrig::HttpsClient::read(const char *data, size_t size)
 void xmrig::HttpsClient::write(std::string &&data, bool shouldClose)
 {
     const std::string body = std::move(data);
-    const int rc = SSL_write(m_ssl, body.data(), body.size());
+    const int rc = SSL_write(m_ssl, body.data(), static_cast<int>(body.size()));
     if (rc <= 0) {
         const int error = SSL_get_error(m_ssl, rc);
         if (error == SSL_ERROR_WANT_READ || error == SSL_ERROR_WANT_WRITE) {

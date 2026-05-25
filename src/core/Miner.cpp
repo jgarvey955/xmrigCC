@@ -792,12 +792,12 @@ void xmrig::Miner::onUpdateRequest(ClientStatus& clientStatus)
             if (h1.first) { t[1] += h1.second; } else { t[1] = 0.0; }
             if (h2.first) { t[2] += h2.second; } else { t[2] = 0.0; }
 
-            threads += backend->hashrate()->threads();
+            threads += static_cast<int>(backend->hashrate()->threads());
 
             if (backend->type() == "cpu") {
                 const auto cpuBackend = static_cast<CpuBackend *>(backend);
 
-                ways += cpuBackend->ways();
+                ways += static_cast<int>(cpuBackend->ways());
 
                 HugePagesInfo pages = cpuBackend->hugePages();
 
@@ -807,8 +807,8 @@ void xmrig::Miner::onUpdateRequest(ClientStatus& clientStatus)
                 }
 #   endif
 
-                totalHugepages += pages.allocated;
-                totalPages += pages.total;
+                totalHugepages += static_cast<int>(pages.allocated);
+                totalPages += static_cast<int>(pages.total);
             } else if (backend->type() == "opencl") {
 #   ifdef XMRIG_FEATURE_OPENCL
                 const auto oclBackend = static_cast<OclBackend *>(backend);

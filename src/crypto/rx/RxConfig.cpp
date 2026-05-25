@@ -142,7 +142,7 @@ rapidjson::Value xmrig::RxConfig::toJSON(rapidjson::Document &doc) const
 #   ifdef XMRIG_FEATURE_MSR
     if (!m_msrPreset.empty()) {
         Value wrmsr(kArrayType);
-        wrmsr.Reserve(m_msrPreset.size(), allocator);
+        wrmsr.Reserve(static_cast<rapidjson::SizeType>(m_msrPreset.size()), allocator);
 
         for (const auto &i : m_msrPreset) {
             wrmsr.PushBack(i.toJSON(doc), allocator);
@@ -208,7 +208,7 @@ uint32_t xmrig::RxConfig::threads(uint32_t limit) const
         return std::max(static_cast<uint32_t>(round(Cpu::info()->threads() * (limit / 100.0))), 1U);
     }
 
-    return Cpu::info()->threads();
+    return static_cast<uint32_t>(Cpu::info()->threads());
 }
 
 

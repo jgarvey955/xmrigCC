@@ -111,8 +111,8 @@ bool xmrig::RxDataset::init(const Buffer &seed, uint32_t numThreads, int priorit
         threads.reserve(numThreads);
 
         for (uint64_t i = 0; i < numThreads; ++i) {
-            const uint32_t a = (datasetItemCount * i) / numThreads;
-            const uint32_t b = (datasetItemCount * (i + 1)) / numThreads;
+            const uint32_t a = static_cast<uint32_t>((datasetItemCount * i) / numThreads);
+            const uint32_t b = static_cast<uint32_t>((datasetItemCount * (i + 1)) / numThreads);
             threads.emplace_back(init_dataset_wrapper, m_dataset, m_cache->get(), a, b - a, priority);
         }
 
@@ -121,7 +121,7 @@ bool xmrig::RxDataset::init(const Buffer &seed, uint32_t numThreads, int priorit
         }
     }
     else {
-        init_dataset_wrapper(m_dataset, m_cache->get(), 0, datasetItemCount, priority);
+        init_dataset_wrapper(m_dataset, m_cache->get(), 0, static_cast<uint32_t>(datasetItemCount), priority);
     }
 
     return true;

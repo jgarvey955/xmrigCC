@@ -99,7 +99,7 @@ bool xmrig::FileLogWriter::write(const char *data, size_t size)
         return false;
     }
 
-    uv_buf_t buf = uv_buf_init(new char[size], size);
+    uv_buf_t buf = uv_buf_init(new char[size], static_cast<unsigned int>(size));
     memcpy(buf.base, data, size);
 
     uv_mutex_lock(&m_buffersLock);
@@ -121,7 +121,7 @@ bool xmrig::FileLogWriter::writeLine(const char *data, size_t size)
 
     constexpr size_t N = sizeof(m_endl) - 1;
 
-    uv_buf_t buf = uv_buf_init(new char[size + N], size + N);
+    uv_buf_t buf = uv_buf_init(new char[size + N], static_cast<unsigned int>(size + N));
     memcpy(buf.base, data, size);
     memcpy(buf.base + size, m_endl, N);
 

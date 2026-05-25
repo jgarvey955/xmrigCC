@@ -64,7 +64,7 @@ bool xmrig::WalletAddress::decode(const char *address, size_t size)
     memset(reverse_alphabet, -1, sizeof(reverse_alphabet));
 
     for (size_t i = 0; i < alphabet_size; ++i) {
-        reverse_alphabet[static_cast<int>(alphabet[i])] = i;
+        reverse_alphabet[static_cast<int>(alphabet[i])] = static_cast<int8_t>(i);
     }
 
     const int len = static_cast<int>(size);
@@ -75,7 +75,7 @@ bool xmrig::WalletAddress::decode(const char *address, size_t size)
 
     for (size_t i = 0; i < block_sizes.size(); ++i) {
         if (block_sizes[i] == last_block_size) {
-            last_block_size_index = i;
+            last_block_size_index = static_cast<int>(i);
             break;
         }
     }

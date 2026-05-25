@@ -1431,8 +1431,8 @@ hwloc__group_memory_tiers(hwloc_topology_t topology,
   struct hwloc_memory_node_info_s *nodeinfos;
   struct hwloc_memory_tier_s *tiers;
   unsigned nr_tiers;
-  float bw_threshold = 0.1;
-  float lat_threshold = 0.1;
+  float bw_threshold = 0.1f;
+  float lat_threshold = 0.1f;
   const char *env;
   unsigned i, j, n;
 
@@ -1441,11 +1441,11 @@ hwloc__group_memory_tiers(hwloc_topology_t topology,
 
   env = getenv("HWLOC_MEMTIERS_BANDWIDTH_THRESHOLD");
   if (env)
-    bw_threshold = atof(env);
+    bw_threshold = (float) atof(env);
 
   env = getenv("HWLOC_MEMTIERS_LATENCY_THRESHOLD");
   if (env)
-    lat_threshold = atof(env);
+    lat_threshold = (float) atof(env);
 
   imattr_bw = &topology->memattrs[HWLOC_MEMATTR_ID_BANDWIDTH];
   imattr_lat = &topology->memattrs[HWLOC_MEMATTR_ID_LATENCY];
@@ -1563,8 +1563,8 @@ hwloc__group_memory_tiers(hwloc_topology_t topology,
     /* comparing bandwidth */
     if (nodeinfos[i].local_bw && nodeinfos[i-1].local_bw) {
       float bw_ratio = (float)nodeinfos[i].local_bw/(float)nodeinfos[i-1].local_bw;
-      if (bw_ratio < 1.)
-        bw_ratio = 1./bw_ratio;
+      if (bw_ratio < 1.0f)
+        bw_ratio = 1.0f/bw_ratio;
       if (bw_ratio > 1.0 + bw_threshold) {
         nodeinfos[i].rank++;
         hwloc_debug("  Switching to memory tier #%u starting with node L#%u P#%u because of bandwidth\n",
@@ -1575,8 +1575,8 @@ hwloc__group_memory_tiers(hwloc_topology_t topology,
     /* comparing latency */
     if (nodeinfos[i].local_lat && nodeinfos[i-1].local_lat) {
       float lat_ratio = (float)nodeinfos[i].local_lat/(float)nodeinfos[i-1].local_lat;
-      if (lat_ratio < 1.)
-        lat_ratio = 1./lat_ratio;
+      if (lat_ratio < 1.0f)
+        lat_ratio = 1.0f/lat_ratio;
       if (lat_ratio > 1.0 + lat_threshold) {
         hwloc_debug("  Switching to memory tier #%u starting with node L#%u P#%u because of latency\n",
                     nodeinfos[i].rank, nodeinfos[i].node->logical_index, nodeinfos[i].node->os_index);

@@ -62,7 +62,7 @@ bool xmrig::ServerTls::isTLS(const char *data, size_t size)
 
 bool xmrig::ServerTls::send(const char *data, size_t size)
 {
-    SSL_write(m_ssl, data, size);
+    SSL_write(m_ssl, data, static_cast<int>(size));
 
     return write(m_write);
 }
@@ -81,7 +81,7 @@ void xmrig::ServerTls::read(const char *data, size_t size)
     }
 
 
-    BIO_write(m_read, data, size);
+    BIO_write(m_read, data, static_cast<int>(size));
 
     if (!SSL_is_init_finished(m_ssl)) {
         const int rc = SSL_do_handshake(m_ssl);

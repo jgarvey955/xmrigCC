@@ -104,5 +104,5 @@ void xmrig::Client::Socks5::connect()
     const uint16_t port = htons(m_client->pool().port());
     memcpy(buf.data() + (buf.size() - sizeof(port)), &port, sizeof(port));
 
-    m_client->write(uv_buf_init(reinterpret_cast<char *>(buf.data()), buf.size()));
+    m_client->write(uv_buf_init(reinterpret_cast<char *>(buf.data()), static_cast<unsigned int>(buf.size())));
 }

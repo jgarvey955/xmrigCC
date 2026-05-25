@@ -5745,7 +5745,7 @@ inline bool ClientImpl::handle_socks5_connection(Stream &strm, Error &error) {
   } else {
     // Domain name
     connect_req.push_back(0x03); // Domain name
-    connect_req.push_back(host_.length()); // Domain length
+    connect_req.push_back(static_cast<uint8_t>(host_.length())); // Domain length
     connect_req.insert(connect_req.end(), host_.begin(), host_.end());
   }
 

@@ -487,7 +487,7 @@ HelperThread* create_helper_thread(int64_t cpu_index, int priority, const std::v
 
     for (int64_t i : affinities) {
         if (i >= 0) {
-            hwloc_bitmap_set(main_threads_set, i);
+            hwloc_bitmap_set(main_threads_set, static_cast<unsigned int>(i));
         }
     }
 
@@ -503,7 +503,7 @@ HelperThread* create_helper_thread(int64_t cpu_index, int priority, const std::v
             }
 #           endif
 
-            if (!hwloc_bitmap_isset(obj->cpuset, cpu_index)) {
+            if (!hwloc_bitmap_isset(obj->cpuset, static_cast<unsigned int>(cpu_index))) {
                 return false;
             }
 
@@ -511,12 +511,12 @@ HelperThread* create_helper_thread(int64_t cpu_index, int priority, const std::v
             findByType(obj, HWLOC_OBJ_CORE, [&num_cores](hwloc_obj_t) { ++num_cores; return false; });
 
             if ((obj->attr->cache.size >> 22) > num_cores) {
-                uint32_t num_8MB_cores = (obj->attr->cache.size >> 22) - num_cores;
+                uint32_t num_8MB_cores = static_cast<uint32_t>(obj->attr->cache.size >> 22) - num_cores;
 
                 is8MB = findByType(obj, HWLOC_OBJ_CORE, [cpu_index, &num_8MB_cores](hwloc_obj_t obj2) {
                     if (num_8MB_cores > 0) {
                         --num_8MB_cores;
-                        if (hwloc_bitmap_isset(obj2->cpuset, cpu_index)) {
+                        if (hwloc_bitmap_isset(obj2->cpuset, static_cast<unsigned int>(cpu_index))) {
                             return true;
                         }
                     }
@@ -533,7 +533,7 @@ HelperThread* create_helper_thread(int64_t cpu_index, int priority, const std::v
 #       endif
             findByType(root, obj_type, [cpu_index, helper_cpu_set, main_threads_set](hwloc_obj_t obj) {
                 const hwloc_cpuset_t& s = obj->cpuset;
-                if (hwloc_bitmap_isset(s, cpu_index)) {
+                if (hwloc_bitmap_isset(s, static_cast<unsigned int>(cpu_index))) {
                     hwloc_bitmap_andnot(helper_cpu_set, s, main_threads_set);
                     if (hwloc_bitmap_weight(helper_cpu_set) > 0) {
                         return true;

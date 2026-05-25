@@ -105,7 +105,7 @@ xmrig::Msr::Msr() : d_ptr(new MsrPrivate())
 
     do {
         dir.resize(dir.empty() ? MAX_PATH : dir.size() * 2);
-        GetModuleFileNameW(nullptr, dir.data(), dir.size());
+        GetModuleFileNameW(nullptr, dir.data(), static_cast<DWORD>(dir.size()));
         err = GetLastError();
     } while (err == ERROR_INSUFFICIENT_BUFFER);
 
@@ -139,7 +139,7 @@ xmrig::Msr::Msr() : d_ptr(new MsrPrivate())
                 std::vector<BYTE> buffer(dwBytesNeeded);
                 auto config = reinterpret_cast<LPQUERY_SERVICE_CONFIGA>(buffer.data());
 
-                if (QueryServiceConfigA(d_ptr->service, config, buffer.size(), &dwBytesNeeded)) {
+                if (QueryServiceConfigA(d_ptr->service, config, static_cast<DWORD>(buffer.size()), &dwBytesNeeded)) {
                     LOG_INFO("%s " YELLOW("service path: ") YELLOW_BOLD("\"%s\""), tag(), config->lpBinaryPathName);
                 }
             }
