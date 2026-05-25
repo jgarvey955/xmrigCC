@@ -195,7 +195,10 @@ void xmrig::App::reboot()
 #   ifdef XMRIG_FEATURE_CC_CLIENT_SHELL_EXECUTE
   auto rebootCmd = m_controller->config()->ccClient().rebootCmd();
   if (rebootCmd) {
-    system(rebootCmd);
+    if (system(rebootCmd) != 0) {
+      LOG_WARN("%s reboot command failed", Tags::cc());
+    }
+
     close(RC_OK);
   }
 #   else

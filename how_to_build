@@ -2,5 +2,5 @@
 2. git clone https://github.com/jgarvey955/xmrigCC.git
 3. mkdir xmrigCC/build && cd xmrigCC/scripts
 4. ./build_deps.sh && cd ../build
-5. cmake .. -DXMRIG_DEPS=scripts/deps
+5. cmake .. -DXMRIG_DEPS=scripts/deps -DBUILD_STATIC=ON -DWITH_OPENCL=OFF -DWITH_CUDA=OFF -DWITH_ZLIB=ON
 6. make -j$(nproc)

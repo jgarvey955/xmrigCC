@@ -84,8 +84,34 @@ if (WITH_CC_SERVER OR WITH_CC_CLIENT)
     endif()
 
     if (WITH_ZLIB)
-        set(ZLIB_ROOT ${XMRIG_DEPS})
-        find_package(ZLIB)
+        if (BUILD_STATIC)
+            set(ZLIB_USE_STATIC_LIBS ON)
+        endif()
+
+        if (XMRIG_DEPS)
+            find_path(
+                XMRIG_ZLIB_INCLUDE_DIR
+                NAMES zlib.h
+                PATHS "${XMRIG_DEPS}" ENV "XMRIG_DEPS"
+                PATH_SUFFIXES "include"
+                NO_DEFAULT_PATH
+            )
+
+            find_library(
+                XMRIG_ZLIB_LIBRARY
+                NAMES zlib z zlibstatic libz
+                PATHS "${XMRIG_DEPS}" ENV "XMRIG_DEPS"
+                PATH_SUFFIXES "lib"
+                NO_DEFAULT_PATH
+            )
+
+            if (XMRIG_ZLIB_INCLUDE_DIR AND XMRIG_ZLIB_LIBRARY)
+                set(ZLIB_INCLUDE_DIR "${XMRIG_ZLIB_INCLUDE_DIR}" CACHE PATH "zlib include directory" FORCE)
+                set(ZLIB_LIBRARY "${XMRIG_ZLIB_LIBRARY}" CACHE FILEPATH "zlib library" FORCE)
+            endif()
+        endif()
+
+        find_package(ZLIB REQUIRED)
         add_definitions(/DCPPHTTPLIB_ZLIB_SUPPORT)
     endif()
 endif()

@@ -208,7 +208,6 @@ using socket_t = int;
 
 #ifdef CPPHTTPLIB_OPENSSL_SUPPORT
 #include <openssl/err.h>
-#include <openssl/md5.h>
 #include <openssl/ssl.h>
 #include <openssl/x509v3.h>
 
@@ -3963,17 +3962,27 @@ inline bool has_crlf(const char *s) {
 }
 
 #ifdef CPPHTTPLIB_OPENSSL_SUPPORT
-template <typename CTX, typename Init, typename Update, typename Final>
-inline std::string message_digest(const std::string &s, Init init,
-                                  Update update, Final final,
-                                  size_t digest_length) {
+inline std::string message_digest(const std::string &s, const EVP_MD *algorithm) {
     using namespace std;
 
+    auto digest_length = EVP_MD_size(algorithm);
+    if (digest_length <= 0) { return string(); }
+
     std::vector<unsigned char> md(digest_length, 0);
-    CTX ctx;
-    init(&ctx);
-    update(&ctx, s.data(), s.size());
-    final(md.data(), &ctx);
+    unsigned int md_len = 0;
+
+    auto ctx = EVP_MD_CTX_new();
+    if (!ctx) { return string(); }
+
+    if (EVP_DigestInit_ex(ctx, algorithm, nullptr) != 1 ||
+        EVP_DigestUpdate(ctx, s.data(), s.size()) != 1 ||
+        EVP_DigestFinal_ex(ctx, md.data(), &md_len) != 1) {
+        EVP_MD_CTX_free(ctx);
+        return string();
+    }
+
+    EVP_MD_CTX_free(ctx);
+    md.resize(md_len);
 
     stringstream ss;
     for (auto c : md) {
@@ -3983,18 +3992,15 @@ inline std::string message_digest(const std::string &s, Init init,
 }
 
 inline std::string MD5(const std::string &s) {
-    return message_digest<MD5_CTX>(s, MD5_Init, MD5_Update, MD5_Final,
-                                   MD5_DIGEST_LENGTH);
+    return message_digest(s, EVP_md5());
 }
 
 inline std::string SHA_256(const std::string &s) {
-    return message_digest<SHA256_CTX>(s, SHA256_Init, SHA256_Update, SHA256_Final,
-                                      SHA256_DIGEST_LENGTH);
+    return message_digest(s, EVP_sha256());
 }
 
 inline std::string SHA_512(const std::string &s) {
-    return message_digest<SHA512_CTX>(s, SHA512_Init, SHA512_Update, SHA512_Final,
-                                      SHA512_DIGEST_LENGTH);
+    return message_digest(s, EVP_sha512());
 }
 #endif
 
@@ -5747,7 +5753,8 @@ inline bool ClientImpl::handle_socks5_connection(Stream &strm, Error &error) {
   connect_req.push_back((port_ >> 8) & 0xFF); // Port high byte
   connect_req.push_back(port_ & 0xFF); // Port low byte
 
-  if (strm.write(reinterpret_cast<char*>(connect_req.data()), connect_req.size()) != connect_req.size()) {
+  auto written = strm.write(reinterpret_cast<char*>(connect_req.data()), connect_req.size());
+  if (written < 0 || static_cast<size_t>(written) != connect_req.size()) {
     error = Error::Connection;
     return false;
   }
@@ -5786,7 +5793,8 @@ inline bool ClientImpl::handle_socks5_connection(Stream &strm, Error &error) {
   skip_bytes += 2; // Skip port
 
   std::vector<uint8_t> skip(skip_bytes);
-  if (strm.read(reinterpret_cast<char*>(skip.data()), skip_bytes) != skip_bytes) {
+  auto skipped = strm.read(reinterpret_cast<char*>(skip.data()), skip_bytes);
+  if (skipped < 0 || static_cast<size_t>(skipped) != skip_bytes) {
     error = Error::Connection;
     return false;
   }
@@ -7490,12 +7498,19 @@ inline bool SSLClient::verify_host_with_common_name(X509 *server_cert) const {
     const auto subject_name = X509_get_subject_name(server_cert);
 
     if (subject_name != nullptr) {
-        char name[BUFSIZ];
-        auto name_len = X509_NAME_get_text_by_NID(subject_name, NID_commonName,
-                                                  name, sizeof(name));
+        auto index = X509_NAME_get_index_by_NID(subject_name, NID_commonName, -1);
+        if (index >= 0) {
+            auto entry = X509_NAME_get_entry(subject_name, index);
+            auto data = entry ? X509_NAME_ENTRY_get_data(entry) : nullptr;
 
-        if (name_len != -1) {
-            return check_host_name(name, static_cast<size_t>(name_len));
+            unsigned char *name = nullptr;
+            auto name_len = data ? ASN1_STRING_to_UTF8(&name, data) : -1;
+            if (name_len >= 0) {
+                auto ret = check_host_name(reinterpret_cast<const char *>(name),
+                                           static_cast<size_t>(name_len));
+                OPENSSL_free(name);
+                return ret;
+            }
         }
     }
 
