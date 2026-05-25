@@ -1,0 +1,142 @@
+# Build XMRigCC on Windows with static dependencies
+
+This guide builds XMRigCC with MSVC and static third-party dependencies.
+Run the commands from a **x64 Native Tools Command Prompt for Visual Studio
+2022** or from PowerShell after opening that prompt.
+
+Latest upstream dependency versions verified on 2026-05-24:
+
+- libuv 1.52.1
+- hwloc 2.13.0
+- OpenSSL 4.0.0
+- zlib 1.3.2
+
+The repo already vendors several other libraries under `src/3rdparty`; the
+external static dependency prefix used below is `C:\xmrigcc-deps`.
+
+## 1. Install required tools
+
+Install:
+
+- Visual Studio 2022 Build Tools with **Desktop development with C++**
+- CMake
+- Ninja
+- Git
+- Strawberry Perl, required by OpenSSL
+
+Run the prerequisite installer:
+
+```powershell
+cd C:\xmrigCC
+powershell -ExecutionPolicy Bypass -File .\scripts\install_windows_build_prereqs.ps1
+```
+
+Close and reopen PowerShell after installing tools. The dependency and build
+scripts need Visual Studio's `cl.exe` and `nmake.exe`; if they are not already
+in `PATH`, the scripts try to relaunch themselves through Visual Studio's x64
+developer environment automatically.
+
+## 2. Build and install the static dependency prefix
+
+Run this from the x64 Native Tools prompt. The script resolves the latest
+available upstream versions, downloads the sources, builds static libraries
+with the MSVC static runtime, and installs them into `C:\xmrigcc-deps`.
+
+```powershell
+cd C:\xmrigCC
+powershell -ExecutionPolicy Bypass -File .\scripts\setup_windows_static_deps.ps1
+```
+
+The script creates:
+
+```text
+C:\xmrigcc-deps\include
+C:\xmrigcc-deps\lib
+C:\xmrigcc-deps\bin
+C:\xmrigcc-deps\ssl
+C:\xmrigcc-deps\downloads
+C:\xmrigcc-deps\src
+C:\xmrigcc-deps\build
+C:\xmrigcc-deps\logs
+C:\xmrigcc-deps\manifest.json
+C:\xmrigcc-deps\xmrigcc-deps-env.ps1
+```
+
+It builds libuv, hwloc, OpenSSL, and zlib. zlib is required because the
+Windows build script configures XMRigCC with `-DWITH_ZLIB=ON`.
+
+## 3. Build XMRigCC
+
+The build script configures and builds a CPU-only static Windows build. This
+avoids requiring CUDA/OpenCL SDKs. Pass `-WithOpenCL` or `-WithCuda` only if
+you already have those SDKs installed and want GPU support.
+
+```powershell
+cd C:\xmrigCC
+powershell -ExecutionPolicy Bypass -File .\scripts\build_windows_static.ps1
+```
+
+TLS is explicitly enabled by `-DWITH_TLS=ON`; that requires the static OpenSSL
+libraries built by the setup script.
+
+The script uses these defaults:
+
+```text
+SourceDir = C:\xmrigCC
+BuildDir  = C:\xmrigCC\build
+DepsDir   = C:\xmrigcc-deps
+TLS       = ON
+HWLOC     = ON
+ZLIB      = ON
+OpenCL    = OFF
+CUDA      = OFF
+```
+
+Expected executables:
+
+```text
+C:\xmrigCC\build\xmrigMiner.exe
+C:\xmrigCC\build\xmrigDaemon.exe
+C:\xmrigCC\build\xmrigServer.exe
+```
+
+To clean and rebuild:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\build_windows_static.ps1 -Clean
+```
+
+## 4. Quick checks
+
+Check the binaries exist:
+
+```powershell
+Get-ChildItem C:\xmrigCC\build\*.exe
+```
+
+Check that no dependency DLLs were copied next to the binaries:
+
+```powershell
+Get-ChildItem C:\xmrigCC\build\*.dll -ErrorAction SilentlyContinue
+```
+
+Check the miner starts:
+
+```powershell
+C:\xmrigCC\build\xmrigMiner.exe --version
+```
+
+## Troubleshooting
+
+- `OpenSSL NOT found`: confirm `libssl.lib`, `libcrypto.lib`, and the OpenSSL
+  headers are under `$Deps\lib` and `$Deps\include`.
+- `UV_LIBRARY-NOTFOUND`: confirm the libuv static library is under `$Deps\lib`
+  and copy `uv_a.lib` to `uv.lib` if necessary.
+- `HWLOC_LIBRARY-NOTFOUND`: confirm `hwloc.h` is under `$Deps\include` and
+  `hwloc.lib` or `libhwloc.lib` is under `$Deps\lib`.
+- CUDA or OpenCL errors: keep `-DWITH_CUDA=OFF -DWITH_OPENCL=OFF`, or install
+  the matching GPU SDKs before configuring.
+- Mixed runtime errors such as `/MD` vs `/MT`: clean the dependency build
+  directories and rebuild the dependencies with
+  `-DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded`; rebuild OpenSSL from the x64
+  Native Tools prompt as shown above.
