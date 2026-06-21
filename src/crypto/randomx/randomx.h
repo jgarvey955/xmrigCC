@@ -125,6 +125,11 @@ struct RandomX_ConfigurationBase
 
 	rx_vec_i128 fillAes4Rx4_Key[8];
 
+	uint32_t Tweak_V2_CFROUND : 1;
+	uint32_t Tweak_V2_AES : 1;
+	uint32_t Tweak_V2_PREFETCH : 1;
+	uint32_t Tweak_V2_COMMITMENT : 1;
+
 	uint8_t codeSshPrefetchTweaked[20];
 	uint8_t codePrefetchScratchpadTweaked[28];
 	uint32_t codePrefetchScratchpadTweakedSize;
@@ -143,6 +148,7 @@ struct RandomX_ConfigurationBase
 };
 
 struct RandomX_ConfigurationMonero : public RandomX_ConfigurationBase {};
+struct RandomX_ConfigurationMoneroV2 : public RandomX_ConfigurationBase { RandomX_ConfigurationMoneroV2(); };
 struct RandomX_ConfigurationWownero : public RandomX_ConfigurationBase { RandomX_ConfigurationWownero(); };
 struct RandomX_ConfigurationArqma : public RandomX_ConfigurationBase { RandomX_ConfigurationArqma(); };
 struct RandomX_ConfigurationGraft : public RandomX_ConfigurationBase { RandomX_ConfigurationGraft(); };
@@ -154,6 +160,7 @@ struct RandomX_ConfigurationVirel : public RandomX_ConfigurationBase { RandomX_C
 struct RandomX_ConfigurationScash : public RandomX_ConfigurationBase { RandomX_ConfigurationScash(); };
 
 extern RandomX_ConfigurationMonero RandomX_MoneroConfig;
+extern RandomX_ConfigurationMoneroV2 RandomX_MoneroConfigV2;
 extern RandomX_ConfigurationWownero RandomX_WowneroConfig;
 extern RandomX_ConfigurationArqma RandomX_ArqmaConfig;
 extern RandomX_ConfigurationGraft RandomX_GraftConfig;
@@ -328,9 +335,9 @@ RANDOMX_EXPORT void randomx_calculate_hash_next(randomx_vm* machine, uint64_t (&
 
 /**
  * Calculate a RandomX commitment from a RandomX hash and its input.
- * Used by Scash (RX_SCASH)
+ * Used by Scash (RX_SCASH) and RandomX v2.
  *
- * @param input is a pointer to memory that was hashed (block header). Must not be NULL.
+ * @param input is a pointer to memory that was hashed. Must not be NULL.
  * @param inputSize is the number of bytes in the input.
  * @param hash_in is the output from randomx_calculate_hash* (RANDOMX_HASH_SIZE bytes).
  * @param com_out is a pointer to memory where the commitment will be stored. Must not

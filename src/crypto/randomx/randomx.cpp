@@ -50,6 +50,17 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <cassert>
 
 #include "crypto/rx/Profiler.h"
+#include "base/net/stratum/Job.h"
+
+RandomX_ConfigurationMoneroV2::RandomX_ConfigurationMoneroV2()
+{
+	ProgramSize = 384;
+
+	Tweak_V2_CFROUND = 1;
+	Tweak_V2_AES = 1;
+	Tweak_V2_PREFETCH = 1;
+	Tweak_V2_COMMITMENT = 1;
+}
 
 RandomX_ConfigurationWownero::RandomX_ConfigurationWownero()
 {
@@ -181,6 +192,10 @@ RandomX_ConfigurationBase::RandomX_ConfigurationBase()
 	, RANDOMX_FREQ_CFROUND(1)
 	, RANDOMX_FREQ_ISTORE(16)
 	, RANDOMX_FREQ_NOP(0)
+	, Tweak_V2_CFROUND(0)
+	, Tweak_V2_AES(0)
+	, Tweak_V2_PREFETCH(0)
+	, Tweak_V2_COMMITMENT(0)
 {
 	fillAes4Rx4_Key[0] = rx_set_int_vec_i128(0x99e5d23f, 0x2f546d2b, 0xd1833ddb, 0x6421aadd);
 	fillAes4Rx4_Key[1] = rx_set_int_vec_i128(0xa5dfcde5, 0x06f79d53, 0xb6913f55, 0xb20e3450);
@@ -395,6 +410,7 @@ typedef void(randomx::JitCompilerX86::* InstructionGeneratorX86_2)(const randomx
 }
 
 RandomX_ConfigurationMonero RandomX_MoneroConfig;
+RandomX_ConfigurationMoneroV2 RandomX_MoneroConfigV2;
 RandomX_ConfigurationWownero RandomX_WowneroConfig;
 RandomX_ConfigurationArqma RandomX_ArqmaConfig;
 RandomX_ConfigurationGraft RandomX_GraftConfig;
