@@ -351,6 +351,11 @@ void xmrig::Network::onUpdateRequest(ClientStatus& clientStatus)
     if (!m_donate || !m_donate->isActive()) {
         m_state->getResults(clientStatus);
         m_state->getConnection(clientStatus);
+
+        const Job &job = m_controller->miner()->job();
+        clientStatus.setNoncePartitioned(job.isValid() && job.isNicehash());
+        clientStatus.setNoncePrefix(job.isValid() && job.isNicehash() ? job.fixedByte() : 0);
+        clientStatus.setNonceMapperId(job.isValid() && job.isNicehash() ? job.proxyMapperId() : -1);
     } else {
         clientStatus.setCurrentPool("dev.donate");
     }

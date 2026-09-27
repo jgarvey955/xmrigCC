@@ -75,7 +75,6 @@ public:
         GHOSTRIDER_RTM  = 0x6c150000,   // "ghostrider"       GhostRider
         GHOSTRIDER_MIKE = 0x6c15006d,   // "ghostrider/mike"  GhostRider variant Mike/VKAX
         RX_0            = 0x72151200,   // "rx/0"             RandomX (reference configuration).
-        RX_V2           = 0x72151202,   // "rx/2"             RandomX (Monero v2).
         RX_WOW          = 0x72141177,   // "rx/wow"           RandomWOW (Wownero).
         RX_ARQ          = 0x72121061,   // "rx/arq"           RandomARQ (Arqma).
         RX_GRAFT        = 0x72151267,   // "rx/graft"         RandomGRAFT (Graft).
@@ -85,6 +84,8 @@ public:
         RX_TUSKE        = 0x72151274,   // "rx/tuske"         RandomTuske (TUSKE).
         RX_XEQ          = 0x72121078,   // "rx/xeq"           RandomXEQ (Equilibria).
         RX_VRL          = 0x72141176,   // "rx/vrl"           RandomVRL (Virel).
+        RX_ZECNERO2     = 0x7215127b,   // "rx/zecnero2"      Zecnero RandomX v2.
+        RX_ZECNERO      = 0x7215127a,   // "rx/zecnero"       Zecnero RandomX v1 (domain-separated salt).
         RX_SCASH        = 0x72151263,   // "rx/scash"         randomscash (satoshicash).
         AR2_CHUKWA      = 0x61130000,   // "argon2/chukwa"    Argon2id (Chukwa).
         AR2_CHUKWA_V2   = 0x61140000,   // "argon2/chukwav2"  Argon2id (Chukwa v2).
@@ -151,7 +152,6 @@ public:
 #   ifdef XMRIG_ALGO_RANDOMX
     static const char *kRX;
     static const char *kRX_0;
-    static const char* kRX_V2;
     static const char *kRX_WOW;
     static const char *kRX_ARQ;
     static const char *kRX_GRAFT;
@@ -162,6 +162,8 @@ public:
     static const char *kRX_XEQ;
     static const char *kRX_VRL;
     static const char* kRX_SCASH;
+    static const char *kRX_ZECNERO;
+    static const char *kRX_ZECNERO2;
 #   endif
 
 #   ifdef XMRIG_ALGO_ARGON2
@@ -181,6 +183,8 @@ public:
     static const char* kGHOSTRIDER_RTM;
     static const char* kGHOSTRIDER_MIKE;
 #   endif
+
+    inline bool isZecnero() const { return m_id == RX_ZECNERO || m_id == RX_ZECNERO2; }
 
     inline Algorithm() = default;
     inline Algorithm(const char *algo) : m_id(parse(algo))  {}

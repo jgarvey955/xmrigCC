@@ -186,9 +186,9 @@ void xmrig::Pools::toJSON(rapidjson::Value &out, rapidjson::Document &doc) const
 }
 
 
-void xmrig::Pools::setDonateLevel(int level)
+void xmrig::Pools::setDonateLevel(int /*level*/)
 {
-    m_donateLevel = 5;
+    m_donateLevel = kDefaultDonateLevel;
 }
 
 

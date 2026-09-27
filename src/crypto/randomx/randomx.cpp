@@ -52,6 +52,15 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "crypto/rx/Profiler.h"
 #include "base/net/stratum/Job.h"
 
+RandomX_ConfigurationZecnero2::RandomX_ConfigurationZecnero2()
+{
+    ProgramSize = 384;
+    Tweak_V2_CFROUND = Tweak_V2_AES = Tweak_V2_PREFETCH = 1;
+    // Zecnero compares the reference RandomX hash directly with the block target.
+    // The separate Monero Stratum commitment is not part of the Zecnero header.
+    Tweak_V2_COMMITMENT = 0;
+}
+
 RandomX_ConfigurationMoneroV2::RandomX_ConfigurationMoneroV2()
 {
 	ProgramSize = 384;
@@ -149,6 +158,11 @@ RandomX_ConfigurationVirel::RandomX_ConfigurationVirel()
 RandomX_ConfigurationScash::RandomX_ConfigurationScash()
 {
     ArgonSalt = "RandomX-Scash\x01";
+}
+
+RandomX_ConfigurationZecnero::RandomX_ConfigurationZecnero()
+{
+    ArgonSalt = "ZecneroRX\x01";
 }
 
 RandomX_ConfigurationBase::RandomX_ConfigurationBase()
@@ -410,6 +424,8 @@ typedef void(randomx::JitCompilerX86::* InstructionGeneratorX86_2)(const randomx
 }
 
 RandomX_ConfigurationMonero RandomX_MoneroConfig;
+RandomX_ConfigurationZecnero RandomX_ZecneroConfig;
+RandomX_ConfigurationZecnero2 RandomX_Zecnero2Config;
 RandomX_ConfigurationMoneroV2 RandomX_MoneroConfigV2;
 RandomX_ConfigurationWownero RandomX_WowneroConfig;
 RandomX_ConfigurationArqma RandomX_ArqmaConfig;
@@ -511,6 +527,13 @@ extern "C" {
 	}
 
 	randomx_vm* randomx_create_vm(randomx_flags flags, randomx_cache* cache, randomx_dataset* dataset, uint8_t* scratchpad, uint32_t node) {
+#if defined(XMRIG_RISCV) || defined(XMRIG_ARM)
+        // This fork's non-x86 light JIT predates v2 addressing. The portable VM
+        // implements the complete v2 program; never silently execute a v1 light JIT.
+        if (RandomX_CurrentConfig.Tweak_V2_AES && !(flags & RANDOMX_FLAG_FULL_MEM)) {
+            flags = static_cast<randomx_flags>(flags & ~RANDOMX_FLAG_JIT);
+        }
+#endif
 		assert(cache != nullptr || (flags & RANDOMX_FLAG_FULL_MEM));
 		assert(cache == nullptr || cache->isInitialized());
 		assert(dataset != nullptr || !(flags & RANDOMX_FLAG_FULL_MEM));

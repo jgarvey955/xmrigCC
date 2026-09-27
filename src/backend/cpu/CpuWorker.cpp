@@ -266,10 +266,7 @@ void xmrig::CpuWorker<N>::start()
 
 #       ifdef XMRIG_ALGO_RANDOMX
         bool first = true;
-        alignas(64) uint64_t tempHash[8] = {};
-
-        size_t prev_job_size = 0;
-        alignas(64) uint8_t prev_job[Job::kMaxBlobSize] = {};
+        alignas(16) uint64_t tempHash[8] = {};
 #       endif
 
         while (!Nonce::isOutdated(Nonce::CPU, m_job.sequence())) {
@@ -297,11 +294,6 @@ void xmrig::CpuWorker<N>::start()
                         job.generateMinerSignature(m_job.blob(), job.size(), miner_signature_ptr);
                     }
                     randomx_calculate_hash_first(m_vm, tempHash, m_job.blob(), job.size());
-
-                    if (RandomX_CurrentConfig.Tweak_V2_COMMITMENT) {
-                        prev_job_size = job.size();
-                        memcpy(prev_job, m_job.blob(), prev_job_size);
-                    }
                 }
 
                 if (!nextRound()) {
@@ -312,7 +304,6 @@ void xmrig::CpuWorker<N>::start()
                     memcpy(miner_signature_saved, miner_signature_ptr, sizeof(miner_signature_saved));
                     job.generateMinerSignature(m_job.blob(), job.size(), miner_signature_ptr);
                 }
-
                 randomx_calculate_hash_next(m_vm, tempHash, m_job.blob(), job.size(), m_hash);
 
                 if (job.algorithm() == Algorithm::RX_TUSKE) {
@@ -333,12 +324,6 @@ void xmrig::CpuWorker<N>::start()
 
                     // Restore the incremented nonce
                     *reinterpret_cast<uint32_t*>(m_job.blob() + nonceOffset) = currentNonce;
-                }
-                else if (RandomX_CurrentConfig.Tweak_V2_COMMITMENT) {
-                    memcpy(m_commitment, m_hash, RANDOMX_HASH_SIZE);
-                    randomx_calculate_commitment(prev_job, prev_job_size, m_hash, m_hash);
-                    prev_job_size = job.size();
-                    memcpy(prev_job, m_job.blob(), prev_job_size);
                 }
             }
             else
@@ -373,21 +358,8 @@ void xmrig::CpuWorker<N>::start()
 
             if (valid) {
                 for (size_t i = 0; i < N; ++i) {
-                    const uint64_t value = *reinterpret_cast<uint64_t*>(m_hash + (i * 32) + 24);
-
-                    if (value < job.target()) {
-                        uint8_t* extra_data = nullptr;
-
-                        if (job.algorithm().family() == Algorithm::RANDOM_X) {
-                            if (RandomX_CurrentConfig.Tweak_V2_COMMITMENT) {
-                                extra_data = m_commitment;
-                            }
-                            else if (job.hasMinerSignature()) {
-                                extra_data = miner_signature_saved;
-                            }
-                        }
-
-                        JobResults::submit(job, current_job_nonces[i], m_hash + (i * 32), extra_data);
+                    if (job.meetsTarget(m_hash + (i * 32))) {
+                        JobResults::submit(job, current_job_nonces[i], m_hash + (i * 32), job.hasMinerSignature() ? miner_signature_saved : nullptr);
                     }
                 }
                 m_count += N;

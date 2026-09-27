@@ -425,6 +425,36 @@ void ClientStatus::setHashesTotal(uint64_t hashesTotal)
   m_hashesTotal = hashesTotal;
 }
 
+bool ClientStatus::isNoncePartitioned() const
+{
+  return m_noncePartitioned;
+}
+
+void ClientStatus::setNoncePartitioned(bool noncePartitioned)
+{
+  m_noncePartitioned = noncePartitioned;
+}
+
+uint32_t ClientStatus::getNoncePrefix() const
+{
+  return m_noncePrefix;
+}
+
+void ClientStatus::setNoncePrefix(uint32_t noncePrefix)
+{
+  m_noncePrefix = noncePrefix;
+}
+
+int ClientStatus::getNonceMapperId() const
+{
+  return m_nonceMapperId;
+}
+
+void ClientStatus::setNonceMapperId(int nonceMapperId)
+{
+  m_nonceMapperId = nonceMapperId;
+}
+
 void ClientStatus::setAvgTime(uint32_t avgTime)
 {
   m_avgTime = avgTime;
@@ -655,6 +685,21 @@ bool ClientStatus::parseFromJson(const rapidjson::Document& document)
       m_hashesTotal = clientStatus["hashes_total"].GetUint64();
     }
 
+    if (clientStatus.HasMember("nonce_partitioned"))
+    {
+      m_noncePartitioned = clientStatus["nonce_partitioned"].GetBool();
+    }
+
+    if (clientStatus.HasMember("nonce_prefix"))
+    {
+      m_noncePrefix = clientStatus["nonce_prefix"].GetUint();
+    }
+
+    if (clientStatus.HasMember("nonce_mapper_id"))
+    {
+      m_nonceMapperId = clientStatus["nonce_mapper_id"].GetInt();
+    }
+
     if (clientStatus.HasMember("total_memory"))
     {
       m_totalMemory = clientStatus["total_memory"].GetUint64();
@@ -740,6 +785,11 @@ rapidjson::Value ClientStatus::toJson(rapidjson::MemoryPoolAllocator<rapidjson::
   clientStatus.AddMember("shares_good", m_sharesGood, allocator);
   clientStatus.AddMember("shares_total", m_sharesTotal, allocator);
   clientStatus.AddMember("hashes_total", m_hashesTotal, allocator);
+  clientStatus.AddMember("nonce_partitioned", m_noncePartitioned, allocator);
+  clientStatus.AddMember("nonce_prefix", m_noncePrefix, allocator);
+  clientStatus.AddMember("nonce_mapper_id", m_nonceMapperId, allocator);
+  clientStatus.AddMember("nonce_start", static_cast<uint64_t>(m_noncePrefix) << 24, allocator);
+  clientStatus.AddMember("nonce_end", (static_cast<uint64_t>(m_noncePrefix) << 24) | static_cast<uint64_t>(0xFFFFFFU), allocator);
 
   clientStatus.AddMember("avg_time", m_avgTime, allocator);
 

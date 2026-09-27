@@ -56,15 +56,15 @@ List of all supported algos can be found [here](doc/ALGORITHMS.md)
     * remote miner upgrade **[Howto](doc/REMOTE_MINER_UPDATE.md)**
     * simple config editor for miner / config templates / apply to all
     * monitoring
-    * remote logging 
+    * remote logging
     * configurable alarm notifications via Pushover and Telegram
 * Daemon to restart the miner
 
 ## Mining backends
 - **CPU** (x86/x64/ARMv7/ARMv8/RISC-V)
 - **OpenCL** for AMD GPUs.
-- **CUDA** for NVIDIA GPUs use: 
-     - XMRig's official [CUDA plugin](https://github.com/xmrig/xmrig-cuda/releases) 
+- **CUDA** for NVIDIA GPUs use:
+     - XMRig's official [CUDA plugin](https://github.com/xmrig/xmrig-cuda/releases)
      - MoneroOcean's [CUDA plugin](https://github.com/MoneroOcean/xmrig-cuda/releases) **with CN/GPU** support
 
 **XMRigCC Server/Dashboard**
@@ -165,7 +165,7 @@ Network:
   -r, --retries=N               number of times to retry before switch to backup server (default: 5)
   -R, --retry-pause=N           time to pause between retries (default: 5)
       --user-agent              set custom user-agent string for pool
-      --donate-level=N          donate level, can be reduced to 5% (minimum) (default: 5%)
+      --donate-level=N          donation fixed at 5% in this build
 
 CPU backend:
       --no-cpu                  disable CPU mining backend
@@ -280,4 +280,14 @@ Misc:
 
 
 ## Donations
-* Minimum 5% can be set via config or command line option `--donate-level`.
+This build fixes donation at 5%. Config and command-line values do not override it.
+
+## Zecnero direct solo mining
+
+This XMRigCC build also supports `rx/zecnero` and `rx/zecnero2` (alias
+`rx2/zecnero`), direct node RPC, miner-config payout addresses, and authenticated
+HTTPS cookie retrieval. The miner follows the daemon's PoW version automatically:
+opted-in Regtest switches at block 2, and Testnet switches at block 1,000,000.
+
+See [Zecnero setup and configuration](doc/ZECNERO.md) and the
+[Testnet example config](config-zecnero-testnet.example.json).

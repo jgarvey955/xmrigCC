@@ -199,6 +199,8 @@ if (WITH_HTTP)
         src/base/net/http/HttpContext.h
         src/base/net/http/HttpData.h
         src/base/net/http/HttpResponse.h
+        src/base/net/stratum/ZecneroClient.h
+        src/base/tools/zecnero/BlockTemplate.h
         src/base/net/stratum/DaemonClient.h
         src/base/net/stratum/SelfSelectClient.h
         src/base/net/tools/TcpServer.h
@@ -219,6 +221,8 @@ if (WITH_HTTP)
         src/base/net/http/HttpData.cpp
         src/base/net/http/HttpListener.cpp
         src/base/net/http/HttpResponse.cpp
+        src/base/net/stratum/ZecneroClient.cpp
+        src/base/tools/zecnero/BlockTemplate.cpp
         src/base/net/stratum/DaemonClient.cpp
         src/base/net/stratum/SelfSelectClient.cpp
         src/base/net/tools/TcpServer.cpp

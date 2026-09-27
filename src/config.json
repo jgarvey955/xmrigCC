@@ -91,7 +91,14 @@
             "daemon": false,
             "socks5": null,
             "self-select": null,
-            "submit-to-origin": false
+            "submit-to-origin": false,
+            "daemon-cookie-file": null,
+            "daemon-cookie-source": null,
+            "daemon-cookie-auth": null,
+            "daemon-cookie-fingerprint": null,
+            "daemon-rpc-user": null,
+            "daemon-poll-interval": 1000,
+            "daemon-job-timeout": 15000
         }
     ],
     "cc-client": {

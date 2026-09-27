@@ -147,6 +147,11 @@ struct RandomX_ConfigurationBase
 #	endif
 };
 
+struct RandomX_ConfigurationZecnero : public RandomX_ConfigurationBase { RandomX_ConfigurationZecnero(); };
+extern RandomX_ConfigurationZecnero RandomX_ZecneroConfig;
+struct RandomX_ConfigurationZecnero2 : public RandomX_ConfigurationZecnero { RandomX_ConfigurationZecnero2(); };
+extern RandomX_ConfigurationZecnero2 RandomX_Zecnero2Config;
+
 struct RandomX_ConfigurationMonero : public RandomX_ConfigurationBase {};
 struct RandomX_ConfigurationMoneroV2 : public RandomX_ConfigurationBase { RandomX_ConfigurationMoneroV2(); };
 struct RandomX_ConfigurationWownero : public RandomX_ConfigurationBase { RandomX_ConfigurationWownero(); };
@@ -335,9 +340,9 @@ RANDOMX_EXPORT void randomx_calculate_hash_next(randomx_vm* machine, uint64_t (&
 
 /**
  * Calculate a RandomX commitment from a RandomX hash and its input.
- * Used by Scash (RX_SCASH) and RandomX v2.
+ * Used by Scash (RX_SCASH)
  *
- * @param input is a pointer to memory that was hashed. Must not be NULL.
+ * @param input is a pointer to memory that was hashed (block header). Must not be NULL.
  * @param inputSize is the number of bytes in the input.
  * @param hash_in is the output from randomx_calculate_hash* (RANDOMX_HASH_SIZE bytes).
  * @param com_out is a pointer to memory where the commitment will be stored. Must not

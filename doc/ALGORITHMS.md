@@ -12,6 +12,8 @@ Option `coin` useful for pools without algorithm negotiation support or daemon t
 
 | Name                  | Memory | Version     | Notes                                                                     | Info      |
 |-----------------------|--------|-------------|---------------------------------------------------------------------------|-----------|
+| `rx/zecnero2` | 2 MB | local fork | Zecnero RandomX v2; alias `rx2/zecnero`. | CPU only
+`rx/zecnero`          | 2 MB   | this fork   | Zecnero RandomX v1, own Argon2 salt; direct RPC solo mining.                 | CPU only  |
 | `rx/scash`            | 2 MB   | 3.4.9       | RandomSCASH (satoshicash).                                                |
 | `rx/vrl`              | 2 MB   | 3.4.7       | RandomxVirel (VRL).                                                       | CPU only
 | `rx/xeq`              | 2 MB   | 3.4.2       | RandomxEquilibria (XEQ).                                                  |

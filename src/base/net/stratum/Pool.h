@@ -55,6 +55,11 @@ public:
     static const char *kAlgo;
     static const char *kCoin;
     static const char *kDaemon;
+    static const char *kDaemonCookieFile;
+    static const char *kDaemonCookieSource;
+    static const char *kDaemonRpcUser;
+    static const char *kDaemonCookieFingerprint;
+    static const char *kDaemonCookieAuth;
     static const char *kDaemonPollInterval;
     static const char *kDaemonJobTimeout;
     static const char *kEnabled;
@@ -103,6 +108,11 @@ public:
     inline Mode mode() const                            { return m_mode; }
     inline uint16_t port() const                        { return m_url.port(); }
     inline int zmq_port() const                         { return m_zmqPort; }
+    inline const String &daemonCookieFile() const       { return m_daemonCookieFile; }
+    inline const String &daemonCookieAuth() const { return m_daemonCookieAuth; }
+    inline const String &daemonCookieFingerprint() const { return m_daemonCookieFingerprint; }
+    inline const String &daemonRpcUser() const { return m_daemonRpcUser; }
+    inline const String &daemonCookieSource() const     { return m_daemonCookieSource; }
     inline uint64_t pollInterval() const                { return m_pollInterval; }
     inline uint64_t jobTimeout() const                  { return m_jobTimeout; }
     inline void setAlgo(const Algorithm &algorithm)     { m_algorithm = algorithm; }
@@ -147,6 +157,11 @@ private:
     ProxyUrl m_proxy;
     std::bitset<FLAG_MAX> m_flags   = 0;
     String m_fingerprint;
+    String m_daemonCookieFile;
+    String m_daemonCookieSource;
+    String m_daemonRpcUser;
+    String m_daemonCookieFingerprint;
+    String m_daemonCookieAuth;
     String m_password;
     String m_rigId;
     String m_user;

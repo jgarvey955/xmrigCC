@@ -61,6 +61,8 @@ public:
     bool setBlob(const char *blob);
     bool setSeedHash(const char *hash);
     bool setTarget(const char *target);
+    bool setFullTarget(const char *target);
+    bool meetsTarget(const uint8_t *hash) const;
     size_t nonceOffset() const;
     void setDiff(uint64_t diff);
     void setSigKey(const char *sig_key);
@@ -85,6 +87,7 @@ public:
     inline uint64_t height() const                      { return m_height; }
     inline uint64_t nonceMask() const                   { return isNicehash() ? 0xFFFFFFULL : (nonceSize() == sizeof(uint64_t) ? (static_cast<uint64_t>(-1LL) >> (extraNonce().size() * 4)) : 0xFFFFFFFFULL); }
     inline uint64_t target() const                      { return m_target; }
+    inline int32_t proxyMapperId() const                { return m_proxyMapperId; }
     inline uint8_t *blob()                              { return m_blob; }
     inline uint8_t fixedByte() const                    { return *(m_blob + 42); }
     inline uint8_t index() const                        { return m_index; }
@@ -97,6 +100,7 @@ public:
     inline void setExtraNonce(const String &extraNonce) { m_extraNonce = extraNonce; }
     inline void setHeight(uint64_t height)              { m_height = height; }
     inline void setIndex(uint8_t index)                 { m_index = index; }
+    inline void setProxyMapperId(int32_t id)            { m_proxyMapperId = id; }
     inline void setPoolWallet(const String &poolWallet) { m_poolWallet = poolWallet; }
 
 #   ifdef XMRIG_PROXY_PROJECT
@@ -148,12 +152,14 @@ private:
     bool m_nicehash     = false;
     bool m_donate       = false;
     Buffer m_seed;
+    Buffer m_fullTarget; // Optional little-endian 256-bit inclusive target.
     size_t m_size       = 0;
     String m_clientId;
     String m_extraNonce;
     String m_id;
     String m_poolWallet;
     uint32_t m_backend  = 0;
+    int32_t m_proxyMapperId = -1;
     uint64_t m_diff     = 0;
     uint64_t m_height   = 0;
     uint64_t m_target   = 0;
