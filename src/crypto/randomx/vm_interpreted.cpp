@@ -30,6 +30,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "crypto/randomx/dataset.hpp"
 #include "crypto/randomx/intrin_portable.h"
 #include "crypto/randomx/reciprocal.h"
+#include "crypto/randomx/soft_aes.h"
 
 namespace randomx {
 
@@ -65,7 +66,7 @@ namespace randomx {
 			spAddr0 &= ScratchpadL3Mask64;
 			spAddr1 ^= spMix >> 32;
 			spAddr1 &= ScratchpadL3Mask64;
-			
+
 			for (unsigned i = 0; i < RegistersCount; ++i)
 				nreg.r[i] ^= load64(scratchpad + spAddr0 + 8 * i);
 
@@ -77,17 +78,41 @@ namespace randomx {
 
 			executeBytecode(bytecode, scratchpad, config);
 
-			mem.mx ^= nreg.r[config.readReg2] ^ nreg.r[config.readReg3];
-			mem.mx &= CacheLineAlignMask;
-			datasetPrefetch(datasetOffset + mem.mx);
-			datasetRead(datasetOffset + mem.ma, nreg.r);
+			const uint64_t readPtr = datasetOffset + (mem.ma & CacheLineAlignMask);
+
+			auto& mp = RandomX_CurrentConfig.Tweak_V2_PREFETCH ? mem.ma : mem.mx;
+			mp ^= nreg.r[config.readReg2] ^ nreg.r[config.readReg3];
+
+			datasetPrefetch(datasetOffset + (mp & CacheLineAlignMask));
+			datasetRead(readPtr, nreg.r);
 			std::swap(mem.mx, mem.ma);
 
 			for (unsigned i = 0; i < RegistersCount; ++i)
 				store64(scratchpad + spAddr1 + 8 * i, nreg.r[i]);
 
-			for (unsigned i = 0; i < RegisterCountFlt; ++i)
-				nreg.f[i] = rx_xor_vec_f128(nreg.f[i], nreg.e[i]);
+			if (RandomX_CurrentConfig.Tweak_V2_AES) {
+				rx_vec_i128 ekey[RegisterCountFlt];
+				rx_vec_i128 freg[RegisterCountFlt];
+
+				for (unsigned i = 0; i < RegisterCountFlt; ++i) {
+					memcpy(&ekey[i], &nreg.e[i], sizeof(ekey[i]));
+					memcpy(&freg[i], &nreg.f[i], sizeof(freg[i]));
+				}
+
+				for (unsigned i = 0; i < RegisterCountFlt; ++i) {
+					freg[0] = aesenc<softAes>(freg[0], ekey[i]);
+					freg[1] = aesdec<softAes>(freg[1], ekey[i]);
+					freg[2] = aesenc<softAes>(freg[2], ekey[i]);
+					freg[3] = aesdec<softAes>(freg[3], ekey[i]);
+				}
+
+				for (unsigned i = 0; i < RegisterCountFlt; ++i)
+					memcpy(&nreg.f[i], &freg[i], sizeof(freg[i]));
+			}
+			else {
+				for (unsigned i = 0; i < RegisterCountFlt; ++i)
+					nreg.f[i] = rx_xor_vec_f128(nreg.f[i], nreg.e[i]);
+			}
 
 			for (unsigned i = 0; i < RegisterCountFlt; ++i)
 				rx_store_vec_f128((double*)(scratchpad + spAddr0 + 16 * i), nreg.f[i]);

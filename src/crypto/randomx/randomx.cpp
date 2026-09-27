@@ -50,6 +50,26 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <cassert>
 
 #include "crypto/rx/Profiler.h"
+#include "base/net/stratum/Job.h"
+
+RandomX_ConfigurationZecnero2::RandomX_ConfigurationZecnero2()
+{
+    ProgramSize = 384;
+    Tweak_V2_CFROUND = Tweak_V2_AES = Tweak_V2_PREFETCH = 1;
+    // Zecnero compares the reference RandomX hash directly with the block target.
+    // The separate Monero Stratum commitment is not part of the Zecnero header.
+    Tweak_V2_COMMITMENT = 0;
+}
+
+RandomX_ConfigurationMoneroV2::RandomX_ConfigurationMoneroV2()
+{
+	ProgramSize = 384;
+
+	Tweak_V2_CFROUND = 1;
+	Tweak_V2_AES = 1;
+	Tweak_V2_PREFETCH = 1;
+	Tweak_V2_COMMITMENT = 1;
+}
 
 RandomX_ConfigurationWownero::RandomX_ConfigurationWownero()
 {
@@ -140,6 +160,11 @@ RandomX_ConfigurationScash::RandomX_ConfigurationScash()
     ArgonSalt = "RandomX-Scash\x01";
 }
 
+RandomX_ConfigurationZecnero::RandomX_ConfigurationZecnero()
+{
+    ArgonSalt = "ZecneroRX\x01";
+}
+
 RandomX_ConfigurationBase::RandomX_ConfigurationBase()
 	: ArgonIterations(3)
 	, ArgonLanes(1)
@@ -181,6 +206,10 @@ RandomX_ConfigurationBase::RandomX_ConfigurationBase()
 	, RANDOMX_FREQ_CFROUND(1)
 	, RANDOMX_FREQ_ISTORE(16)
 	, RANDOMX_FREQ_NOP(0)
+	, Tweak_V2_CFROUND(0)
+	, Tweak_V2_AES(0)
+	, Tweak_V2_PREFETCH(0)
+	, Tweak_V2_COMMITMENT(0)
 {
 	fillAes4Rx4_Key[0] = rx_set_int_vec_i128(0x99e5d23f, 0x2f546d2b, 0xd1833ddb, 0x6421aadd);
 	fillAes4Rx4_Key[1] = rx_set_int_vec_i128(0xa5dfcde5, 0x06f79d53, 0xb6913f55, 0xb20e3450);
@@ -395,6 +424,9 @@ typedef void(randomx::JitCompilerX86::* InstructionGeneratorX86_2)(const randomx
 }
 
 RandomX_ConfigurationMonero RandomX_MoneroConfig;
+RandomX_ConfigurationZecnero RandomX_ZecneroConfig;
+RandomX_ConfigurationZecnero2 RandomX_Zecnero2Config;
+RandomX_ConfigurationMoneroV2 RandomX_MoneroConfigV2;
 RandomX_ConfigurationWownero RandomX_WowneroConfig;
 RandomX_ConfigurationArqma RandomX_ArqmaConfig;
 RandomX_ConfigurationGraft RandomX_GraftConfig;
@@ -495,6 +527,13 @@ extern "C" {
 	}
 
 	randomx_vm* randomx_create_vm(randomx_flags flags, randomx_cache* cache, randomx_dataset* dataset, uint8_t* scratchpad, uint32_t node) {
+#if defined(XMRIG_RISCV) || defined(XMRIG_ARM)
+        // This fork's non-x86 light JIT predates v2 addressing. The portable VM
+        // implements the complete v2 program; never silently execute a v1 light JIT.
+        if (RandomX_CurrentConfig.Tweak_V2_AES && !(flags & RANDOMX_FLAG_FULL_MEM)) {
+            flags = static_cast<randomx_flags>(flags & ~RANDOMX_FLAG_JIT);
+        }
+#endif
 		assert(cache != nullptr || (flags & RANDOMX_FLAG_FULL_MEM));
 		assert(cache == nullptr || cache->isInitialized());
 		assert(dataset != nullptr || !(flags & RANDOMX_FLAG_FULL_MEM));

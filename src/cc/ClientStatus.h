@@ -180,6 +180,15 @@ public:
   uint64_t getHashesTotal() const;
   void setHashesTotal(uint64_t hashesTotal);
 
+  bool isNoncePartitioned() const;
+  void setNoncePartitioned(bool noncePartitioned);
+
+  uint32_t getNoncePrefix() const;
+  void setNoncePrefix(uint32_t noncePrefix);
+
+  int getNonceMapperId() const;
+  void setNonceMapperId(int nonceMapperId);
+
   void setAvgTime(uint32_t avgTime);
   uint32_t getAvgTime() const;
 
@@ -221,6 +230,7 @@ private:
   bool m_isCpuX64 = false;
   bool m_hasCpuAES = false;
   bool m_isVM = false;
+  bool m_noncePartitioned = false;
 
   double m_hashrateShort = 0;
   double m_hashrateMedium = 0;
@@ -239,6 +249,7 @@ private:
   int m_cpuL3 = 0;
   int m_nodes = 0;
   int m_maxCpuUsage = 0;
+  int m_nonceMapperId = -1;
 
   std::list<GPUInfo> m_gpuInfoList;
 
@@ -248,6 +259,7 @@ private:
   uint64_t m_uptime = 0;
   uint64_t m_totalMemory = 0;
   uint64_t m_freeMemory = 0;
+  uint32_t m_noncePrefix = 0;
 
   uint32_t m_avgTime = 0;
   uint64_t m_lastStatusUpdate = 0;

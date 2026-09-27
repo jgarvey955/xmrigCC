@@ -73,6 +73,9 @@ rapidjson::Value xmrig::CudaConfig::toJSON(rapidjson::Document &doc) const
 
 std::vector<xmrig::CudaLaunchData> xmrig::CudaConfig::get(const Miner *miner, const Algorithm &algorithm, const std::vector<CudaDevice> &devices) const
 {
+    // Zecnero requires its own RandomX salt and 140-byte header support.
+    if (algorithm.isZecnero()) { return {}; }
+
     auto deviceIndex = [&devices](uint32_t index) -> int {
         for (uint32_t i = 0; i < devices.size(); ++i) {
             if (devices[i].index() == index) {

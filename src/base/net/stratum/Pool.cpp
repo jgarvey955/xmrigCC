@@ -39,6 +39,7 @@
 
 #ifdef XMRIG_FEATURE_HTTP
 #   include "base/net/stratum/DaemonClient.h"
+#   include "base/net/stratum/ZecneroClient.h"
 #   include "base/net/stratum/SelfSelectClient.h"
 #endif
 
@@ -58,6 +59,11 @@ const String Pool::kDefaultUser           = "x";
 const char *Pool::kAlgo                   = "algo";
 const char *Pool::kCoin                   = "coin";
 const char *Pool::kDaemon                 = "daemon";
+const char *Pool::kDaemonCookieFile       = "daemon-cookie-file";
+const char *Pool::kDaemonCookieAuth = "daemon-cookie-auth";
+const char *Pool::kDaemonCookieFingerprint = "daemon-cookie-fingerprint";
+const char *Pool::kDaemonRpcUser = "daemon-rpc-user";
+const char *Pool::kDaemonCookieSource     = "daemon-cookie-source";
 const char *Pool::kDaemonPollInterval     = "daemon-poll-interval";
 const char *Pool::kDaemonJobTimeout       = "daemon-job-timeout";
 const char *Pool::kDaemonZMQPort          = "daemon-zmq-port";
@@ -116,6 +122,11 @@ xmrig::Pool::Pool(const rapidjson::Value &object) :
         return;
     }
 
+    m_daemonCookieFile = Json::getString(object, kDaemonCookieFile);
+    m_daemonCookieAuth = Json::getString(object, kDaemonCookieAuth);
+    m_daemonCookieFingerprint = Json::getString(object, kDaemonCookieFingerprint);
+    m_daemonRpcUser = Json::getString(object, kDaemonRpcUser);
+    m_daemonCookieSource = Json::getString(object, kDaemonCookieSource);
     m_user           = Json::getString(object, kUser);
     m_spendSecretKey = Json::getString(object, kSpendSecretKey);
     m_password       = Json::getString(object, kPass);
@@ -178,6 +189,11 @@ bool xmrig::Pool::isEqual(const Pool &other) const
             && m_coin         == other.m_coin
             && m_mode         == other.m_mode
             && m_fingerprint  == other.m_fingerprint
+            && m_daemonCookieFile == other.m_daemonCookieFile
+            && m_daemonCookieAuth == other.m_daemonCookieAuth
+            && m_daemonCookieFingerprint == other.m_daemonCookieFingerprint
+            && m_daemonRpcUser == other.m_daemonRpcUser
+            && m_daemonCookieSource == other.m_daemonCookieSource
             && m_password     == other.m_password
             && m_rigId        == other.m_rigId
             && m_url          == other.m_url
@@ -208,7 +224,9 @@ xmrig::IClient *xmrig::Pool::createClient(int id, IClientListener *listener) con
     }
 #   ifdef XMRIG_FEATURE_HTTP
     else if (m_mode == MODE_DAEMON) {
-        client = new DaemonClient(id, listener);
+        client = m_algorithm.isZecnero()
+            ? static_cast<IClient *>(new ZecneroClient(id, listener))
+            : static_cast<IClient *>(new DaemonClient(id, listener));
     }
     else if (m_mode == MODE_SELF_SELECT) {
         client = new SelfSelectClient(id, Platform::userAgent(), listener, m_submitToOrigin);
@@ -271,6 +289,14 @@ rapidjson::Value xmrig::Pool::toJSON(rapidjson::Document &doc) const
     obj.AddMember(StringRef(kSOCKS5),       m_proxy.toJSON(doc), allocator);
 
     if (m_mode == MODE_DAEMON) {
+        if (m_algorithm.isZecnero()) {
+            obj.AddMember(StringRef(kDaemonCookieFile), m_daemonCookieFile.toJSON(), allocator);
+            obj.AddMember(StringRef(kDaemonCookieAuth), m_daemonCookieAuth.toJSON(), allocator);
+            obj.AddMember(StringRef(kDaemonCookieFingerprint), m_daemonCookieFingerprint.toJSON(), allocator);
+            obj.AddMember(StringRef(kDaemonRpcUser), m_daemonRpcUser.toJSON(), allocator);
+            obj.AddMember(StringRef(kDaemonCookieSource), m_daemonCookieSource.toJSON(), allocator);
+            obj.AddMember(StringRef(kPass), m_password.toJSON(), allocator);
+        }
         obj.AddMember(StringRef(kDaemonPollInterval), m_pollInterval, allocator);
         obj.AddMember(StringRef(kDaemonJobTimeout), m_jobTimeout, allocator);
         obj.AddMember(StringRef(kDaemonZMQPort), m_zmqPort, allocator);

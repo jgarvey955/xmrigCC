@@ -1,0 +1,166 @@
+{
+    "api": {
+        "id": null,
+        "worker-id": null
+    },
+    "http": {
+        "enabled": false,
+        "host": "127.0.0.1",
+        "port": 0,
+        "access-token": null,
+        "restricted": true
+    },
+    "autosave": false,
+    "background": false,
+    "colors": true,
+    "title": true,
+    "randomx": {
+        "init": 2,
+        "init-avx2": -1,
+        "mode": "auto",
+        "1gb-pages": false,
+        "rdmsr": false,
+        "wrmsr": false,
+        "cache_qos": false,
+        "numa": false,
+        "scratchpad_prefetch_mode": 1
+    },
+    "cpu": {
+        "enabled": true,
+        "huge-pages": true,
+        "huge-pages-jit": false,
+        "hw-aes": null,
+        "priority": null,
+        "memory-pool": false,
+        "yield": true,
+        "force-autoconfig": false,
+        "max-threads-hint": 100,
+        "max-cpu-usage": null,
+        "asm": true,
+        "argon2-impl": null,
+        "cn/0": false,
+        "cn-lite/0": false,
+        "rx/zecnero": [
+            0,
+            23,
+            2,
+            1,
+            4,
+            3,
+            6,
+            5,
+            8,
+            7,
+            10,
+            9,
+            12,
+            11,
+            14,
+            13,
+            16,
+            15,
+            18,
+            17,
+            20,
+            19,
+            22,
+            21
+        ]
+    },
+    "opencl": {
+        "enabled": false,
+        "cache": true,
+        "loader": null,
+        "platform": "AMD",
+        "adl": true,
+        "cn/0": false,
+        "cn-lite/0": false
+    },
+    "cuda": {
+        "enabled": false,
+        "loader": null,
+        "nvml": true,
+        "cn/0": false,
+        "cn-lite/0": false
+    },
+    "donate-level": 5,
+    "donate-over-proxy": 1,
+    "log-file": null,
+    "discord": {
+        "enabled": false,
+        "webhook": "",
+        "notify-accepted": true,
+        "accepted-interval": 0,
+        "notify-rejected": false,
+        "verbose": true,
+        "include-worker": true,
+        "include-totals": true,
+        "min-diff": 0,
+        "username": "",
+        "avatar-url": "",
+        "mention": "",
+        "quiet": true
+    },
+    "pools": [
+        {
+            "algo": "rx/zecnero",
+            "url": "127.0.0.1:18732",
+            "user": "",
+            "pass": "x",
+            "daemon": true,
+            "daemon-cookie-file": "./.cookie",
+            "daemon-cookie-source": "https://NODE_ADDRESS:18734",
+            "daemon-poll-interval": 1000,
+            "daemon-job-timeout": 15000,
+            "enabled": true,
+            "tls": false,
+            "nicehash": false,
+            "daemon-cookie-auth": "miner1:CHANGE_ME",
+            "daemon-cookie-fingerprint": null,
+            "daemon-rpc-user": null,
+            "tls-fingerprint": null
+        }
+    ],
+    "cc-client": {
+        "enabled": false,
+        "servers": [
+            {
+                "url": "localhost:3344",
+                "access-token": "mySecret",
+                "use-tls": false,
+                "http-proxy": null,
+                "socks-proxy": null
+            }
+        ],
+        "use-remote-logging": true,
+        "upload-config-on-start": true,
+        "worker-id": null,
+        "reboot-cmd": null,
+        "update-interval-s": 10,
+        "retries-to-failover": 5
+    },
+    "print-time": 30,
+    "health-print-time": 60,
+    "dmi": true,
+    "retries": 5,
+    "retry-pause": 5,
+    "syslog": false,
+    "tls": {
+        "enabled": false,
+        "protocols": null,
+        "cert": null,
+        "cert_key": null,
+        "ciphers": null,
+        "ciphersuites": null,
+        "dhparam": null
+    },
+    "dns": {
+        "ip_version": 0,
+        "ttl": 30
+    },
+    "user-agent": null,
+    "verbose": 0,
+    "watch": true,
+    "pause-on-battery": false,
+    "pause-on-active": false
+}

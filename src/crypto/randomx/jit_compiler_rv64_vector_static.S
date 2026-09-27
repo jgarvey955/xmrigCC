@@ -294,3 +294,7 @@ DECL(randomx_riscv64_vector_sshash_set_cache_index):
 	vmv.v.v v9, v7
 
 DECL(randomx_riscv64_vector_sshash_end):
+
+#if defined(__ELF__)
+.section .note.GNU-stack,"",%progbits
+#endif

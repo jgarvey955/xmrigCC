@@ -128,6 +128,9 @@ rapidjson::Value xmrig::OclConfig::toJSON(rapidjson::Document &doc) const
 
 std::vector<xmrig::OclLaunchData> xmrig::OclConfig::get(const Miner *miner, const Algorithm &algorithm, const OclPlatform &platform, const std::vector<OclDevice> &devices) const
 {
+    // Zecnero requires its own RandomX salt and 140-byte header support.
+    if (algorithm.isZecnero()) { return {}; }
+
     std::vector<OclLaunchData> out;
     const auto &threads = m_threads.get(algorithm);
 

@@ -1093,6 +1093,7 @@
     <div id="updateNotificationBar"></div>
     <div id="notificationBar"></div>
     <div id="statusBar"></div>
+    <div id="nonceMappingBar"></div>
 
     <form style="padding-bottom: 25px">
         <button id="resetClientStatus" type="button" class="btn btn-danger fa fa-trash-o"> Reset ClientStatusList
@@ -1126,6 +1127,7 @@
             <th>Free Memory (GB)</th>
             <th>Total Memory (GB)</th>
             <th>Used Threads</th>
+            <th>Nonce Mapping</th>
             <th>CPU Sockets</th>
             <th>CPU Cores</th>
             <th>CPU Threads</th>
@@ -1154,6 +1156,7 @@
         <tr>
             <th class="center" width="2%"><i class="fa fa-square-o" id="selectAllBottom"></i></th>
             <th class="left">Total:</th>
+            <th></th>
             <th></th>
             <th></th>
             <th></th>
@@ -1450,7 +1453,6 @@
     const CHART_RELOAD_INTERVAL_IN_MS = 60 * 1000;
     const EXECUTE_REGEX = /###START EXECUTE###(.*?)###END EXECUTE###/gs;
 
-    let latestRelease = "";
     let currentServerTime = 0;
     let clockDrift = 0;
 
@@ -1650,6 +1652,7 @@
             ajax: {
                 url: "/admin/getClientStatusList",
                 dataSrc: function (data) {
+                    updateNonceMapping(data.client_status_list || []);
                     return JSON.parse(htmlEncode(JSON.stringify(data.client_status_list)));
                 }
             },
@@ -1698,6 +1701,15 @@
                 {data: "client_status.free_memory", render: memory, className: "right", visible: false},
                 {data: "client_status.total_memory", render: memory, className: "right", visible: false},
                 {data: "client_status.current_threads", className: "right", visible: false},
+                {data: "client_status.nonce_prefix", className: "right",
+                    render: function (data, type, row) {
+                        let status = row.client_status;
+                        if (!status.nonce_partitioned) return "not partitioned";
+                        let prefix = "0x" + Number(data || 0).toString(16).padStart(2, "0");
+                        let mapper = Number(status.nonce_mapper_id) >= 0 ? status.nonce_mapper_id : "legacy";
+                        return '<span data-toggle="tooltip" title="Range ' + status.nonce_start + '-' + status.nonce_end +
+                            '; 16,777,216 nonces">mapper ' + mapper + ' / ' + prefix + '</span>';
+                    }},
                 {data: "client_status.cpu_sockets", className: "right", visible: false},
                 {data: "client_status.cpu_cores", className: "right", visible: false},
                 {data: "client_status.cpu_threads", className: "right", visible: false},
@@ -2037,35 +2049,7 @@
         });
 
         table.on('xhr.dt', function (e, settings, json, xhr) {
-            // check version
-            if (latestRelease === "" && json !== undefined) {
-                $.ajax({
-                    url: "https://api.github.com/repos/Bendr0id/xmrigCC/releases/latest",
-                    type: 'GET',
-                    dataType: "json",
-                    success: function (release) {
-                        latestRelease = release.tag_name
-                        latestVersion = parseInt(release.tag_name.split('.').join(""));
-                        currentVersion = parseInt(json.current_version.split('.').join(""));
-
-                        if (currentVersion < 1000) {
-                            currentVersion = currentVersion * 10;
-                        }
-
-                        if (latestVersion < 1000) {
-                            latestVersion = latestVersion * 10;
-                        }
-
-                        if (latestVersion > currentVersion) {
-                            $("#updateNotificationBar").html('<div class="alert alert-info alert-dismissable fade in">' +
-                                '<a href="#" class="close" data-dismiss="alert" aria-label="close">&times;</a>' +
-                                '<a href="https://github.com/Bendr0id/xmrigCC/releases/latest"><strong>Update!</strong> XMRigCC v' + latestRelease + ' is available for download\n</a>' +
-                                '</div>');
-                        }
-                    }
-                });
-            }
-
+            // Upstream miner releases do not contain Zecnero consensus support.
             currentServerTime = settings.json.current_server_time * 1000;
             clockDrift = new Date().getTime() - currentServerTime;
 
@@ -2515,6 +2499,40 @@
         return Math.round(1000 * row.client_status.total_hugepages / row.client_status.total_pages) / 10;
     }
 
+    function updateNonceMapping(entries) {
+        let statuses = entries.map(function (entry) { return entry.client_status || {}; });
+        let mapped = statuses.filter(function (status) { return status.nonce_partitioned; });
+        let auditable = mapped.filter(function (status) { return Number(status.nonce_mapper_id) >= 0; });
+        let assignments = {};
+        let collisions = 0;
+
+        auditable.forEach(function (status) {
+            let key = [status.current_pool || "", status.nonce_mapper_id, status.nonce_prefix].join("|");
+            assignments[key] = (assignments[key] || 0) + 1;
+            if (assignments[key] > 1) collisions++;
+        });
+
+        let efficiency = auditable.length ? (100 * (auditable.length - collisions) / auditable.length) : 0;
+        let overlap = auditable.length ? (100 * collisions / auditable.length) : 0;
+        let legacy = mapped.length - auditable.length;
+        let warning = collisions ? "alert-danger" : (legacy ? "alert-warning" : "alert-success");
+
+        $("#nonceMappingBar").html(
+            '<div class="alert ' + warning + '" role="alert">' +
+            '<strong>Nonce mapping</strong> &nbsp; ' +
+            'enabled: ' + (mapped.length > 0 ? 'yes' : 'no') + ' &nbsp;|&nbsp; ' +
+            'scheme: ' + (mapped.length > 0 ? 'fixed-high-byte' : 'none') + ' &nbsp;|&nbsp; ' +
+            'mapped miners: ' + mapped.length + ' &nbsp;|&nbsp; ' +
+            'unique partitions: ' + Object.keys(assignments).length + ' &nbsp;|&nbsp; ' +
+            'collisions: ' + collisions + ' &nbsp;|&nbsp; ' +
+            'overlap: ' + overlap.toFixed(2) + '% &nbsp;|&nbsp; ' +
+            'partition efficiency: ' + efficiency.toFixed(2) + '% &nbsp;|&nbsp; ' +
+            'nonces/partition: 16,777,216 &nbsp;|&nbsp; partitions/upstream: 256' +
+            (legacy ? ' &nbsp;|&nbsp; legacy miners not auditable: ' + legacy : '') +
+            '</div>'
+        );
+    }
+
     function percent(data, type, row) {
         if (row.client_status.max_cpu_usage === -1) {
             return 100;
@@ -2690,6 +2708,10 @@
             tooltip += '\n';
             tooltip += "Used Threads: " + row.client_status.current_threads;
             tooltip += (row.client_status.hash_factor > 1 ? " [" + row.client_status.hash_factor + "x multi hash mode]" : "");
+            tooltip += "Nonce Mapping: " + (row.client_status.nonce_partitioned
+                ? "prefix 0x" + Number(row.client_status.nonce_prefix || 0).toString(16).padStart(2, "0") +
+                  " [" + row.client_status.nonce_start + "-" + row.client_status.nonce_end + "]"
+                : "not partitioned");
             tooltip += '\n';
             tooltip += "Memory Free/Total: " + memory(row.client_status.free_memory) + " GB/" + memory(row.client_status.total_memory) + " GB";
             tooltip += '\n';

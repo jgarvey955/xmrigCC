@@ -24,6 +24,7 @@
 #pragma once
 
 #include "version.h"
+#include "donate.h"
 
 #include <string>
 
@@ -41,9 +42,9 @@ static inline const std::string &usage()
 
     u += "Usage: " APP_ID " [OPTIONS]\n\nNetwork:\n";
     u += "  -o, --url=URL                 URL of mining server\n";
-    u += "  -a, --algo=ALGO               mining algorithm (https://github.com/Bendr0id/xmrigCC/blob/master/doc/ALGORITHMS.md)\n";
+    u += "  -a, --algo=ALGO               mining algorithm (see doc/ALGORITHMS.md)\n";
     u += "      --coin=COIN               specify coin instead of algorithm\n";
-    u += "  -u, --user=USERNAME           username for mining server\n";
+    u += "  -u, --user=USERNAME           pool username; Zecnero solo: payout wallet address\n";
     u += "  -p, --pass=PASSWORD           password for mining server\n";
     u += "  -O, --userpass=U:P            username:password pair for mining server\n";
     u += "  -x, --proxy=HOST:PORT         connect through a SOCKS5 proxy\n";
@@ -65,6 +66,26 @@ static inline const std::string &usage()
     u += "      --daemon-zmq-port=N       daemon's zmq-pub port number (only use it if daemon has it enabled)\n";
     u += "      --daemon-poll-interval=N  daemon poll interval in milliseconds (default: 1000)\n";
     u += "      --daemon-job-timeout=N    daemon job timeout in milliseconds (default: 15000)\n";
+    u += "\nZecnero direct RPC solo mining (--daemon):\n";
+    u += "  -a, --algo=rx/zecnero         RandomX v1; rx/zecnero2 or rx2/zecnero for experimental v2\n";
+    u += "                               node templates select the version automatically\n";
+    u += "  -o, --url=HOST:PORT           node RPC (Testnet: 127.0.0.1:18732)\n";
+    u += "  -u, --user=ADDRESS           payout wallet; omit, empty or x uses daemon wallet\n";
+    u += "      --daemon-cookie-file=PATH local RPC cookie (read or create from source)\n";
+    u += "      --daemon-cookie-source=SOURCE\n";
+    u += "                               HTTPS URL (https://HOST:18734) or local cookie path\n";
+    u += "      --daemon-cookie-auth=USER:PASS\n";
+    u += "                               HTTPS login from daemon zecnero-cookie-cred array\n";
+    u += "      --daemon-cookie-fingerprint=HEX\n";
+    u += "                               optional SHA-256 certificate pin (64 hex digits)\n";
+    u += "                               otherwise saved on first authenticated retrieval\n";
+    u += "                               to PATH.fingerprint; later changes are rejected\n";
+    u += "      --daemon-rpc-user=USER   Basic RPC login with --pass when not using cookies\n";
+    u += "                               --user remains the wallet; cookie login is separate\n";
+    u += "  Config: same daemon-* names under pools[]; unset cookie fields default to null.\n";
+    u += "  HTTPS cookie retrieval needs TLS support; --tls/--tls-fingerprint apply to RPC.\n";
+    u += "  First-use certificate trust requires a trusted connection to the intended node.\n";
+    u += "  Mining waits for node sync and dataset readiness; see doc/ZECNERO.md.\n\n";
     u += "      --self-select=URL         self-select block templates from URL\n";
     u += "      --submit-to-origin        also submit solution back to self-select URL\n";
 #   endif
@@ -72,7 +93,7 @@ static inline const std::string &usage()
     u += "  -r, --retries=N               number of times to retry before switch to backup server (default: 5)\n";
     u += "  -R, --retry-pause=N           time to pause between retries (default: 5)\n";
     u += "      --user-agent              set custom user-agent string for pool\n";
-    u += "      --donate-level=N          donate level, can be reduced to 5% (minimum) (default: 5%)\n";
+    u += "      --donate-level=N          donation fixed at " + std::to_string(kDefaultDonateLevel) + "% in this build\n";
 
     u += "\nCPU backend:\n";
 

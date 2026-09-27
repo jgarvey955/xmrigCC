@@ -481,7 +481,7 @@
                     </div>
                 </div>
                 <p class="subline">
-                    Standalone local multi-miner dashboard for the xmrigCC server. No remote assets.
+                    Standalone local multi-miner dashboard for the XMRigCC server. No remote assets.
                     Uses the CC server <span class="mono">/admin/*</span> endpoints directly for fleet status, charts, logs,
                     configs, templates, and miner control.
                 </p>
@@ -1229,6 +1229,7 @@
             ["pool", "Pool"],
             ["cpu_brand", "CPU"],
             ["current_threads", "Threads"],
+            ["nonce_prefix", "Nonce"],
             ["hp", "HP %"],
             ["hashrate_short", "10s"],
             ["hashrate_medium", "60s"],
@@ -1263,6 +1264,7 @@
                     <td title="${escapeHtml(client.current_pool_user || "")}">${escapeHtml(client.current_pool || "")}</td>
                     <td title="${escapeHtml(client.cpu_brand || "")}">${escapeHtml(client.cpu_brand || "")}</td>
                     <td class="right">${escapeHtml(String(client.current_threads ?? 0))}</td>
+                    <td title="${escapeHtml(client.nonce_partitioned ? `${client.nonce_start}-${client.nonce_end}` : "not partitioned")}">${escapeHtml(client.nonce_partitioned ? `0x${Number(client.nonce_prefix || 0).toString(16).padStart(2, "0")}` : "n/a")}</td>
                     <td class="right">${escapeHtml(hp === null ? "n/a" : fmtPct(hp))}</td>
                     <td class="right">${escapeHtml(fmtNumber(client.hashrate_short || 0, 2))}</td>
                     <td class="right">${escapeHtml(fmtNumber(client.hashrate_medium || 0, 2))}</td>
@@ -1377,6 +1379,7 @@
             { key: "Cache L2 / L3", value: `${fmtNumber((client.cpu_l2 || 0) / 1024, 2)} MB / ${fmtNumber((client.cpu_l3 || 0) / 1024, 2)} MB` },
             { key: "Huge Pages", value: `${client.hugepages_available ? "available" : "unavailable"}, ${client.hugepages_enabled ? `enabled (${client.total_hugepages || 0}/${client.total_pages || 0})` : "disabled"}` },
             { key: "Threads / Ways", value: `${client.current_threads || 0} / ${client.current_ways || 0}` },
+            { key: "Nonce Mapping", value: client.nonce_partitioned ? `prefix 0x${Number(client.nonce_prefix || 0).toString(16).padStart(2, "0")}, range ${client.nonce_start}-${client.nonce_end}` : "not partitioned" },
             { key: "Hash Factor", value: String(client.hash_factor || 0) },
             { key: "Max CPU Usage", value: `${client.max_cpu_usage === -1 ? 100 : (client.max_cpu_usage || 0)}%` },
             { key: "Memory Free / Total", value: `${memoryGb(client.free_memory)} GB / ${memoryGb(client.total_memory)} GB` },

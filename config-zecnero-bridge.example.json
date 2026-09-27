@@ -1,0 +1,42 @@
+{
+    "autosave": false,
+    "background": false,
+    "colors": true,
+    "donate-level": 5,
+    "donate-over-proxy": 0,
+    "print-time": 60,
+    "randomx": {
+        "init": -1,
+        "init-avx2": -1,
+        "mode": "auto",
+        "1gb-pages": false,
+        "rdmsr": false,
+        "wrmsr": false,
+        "numa": true
+    },
+    "cpu": {
+        "enabled": true,
+        "huge-pages": true,
+        "hw-aes": null,
+        "max-threads-hint": 100,
+        "yield": true,
+        "argon2-impl": null
+    },
+    "opencl": false,
+    "cuda": false,
+    "cc-client": {
+        "enabled": false
+    },
+    "pools": [
+        {
+            "url": "127.0.0.1:3333",
+            "algo": "rx/zecnero",
+            "user": "zecnero-miner",
+            "pass": "x",
+            "daemon": false,
+            "tls": false,
+            "keepalive": true,
+            "enabled": true
+        }
+    ]
+}

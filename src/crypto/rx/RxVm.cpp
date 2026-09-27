@@ -49,6 +49,10 @@ randomx_vm *xmrig::RxVm::create(RxDataset *dataset, uint8_t *scratchpad, bool so
         flags |= RANDOMX_FLAG_JIT;
     }
 
+#   ifdef XMRIG_RISCV
+    if (RandomX_CurrentConfig.Tweak_V2_AES) { flags &= ~RANDOMX_FLAG_JIT; }
+#   endif
+
     const auto asmId = assembly == Assembly::AUTO ? Cpu::info()->assembly() : assembly.id();
     if ((asmId == Assembly::RYZEN) || (asmId == Assembly::BULLDOZER)) {
         flags |= RANDOMX_FLAG_AMD;

@@ -358,9 +358,7 @@ void xmrig::CpuWorker<N>::start()
 
             if (valid) {
                 for (size_t i = 0; i < N; ++i) {
-                    const uint64_t value = *reinterpret_cast<uint64_t*>(m_hash + (i * 32) + 24);
-
-                    if (value < job.target()) {
+                    if (job.meetsTarget(m_hash + (i * 32))) {
                         JobResults::submit(job, current_job_nonces[i], m_hash + (i * 32), job.hasMinerSignature() ? miner_signature_saved : nullptr);
                     }
                 }
@@ -559,4 +557,3 @@ template class CpuWorker<5>;
 template class CpuWorker<8>;
 
 } // namespace xmrig
-

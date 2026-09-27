@@ -27,12 +27,16 @@
 #define XMRIG_JOBRESULT_H
 
 
-#include <memory.h>
+#include <cstring>
 #include <cstdint>
 
 
 #include "base/tools/String.h"
 #include "base/net/stratum/Job.h"
+
+#ifdef XMRIG_PROXY_PROJECT
+#   include "base/tools/Cvt.h"
+#endif
 
 
 namespace xmrig {
@@ -41,6 +45,69 @@ namespace xmrig {
 class JobResult
 {
 public:
+#ifdef XMRIG_PROXY_PROJECT
+    static constexpr uint32_t backend = 0;
+
+    JobResult() = default;
+
+    inline JobResult(int64_t id, const char *jobId, const char *nonce, const char *result, const Algorithm &algorithm, const char *sig, const char *sig_data, const char *commitment, uint8_t view_tag, int64_t extra_nonce) :
+        algorithm(algorithm),
+        nonce(nonce),
+        result(result),
+        sig(sig),
+        sig_data(sig_data),
+        commitment(commitment),
+        view_tag(view_tag),
+        id(id),
+        extra_nonce(extra_nonce),
+        jobId(jobId)
+    {
+        if (result && strlen(result) == 64) {
+            uint64_t target = 0;
+            Cvt::fromHex(reinterpret_cast<uint8_t *>(&target), sizeof(target), result + 48, 16);
+
+            if (target > 0) {
+                m_actualDiff = Job::toDiff(target);
+            }
+        }
+    }
+
+    inline bool isCompatible(uint8_t fixedByte) const
+    {
+        uint8_t n[4];
+        if (!Cvt::fromHex(n, sizeof(n), nonce, 8)) {
+            return false;
+        }
+
+        return n[3] == fixedByte;
+    }
+
+    inline bool isValid() const
+    {
+        if (!nonce || m_actualDiff == 0) {
+            return false;
+        }
+
+        return strlen(nonce) == 8 && !jobId.isNull();
+    }
+
+    inline uint64_t actualDiff() const { return m_actualDiff; }
+
+    Algorithm algorithm;
+    const char *nonce         = nullptr;
+    const char *result        = nullptr;
+    const char *sig           = nullptr;
+    const char *sig_data      = nullptr;
+    const char *commitment    = nullptr;
+    const uint8_t view_tag    = 0;
+    const int64_t id          = 0;
+    const int64_t extra_nonce = -1;
+    String jobId;
+    uint64_t diff             = 0;
+
+private:
+    uint64_t m_actualDiff     = 0;
+#else
     JobResult() = delete;
 
     inline JobResult(const Job &job, uint64_t nonce, const uint8_t *result, const uint8_t* header_hash = nullptr, const uint8_t *mix_hash = nullptr, const uint8_t* miner_signature = nullptr) :
@@ -102,6 +169,7 @@ private:
 
     uint8_t m_minerSignature[64] = { 0 };
     bool m_hasMinerSignature = false;
+#endif
 };
 
 

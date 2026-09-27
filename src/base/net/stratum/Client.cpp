@@ -225,6 +225,9 @@ int64_t xmrig::Client::submit(const JobResult &result)
     if (result.sig) {
         params.AddMember("sig", StringRef(result.sig), allocator);
     }
+    if (result.commitment) {
+        params.AddMember("commitment", StringRef(result.commitment), allocator);
+    }
 #   endif
 
     if (has<EXT_ALGO>() && result.algorithm.isValid()) {
@@ -406,6 +409,7 @@ bool xmrig::Client::parseJob(const rapidjson::Value &params, int *code)
     }
 
     job.setHeight(Json::getUint64(params, "height"));
+    job.setProxyMapperId(Json::getInt(params, "proxy_mapper_id", -1));
 
     if (!verifyAlgorithm(job.algorithm(), algo)) {
         *code = 6;

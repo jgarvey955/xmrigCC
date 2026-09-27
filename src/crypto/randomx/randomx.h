@@ -125,6 +125,11 @@ struct RandomX_ConfigurationBase
 
 	rx_vec_i128 fillAes4Rx4_Key[8];
 
+	uint32_t Tweak_V2_CFROUND : 1;
+	uint32_t Tweak_V2_AES : 1;
+	uint32_t Tweak_V2_PREFETCH : 1;
+	uint32_t Tweak_V2_COMMITMENT : 1;
+
 	uint8_t codeSshPrefetchTweaked[20];
 	uint8_t codePrefetchScratchpadTweaked[28];
 	uint32_t codePrefetchScratchpadTweakedSize;
@@ -142,7 +147,13 @@ struct RandomX_ConfigurationBase
 #	endif
 };
 
+struct RandomX_ConfigurationZecnero : public RandomX_ConfigurationBase { RandomX_ConfigurationZecnero(); };
+extern RandomX_ConfigurationZecnero RandomX_ZecneroConfig;
+struct RandomX_ConfigurationZecnero2 : public RandomX_ConfigurationZecnero { RandomX_ConfigurationZecnero2(); };
+extern RandomX_ConfigurationZecnero2 RandomX_Zecnero2Config;
+
 struct RandomX_ConfigurationMonero : public RandomX_ConfigurationBase {};
+struct RandomX_ConfigurationMoneroV2 : public RandomX_ConfigurationBase { RandomX_ConfigurationMoneroV2(); };
 struct RandomX_ConfigurationWownero : public RandomX_ConfigurationBase { RandomX_ConfigurationWownero(); };
 struct RandomX_ConfigurationArqma : public RandomX_ConfigurationBase { RandomX_ConfigurationArqma(); };
 struct RandomX_ConfigurationGraft : public RandomX_ConfigurationBase { RandomX_ConfigurationGraft(); };
@@ -154,6 +165,7 @@ struct RandomX_ConfigurationVirel : public RandomX_ConfigurationBase { RandomX_C
 struct RandomX_ConfigurationScash : public RandomX_ConfigurationBase { RandomX_ConfigurationScash(); };
 
 extern RandomX_ConfigurationMonero RandomX_MoneroConfig;
+extern RandomX_ConfigurationMoneroV2 RandomX_MoneroConfigV2;
 extern RandomX_ConfigurationWownero RandomX_WowneroConfig;
 extern RandomX_ConfigurationArqma RandomX_ArqmaConfig;
 extern RandomX_ConfigurationGraft RandomX_GraftConfig;

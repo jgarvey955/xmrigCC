@@ -1,0 +1,312 @@
+{
+  "format": 1,
+  "algorithm": "rx/zecnero",
+  "spec_section": "5.4",
+  "description": "RandomX-Zecnero proof-of-work hashes. Hex is the serialized internal byte order; section 5.4.3 compares the hash as a little-endian 256-bit integer against the target.",
+  "randomx": {
+    "repo": "https://github.com/tevador/RandomX",
+    "commit": "615de64537e3a29125c9de96c6242b84c1391c2e",
+    "describe": "v2.0.1-3-g615de64",
+    "program_version": 1
+  },
+  "parameters": {
+    "RANDOMX_ARGON_MEMORY": 262144,
+    "RANDOMX_ARGON_ITERATIONS": 3,
+    "RANDOMX_ARGON_LANES": 1,
+    "RANDOMX_ARGON_SALT": "5a65636e65726f525801",
+    "RANDOMX_CACHE_ACCESSES": 8,
+    "RANDOMX_SUPERSCALAR_LATENCY": 170,
+    "RANDOMX_DATASET_BASE_SIZE": 2147483648,
+    "RANDOMX_DATASET_EXTRA_SIZE": 33554368,
+    "RANDOMX_PROGRAM_SIZE": 256,
+    "RANDOMX_PROGRAM_ITERATIONS": 2048,
+    "RANDOMX_PROGRAM_COUNT": 8,
+    "RANDOMX_JUMP_BITS": 8,
+    "RANDOMX_JUMP_OFFSET": 8,
+    "RANDOMX_SCRATCHPAD_L3": 2097152,
+    "RANDOMX_SCRATCHPAD_L2": 262144,
+    "RANDOMX_SCRATCHPAD_L1": 16384
+  },
+  "cases": [
+    {
+      "name": "string_a",
+      "kind": "string",
+      "comment": "upstream RandomX v1 test 1a, under the Zecnero salt",
+      "key": "74657374206b657920303030",
+      "input": "5468697320697320612074657374",
+      "hash": "a4c457755a563a04935ec009f7e207935a25a8474d7ae50e03ecab7768a02daf"
+    },
+    {
+      "name": "string_b",
+      "kind": "string",
+      "comment": "upstream RandomX v1 test 1b, under the Zecnero salt",
+      "key": "74657374206b657920303030",
+      "input": "4c6f72656d20697073756d20646f6c6f722073697420616d6574",
+      "hash": "562e304e5d6b67a5d42b55ed38e317ed2e873dfa86e171e8f3d5938f84c68c50"
+    },
+    {
+      "name": "string_c",
+      "kind": "string",
+      "comment": "upstream RandomX v1 test 1c, under the Zecnero salt",
+      "key": "74657374206b657920303030",
+      "input": "73656420646f20656975736d6f642074656d706f7220696e6369646964756e74207574206c61626f726520657420646f6c6f7265206d61676e6120616c69717561",
+      "hash": "64c57620c1b7889828d5e0ab8e62e6ea3f260895e0e090aa05a8861e81c8bd99"
+    },
+    {
+      "name": "string_d",
+      "kind": "string",
+      "comment": "upstream RandomX v1 test 1d, under the Zecnero salt",
+      "key": "74657374206b657920303031",
+      "input": "73656420646f20656975736d6f642074656d706f7220696e6369646964756e74207574206c61626f726520657420646f6c6f7265206d61676e6120616c69717561",
+      "hash": "e8068a637cefb45ec30af9e5270166b37704ab2509b25fa10cd4db5bdd67ac64"
+    },
+    {
+      "name": "string_e",
+      "kind": "string",
+      "comment": "upstream RandomX v1 test 1e, under the Zecnero salt",
+      "key": "74657374206b657920303031",
+      "input": "0b0b98bea7e805e0010a2126d287a2a0cc833d312cb786385a7c2f9de69d25537f584a9bc9977b00000000666fd8753bf61a8631f12984e3fd44f4014eca629276817b56f32e9b68bd82f416",
+      "hash": "e55dcac38cabe8324735f007f0f12c05eea0d2975ddefd187e76f765e842de63"
+    },
+    {
+      "name": "chain_height_0",
+      "kind": "header",
+      "comment": "height 0: the all-zero key of section 5.4.2",
+      "height": 0,
+      "seed_height": 0,
+      "header": {
+        "n_version": 4,
+        "hash_prev_block": "0000000000000000000000000000000000000000000000000000000000000000",
+        "hash_merkle_root": "76bb554aedbf312787a67fc4c57ac7ea72ee8e3477f3c6766991b75187277462",
+        "hash_block_commitments": "c9c845bbd5d179a0d758aba49a7f1c600e230c085365bcae04f69903bd683559",
+        "n_time": 1798761600,
+        "n_bits": 504365056,
+        "n_nonce": "0000000000000000000000000000000000000000000000000000000000000000"
+      },
+      "block_hash": "d085a20629600cdc33434aba1a204bbcef5cc35b8d8f6a8afc75cb1248a943a5",
+      "key": "0000000000000000000000000000000000000000000000000000000000000000",
+      "input": "04000000000000000000000000000000000000000000000000000000000000000000000076bb554aedbf312787a67fc4c57ac7ea72ee8e3477f3c6766991b75187277462c9c845bbd5d179a0d758aba49a7f1c600e230c085365bcae04f69903bd68355980ec366b0000101e0000000000000000000000000000000000000000000000000000000000000000",
+      "hash": "6b641836a5f05fb76f2b29fc4e4808433f20ad87fd5295e445a4e25503f3dbab"
+    },
+    {
+      "name": "chain_height_1",
+      "kind": "header",
+      "comment": "height 1: keyed by the block hash of height 0",
+      "height": 1,
+      "seed_height": 0,
+      "header": {
+        "n_version": 4,
+        "hash_prev_block": "d085a20629600cdc33434aba1a204bbcef5cc35b8d8f6a8afc75cb1248a943a5",
+        "hash_merkle_root": "14c54978be2283f44eb0998a2f6ef6460a284495d8f1ebf429e8c9a4815dde12",
+        "hash_block_commitments": "09c862f73a6f7030da7670af943c383237e05beaa375585e58da2e770cb02922",
+        "n_time": 1798761675,
+        "n_bits": 504365056,
+        "n_nonce": "0000000000000000000000000000000000000000000000000000000000000000"
+      },
+      "block_hash": "91d618a8303c13929caf27745b7daff67a45d44c7aca5229e65fc6f3c85fd404",
+      "key": "d085a20629600cdc33434aba1a204bbcef5cc35b8d8f6a8afc75cb1248a943a5",
+      "input": "04000000d085a20629600cdc33434aba1a204bbcef5cc35b8d8f6a8afc75cb1248a943a514c54978be2283f44eb0998a2f6ef6460a284495d8f1ebf429e8c9a4815dde1209c862f73a6f7030da7670af943c383237e05beaa375585e58da2e770cb02922cbec366b0000101e0000000000000000000000000000000000000000000000000000000000000000",
+      "hash": "89d8e1be2b8f359c2ea6041a1b454ab081b0625134589143ce4e7def175cbc83"
+    },
+    {
+      "name": "chain_height_2",
+      "kind": "header",
+      "comment": "height 2: still in the first key epoch, so the key is unchanged",
+      "height": 2,
+      "seed_height": 0,
+      "header": {
+        "n_version": 4,
+        "hash_prev_block": "91d618a8303c13929caf27745b7daff67a45d44c7aca5229e65fc6f3c85fd404",
+        "hash_merkle_root": "555c3d237920a2dd11ad8c757dfa298370b7667e2483219ccf6fe4173604bab8",
+        "hash_block_commitments": "4d94cc57a9dd1d094ba2280f1a40f9bd4d7f9b0ae04ff92231c41c356161ecdd",
+        "n_time": 1798761750,
+        "n_bits": 504365056,
+        "n_nonce": "0000000000000000000000000000000000000000000000000000000000000000"
+      },
+      "block_hash": "7f8f51331f584aee939f54aafded23fa8edb14694e9034fd533dc5dbd7dd551e",
+      "key": "d085a20629600cdc33434aba1a204bbcef5cc35b8d8f6a8afc75cb1248a943a5",
+      "input": "0400000091d618a8303c13929caf27745b7daff67a45d44c7aca5229e65fc6f3c85fd404555c3d237920a2dd11ad8c757dfa298370b7667e2483219ccf6fe4173604bab84d94cc57a9dd1d094ba2280f1a40f9bd4d7f9b0ae04ff92231c41c356161ecdd16ed366b0000101e0000000000000000000000000000000000000000000000000000000000000000",
+      "hash": "a55b507cb32664b7a94e3fd676210febfb3f59f8b808cb29c8d666425195436b"
+    },
+    {
+      "name": "epoch_height_2112",
+      "kind": "header",
+      "comment": "seed height 0: the block hash of the genesis block, as at heights 1 and 2",
+      "height": 2112,
+      "seed_height": 0,
+      "header": {
+        "n_version": 4,
+        "hash_prev_block": "c1c751d66ec025d3a9e21d28d84f25794b18b0b5035656f44cf16a189f39b81b",
+        "hash_merkle_root": "c5ca5b45d8dbefd22d8cdd855c84914fc5351535401ac1a9eadbe68ea279fb23",
+        "hash_block_commitments": "2ce0269e9d4326d84f674d2bfae3096446d95ca7cd6ac9b39b226b7b4afea359",
+        "n_time": 1798920000,
+        "n_bits": 504365056,
+        "n_nonce": "0000000000000000000000000000000000000000000000000000000000000000"
+      },
+      "block_hash": "72214c79e78c268f27f96a05a5ef9b99705d685fa73422356339bed024684778",
+      "key": "d085a20629600cdc33434aba1a204bbcef5cc35b8d8f6a8afc75cb1248a943a5",
+      "input": "04000000c1c751d66ec025d3a9e21d28d84f25794b18b0b5035656f44cf16a189f39b81bc5ca5b45d8dbefd22d8cdd855c84914fc5351535401ac1a9eadbe68ea279fb232ce0269e9d4326d84f674d2bfae3096446d95ca7cd6ac9b39b226b7b4afea3594057396b0000101e0000000000000000000000000000000000000000000000000000000000000000",
+      "hash": "b0b48d1044766afd1feda96a5ff99a5435fe2661e5c5dcfb6a72547399bc4ea4"
+    },
+    {
+      "name": "epoch_height_2113",
+      "kind": "header",
+      "comment": "synthetic seed block hash for seed height 2048",
+      "height": 2113,
+      "seed_height": 2048,
+      "header": {
+        "n_version": 4,
+        "hash_prev_block": "b99b8dc30ad7d96233a9c8aa30695f95fc91a2d93ff122f9bd8373e1c7780896",
+        "hash_merkle_root": "3759821c16cf95b35406117b3fcb3248f806ce60804e46e04c56f40d059a65c9",
+        "hash_block_commitments": "06402c1f99d250b3936824d0bd2281043f499d74e93afceb65a3ac571b060da3",
+        "n_time": 1798920075,
+        "n_bits": 504365056,
+        "n_nonce": "0000000000000000000000000000000000000000000000000000000000000000"
+      },
+      "block_hash": "44555845833b68cb15f606be81faf62beebbbca9f2723519c5c4d4965a531f8d",
+      "key": "8334e989cab28f2cbbd7700253c8c5f376fc2ff08e195deca192ae1763fb59bf",
+      "input": "04000000b99b8dc30ad7d96233a9c8aa30695f95fc91a2d93ff122f9bd8373e1c77808963759821c16cf95b35406117b3fcb3248f806ce60804e46e04c56f40d059a65c906402c1f99d250b3936824d0bd2281043f499d74e93afceb65a3ac571b060da38b57396b0000101e0000000000000000000000000000000000000000000000000000000000000000",
+      "hash": "d438c26e7faedad8901d0b54fce8c08ec255f7ab091caa287e2b9d10c6e604b5"
+    },
+    {
+      "name": "epoch_height_4160",
+      "kind": "header",
+      "comment": "synthetic seed block hash for seed height 2048",
+      "height": 4160,
+      "seed_height": 2048,
+      "header": {
+        "n_version": 4,
+        "hash_prev_block": "933a283c12821d3c9b8bf7370288e54e6c7437005c5b3fc9af494f9f6ba4d5f8",
+        "hash_merkle_root": "e9e2f337136b1a5d21c3896c069b968fb861771f9f2922579bdfbba55aa0e890",
+        "hash_block_commitments": "32f64be42d872406c0c1290a6e2a30920aa1b9169c3b2c2514c24aa5207133fd",
+        "n_time": 1799073600,
+        "n_bits": 504365056,
+        "n_nonce": "0000000000000000000000000000000000000000000000000000000000000000"
+      },
+      "block_hash": "9b19b3709fe7ba97fee4c5f68be3a41fb5a89b1657031b27a7be43a32530a25d",
+      "key": "8334e989cab28f2cbbd7700253c8c5f376fc2ff08e195deca192ae1763fb59bf",
+      "input": "04000000933a283c12821d3c9b8bf7370288e54e6c7437005c5b3fc9af494f9f6ba4d5f8e9e2f337136b1a5d21c3896c069b968fb861771f9f2922579bdfbba55aa0e89032f64be42d872406c0c1290a6e2a30920aa1b9169c3b2c2514c24aa5207133fd40af3b6b0000101e0000000000000000000000000000000000000000000000000000000000000000",
+      "hash": "78f238ea57a987a30f39ea4959253efabca4aa3efb17b5c2044aaeea46b61f37"
+    },
+    {
+      "name": "epoch_height_4161",
+      "kind": "header",
+      "comment": "synthetic seed block hash for seed height 4096",
+      "height": 4161,
+      "seed_height": 4096,
+      "header": {
+        "n_version": 4,
+        "hash_prev_block": "0425267b41f93f6431778622e2e6aff4d9d01be35d0335e2e0017a1159358de6",
+        "hash_merkle_root": "59c4d091d4079bd8bd73976dc87a482496162f44e681db35aee15d0972da2886",
+        "hash_block_commitments": "1ba5149d17559c037c3d8e5c553888e15efd2ead375b6ea1556c07fc8a2f15af",
+        "n_time": 1799073675,
+        "n_bits": 504365056,
+        "n_nonce": "0000000000000000000000000000000000000000000000000000000000000000"
+      },
+      "block_hash": "ed1fac370e848d914c76fef167fc2723dfabab766c0a50dc38f29fc6f1f3d161",
+      "key": "d222b5ee40cadf4fed1d5fa295d1288c07a93dcaa9f525843f50f58195ff563f",
+      "input": "040000000425267b41f93f6431778622e2e6aff4d9d01be35d0335e2e0017a1159358de659c4d091d4079bd8bd73976dc87a482496162f44e681db35aee15d0972da28861ba5149d17559c037c3d8e5c553888e15efd2ead375b6ea1556c07fc8a2f15af8baf3b6b0000101e0000000000000000000000000000000000000000000000000000000000000000",
+      "hash": "6e116d1967e7f1447a15b9ac0cba24059dc30b2c062d6e66d1b7648739d701d2"
+    },
+    {
+      "name": "epoch_height_6209",
+      "kind": "header",
+      "comment": "synthetic seed block hash for seed height 6144",
+      "height": 6209,
+      "seed_height": 6144,
+      "header": {
+        "n_version": 4,
+        "hash_prev_block": "93efc496f9e882b847344ce6f11bd5410acec75b7258e967d1f900088432873a",
+        "hash_merkle_root": "53a7227353dcc6357bea961e2ffa9567b7119c3052bf1771236609a777e9a26c",
+        "hash_block_commitments": "d04306ab65452506786a93cd918850bbb78afe1e10f50c1d4073d7bc59fcc0a6",
+        "n_time": 1799227275,
+        "n_bits": 504365056,
+        "n_nonce": "0000000000000000000000000000000000000000000000000000000000000000"
+      },
+      "block_hash": "ba516ae93838c82af76981faf0ea7cb5edb2dbf90b0fda9916c5d0ceb912500d",
+      "key": "03c18cadc1ed23938caec27d53300963922bc3a45e119930ef3bea5c71d4c228",
+      "input": "0400000093efc496f9e882b847344ce6f11bd5410acec75b7258e967d1f900088432873a53a7227353dcc6357bea961e2ffa9567b7119c3052bf1771236609a777e9a26cd04306ab65452506786a93cd918850bbb78afe1e10f50c1d4073d7bc59fcc0a68b073e6b0000101e0000000000000000000000000000000000000000000000000000000000000000",
+      "hash": "8d6cfab7398a2af3445273e4c8ad94aae9a3aa822ec28ba0e82fc5ad9aa45d9c"
+    },
+    {
+      "name": "nonce_first_word_one",
+      "kind": "header",
+      "comment": "nonce word at bytes 108 to 111 set to 1",
+      "height": 1,
+      "seed_height": 0,
+      "header": {
+        "n_version": 4,
+        "hash_prev_block": "d085a20629600cdc33434aba1a204bbcef5cc35b8d8f6a8afc75cb1248a943a5",
+        "hash_merkle_root": "14c54978be2283f44eb0998a2f6ef6460a284495d8f1ebf429e8c9a4815dde12",
+        "hash_block_commitments": "09c862f73a6f7030da7670af943c383237e05beaa375585e58da2e770cb02922",
+        "n_time": 1798761675,
+        "n_bits": 504365056,
+        "n_nonce": "0100000000000000000000000000000000000000000000000000000000000000"
+      },
+      "block_hash": "1bbf5dc7e20469f7f182f5ab62e72a0e00ab6b950bfe1cf35e4369f3e41108f5",
+      "key": "d085a20629600cdc33434aba1a204bbcef5cc35b8d8f6a8afc75cb1248a943a5",
+      "input": "04000000d085a20629600cdc33434aba1a204bbcef5cc35b8d8f6a8afc75cb1248a943a514c54978be2283f44eb0998a2f6ef6460a284495d8f1ebf429e8c9a4815dde1209c862f73a6f7030da7670af943c383237e05beaa375585e58da2e770cb02922cbec366b0000101e0100000000000000000000000000000000000000000000000000000000000000",
+      "hash": "1d0ad2db6c9aba881921cf8ba79128d61b18ab6b09ee11638be43d77c8e8a83e"
+    },
+    {
+      "name": "nonce_first_word_max",
+      "kind": "header",
+      "comment": "the miner-varied bytes 108 to 111 at their maximum",
+      "height": 1,
+      "seed_height": 0,
+      "header": {
+        "n_version": 4,
+        "hash_prev_block": "d085a20629600cdc33434aba1a204bbcef5cc35b8d8f6a8afc75cb1248a943a5",
+        "hash_merkle_root": "14c54978be2283f44eb0998a2f6ef6460a284495d8f1ebf429e8c9a4815dde12",
+        "hash_block_commitments": "09c862f73a6f7030da7670af943c383237e05beaa375585e58da2e770cb02922",
+        "n_time": 1798761675,
+        "n_bits": 504365056,
+        "n_nonce": "ffffffff00000000000000000000000000000000000000000000000000000000"
+      },
+      "block_hash": "40b4751a282747e2328644ba5da623c2a5e3ff330b820e97b1152fe1294af3bb",
+      "key": "d085a20629600cdc33434aba1a204bbcef5cc35b8d8f6a8afc75cb1248a943a5",
+      "input": "04000000d085a20629600cdc33434aba1a204bbcef5cc35b8d8f6a8afc75cb1248a943a514c54978be2283f44eb0998a2f6ef6460a284495d8f1ebf429e8c9a4815dde1209c862f73a6f7030da7670af943c383237e05beaa375585e58da2e770cb02922cbec366b0000101effffffff00000000000000000000000000000000000000000000000000000000",
+      "hash": "1871e3e3d35283a9b92df07903af5b4ce45de592da9f96ec943352594e21c3a5"
+    },
+    {
+      "name": "nonce_extra",
+      "kind": "header",
+      "comment": "only the pool-assigned bytes 112 to 139 are set",
+      "height": 1,
+      "seed_height": 0,
+      "header": {
+        "n_version": 4,
+        "hash_prev_block": "d085a20629600cdc33434aba1a204bbcef5cc35b8d8f6a8afc75cb1248a943a5",
+        "hash_merkle_root": "14c54978be2283f44eb0998a2f6ef6460a284495d8f1ebf429e8c9a4815dde12",
+        "hash_block_commitments": "09c862f73a6f7030da7670af943c383237e05beaa375585e58da2e770cb02922",
+        "n_time": 1798761675,
+        "n_bits": 504365056,
+        "n_nonce": "00000000722c00139e448f5bf1015387b4aee4c5a5b9115e4464affdf17581d1"
+      },
+      "block_hash": "53ee0ab1161d32fe1078ca0cf9b56d34b4e996e9ad542c4a72c80158b23f306f",
+      "key": "d085a20629600cdc33434aba1a204bbcef5cc35b8d8f6a8afc75cb1248a943a5",
+      "input": "04000000d085a20629600cdc33434aba1a204bbcef5cc35b8d8f6a8afc75cb1248a943a514c54978be2283f44eb0998a2f6ef6460a284495d8f1ebf429e8c9a4815dde1209c862f73a6f7030da7670af943c383237e05beaa375585e58da2e770cb02922cbec366b0000101e00000000722c00139e448f5bf1015387b4aee4c5a5b9115e4464affdf17581d1",
+      "hash": "a0418a28e1e8771fff2413de1da6d6df065b298c08673e69bf917d3c8c8f777a"
+    },
+    {
+      "name": "nonce_all_ones",
+      "kind": "header",
+      "comment": "every nonce byte set",
+      "height": 1,
+      "seed_height": 0,
+      "header": {
+        "n_version": 4,
+        "hash_prev_block": "d085a20629600cdc33434aba1a204bbcef5cc35b8d8f6a8afc75cb1248a943a5",
+        "hash_merkle_root": "14c54978be2283f44eb0998a2f6ef6460a284495d8f1ebf429e8c9a4815dde12",
+        "hash_block_commitments": "09c862f73a6f7030da7670af943c383237e05beaa375585e58da2e770cb02922",
+        "n_time": 1798761675,
+        "n_bits": 504365056,
+        "n_nonce": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+      },
+      "block_hash": "5f5988c56a4fc5914ec7b06c3fe7738325fa6e3d76a3f003bc8378fb956d42c5",
+      "key": "d085a20629600cdc33434aba1a204bbcef5cc35b8d8f6a8afc75cb1248a943a5",
+      "input": "04000000d085a20629600cdc33434aba1a204bbcef5cc35b8d8f6a8afc75cb1248a943a514c54978be2283f44eb0998a2f6ef6460a284495d8f1ebf429e8c9a4815dde1209c862f73a6f7030da7670af943c383237e05beaa375585e58da2e770cb02922cbec366b0000101effffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "hash": "d46a80665950f6af52866d6240e59bbebc1391b161fa7082285828187dfadfff"
+    }
+  ]
+}

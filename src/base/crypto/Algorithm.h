@@ -84,6 +84,8 @@ public:
         RX_TUSKE        = 0x72151274,   // "rx/tuske"         RandomTuske (TUSKE).
         RX_XEQ          = 0x72121078,   // "rx/xeq"           RandomXEQ (Equilibria).
         RX_VRL          = 0x72141176,   // "rx/vrl"           RandomVRL (Virel).
+        RX_ZECNERO2     = 0x7215127b,   // "rx/zecnero2"      Zecnero RandomX v2.
+        RX_ZECNERO      = 0x7215127a,   // "rx/zecnero"       Zecnero RandomX v1 (domain-separated salt).
         RX_SCASH        = 0x72151263,   // "rx/scash"         randomscash (satoshicash).
         AR2_CHUKWA      = 0x61130000,   // "argon2/chukwa"    Argon2id (Chukwa).
         AR2_CHUKWA_V2   = 0x61140000,   // "argon2/chukwav2"  Argon2id (Chukwa v2).
@@ -160,6 +162,8 @@ public:
     static const char *kRX_XEQ;
     static const char *kRX_VRL;
     static const char* kRX_SCASH;
+    static const char *kRX_ZECNERO;
+    static const char *kRX_ZECNERO2;
 #   endif
 
 #   ifdef XMRIG_ALGO_ARGON2
@@ -179,6 +183,8 @@ public:
     static const char* kGHOSTRIDER_RTM;
     static const char* kGHOSTRIDER_MIKE;
 #   endif
+
+    inline bool isZecnero() const { return m_id == RX_ZECNERO || m_id == RX_ZECNERO2; }
 
     inline Algorithm() = default;
     inline Algorithm(const char *algo) : m_id(parse(algo))  {}

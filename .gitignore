@@ -1,4 +1,8 @@
 build
+.cookie
+.cookie.tmp-*
+.cookie.fingerprint
+.cookie.fingerprint.tmp-*
 /build-static/
 /CMakeLists.txt.user
 /.idea
@@ -16,3 +20,10 @@ Testing/
 *.cbp
 .cmake/api/v1/reply
 *ninja*
+
+# Local Testnet config contains per-miner cookie credentials.
+/config-zecnero-testnet.json
+
+# Generated Python test caches.
+__pycache__/
+*.py[cod]
