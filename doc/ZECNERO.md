@@ -207,16 +207,25 @@ Use the standard `build/` directory and the source checkout being edited:
 ```sh
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DXMRIG_DEPS=scripts/deps \
   -DBUILD_STATIC=ON -DWITH_ZLIB=ON -DWITH_OPENCL=OFF -DWITH_CUDA=OFF \
-  -DWITH_RANDOMX=ON -DWITH_HTTP=ON -DWITH_ZECNERO_TESTS=ON
+  -DWITH_RANDOMX=ON -DWITH_HTTP=ON -DWITH_ZECNERO_TESTS=OFF
 cmake --build build -j 6
-ctest --test-dir build --output-on-failure
 ```
 
-The optional tests check template validation, full 256-bit inclusive targets,
-version negotiation, algorithm aliases, auth configuration serialization, and
-17 independent reference vectors per RandomX version in interpreted and JIT modes.
-The mock RPC test covers auth retry, rotation, asynchronous submission and rejection
-accounting. Only a null `submitblock` result counts as acceptance.
+The release build produces `xmrigDaemon`, `xmrigMiner`, and `xmrigServer`.
+There is no separate Zecnero test executable. Optional Python integration checks
+run against the normal `build/xmrigMiner` binary:
+
+```sh
+python3 tests/zecnero-rpc.py build/xmrigMiner
+python3 tests/zecnero-sync.py build/xmrigMiner
+python3 tests/zecnero-sync.py build/xmrigMiner --https
+python3 tests/zecnero-failover.py build/xmrigMiner
+```
+
+These cover authentication, sync pause/resume, cookie rotation, submission
+handling and pool fallback/recovery. Only a null `submitblock` result counts as
+acceptance. `WITH_ZECNERO_TESTS=ON` registers these Python checks with CTest;
+it does not add another executable.
 
 ```sh
 python3 tests/zecnero-regtest.py --node /path/to/zecnerod --miner build/xmrigMiner --mode light
