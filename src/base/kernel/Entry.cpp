@@ -42,6 +42,9 @@
 #include "base/kernel/Process.h"
 #include "core/config/usage.h"
 #include "version.h"
+#ifdef XMRIG_ALGO_RANDOMX
+#   include "crypto/rx/RxAesDiagnostics.h"
+#endif
 
 
 namespace xmrig {
@@ -155,6 +158,11 @@ xmrig::Entry::Id xmrig::Entry::get(const Process &process)
     }
 #   endif
 
+#   ifdef XMRIG_ALGO_RANDOMX
+    if (args.hasArg("--randomx-aes-test")) { return RandomXAesTest; }
+    if (args.hasArg("--randomx-aes-bench")) { return RandomXAesBench; }
+#   endif
+
     return Default;
 }
 
@@ -162,6 +170,13 @@ xmrig::Entry::Id xmrig::Entry::get(const Process &process)
 int xmrig::Entry::exec(const Process &process, Id id)
 {
     switch (id) {
+#   ifdef XMRIG_ALGO_RANDOMX
+    case RandomXAesTest:
+        return randomxAesTest();
+    case RandomXAesBench:
+        return randomxAesBenchmark(process.arguments());
+#   endif
+
     case Usage:
         printf("%s\n", usage().c_str());
         return 0;

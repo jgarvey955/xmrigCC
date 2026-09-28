@@ -29,6 +29,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
 #include <cstdint>
+#include "crypto/randomx/aes_hash.hpp"
 #include "crypto/randomx/common.hpp"
 #include "crypto/randomx/program.hpp"
 
@@ -89,7 +90,11 @@ namespace randomx {
 		void getFinalResult(void* out) override;
 		void hashAndFill(void* out, uint64_t (&fill_state)[8]) override;
 
+		// Internal diagnostic hook; set only before hashing on this VM.
+		void setHardwareAES(hashAndFillAes1Rx4_impl *impl) { hardwareAES = impl; }
+
 	protected:
+		hashAndFillAes1Rx4_impl *hardwareAES = &hashAndFillAes1Rx4<0, 2>;
 		void generateProgram(void* seed);
 	};
 
