@@ -38,8 +38,7 @@ for a pool, and run it:
 ```
 
 Pool configurations do not use `daemon-cookie-*`. TLS for the pool uses `tls`
-and optionally `tls-fingerprint`; the HTTPS cookie endpoint is a separate direct
-RPC feature. For a bridge, set its `[node].cookie_path` explicitly to this node's
+and optionally `tls-fingerprint`. Direct RPC reads a local cookie file. For a bridge, set its `[node].cookie_path` explicitly to this node's
 actual cookie. The older official guide's upstream cache path is not this fork's
 default.
 
@@ -87,7 +86,6 @@ For explicit thread limits, configure both `cpu.rx/zecnero` and `cpu.rx/zecnero2
 `./xmrigDaemon --help` and `./xmrigMiner --help` list the Zecnero options. The
 following JSON keys belong to each entry in `pools`. Cookie options default to
 `null` (disabled/unset); no login or node address is invented automatically.
-Use the correctly spelled `daemon-cookie-auth`.
 
 | JSON key | Command-line option | Default and behavior |
 | --- | --- | --- |
@@ -96,20 +94,16 @@ Use the correctly spelled `daemon-cookie-auth`.
 | `daemon` | `--daemon` | Default `false`; must be `true` for direct RPC solo mining. Requires an HTTP-enabled build. |
 | `user` | `-u`, `--user` | Payout wallet address, sent in `mineraddress`. Default `x`, omitted, `null`, or empty uses `[mining].miner_address` on the daemon. An invalid explicit address fails; it never silently falls back. |
 | `pass` | `-p`, `--pass` | Default `x`; ignored for RPC when a cookie file is configured. Otherwise the password paired with `daemon-rpc-user`. |
-| `daemon-cookie-file` | `--daemon-cookie-file=PATH` | Default `null`. Path to read the RPC cookie. With a source, also the destination for automatically created/refreshed copies. Relative paths use the miner's working directory, typically `build/`. |
-| `daemon-cookie-source` | `--daemon-cookie-source=SOURCE` | Default `null`. Use `https://HOST:18734` for authenticated remote retrieval, or a local path to copy the node's cookie. Requires `daemon-cookie-file`. Plain HTTP retrieval is rejected. With no source, the cookie must already exist at `daemon-cookie-file`. |
-| `daemon-cookie-auth` | `--daemon-cookie-auth=USER:PASS` | Default `null`; required for HTTPS retrieval. One login matching an entry in the daemon's `zecnero-cookie-cred` array. `user,pass` is also accepted. This is independent of the payout wallet and RPC cookie credentials. |
-| `daemon-cookie-fingerprint` | `--daemon-cookie-fingerprint=HEX` | Default `null`: save the TLS certificate SHA-256 fingerprint after the first successful authenticated retrieval in `<daemon-cookie-file>.fingerprint`; check it before sending credentials on later connections. Set 64 hex digits to preverify the first connection or explicitly approve certificate rotation. |
+| `daemon-cookie-file` | `--daemon-cookie-file=PATH` | Default `null`. Path to read the RPC cookie. The file must already exist; the node owns and rotates it. Relative paths use the miner's working directory, typically `build/`. |
 | `daemon-rpc-user` | `--daemon-rpc-user=USER` | Default `null`. Optional HTTP Basic RPC username paired with `pass` when no cookie file is used. The RPC server/proxy must support those credentials. Cookie authentication takes precedence. |
 | `daemon-poll-interval` | `--daemon-poll-interval=N` | Default `1000` milliseconds; Zecnero clamps to at least 1000. Polls templates and retries while the node is syncing. |
 | `daemon-job-timeout` | `--daemon-job-timeout=N` | Default `15000` milliseconds. Refreshes otherwise identical work after this interval (minimum 1000); not a network timeout. Changed work is applied immediately. |
-| `tls` | `--tls` | Default `false`. Encrypts the separate node RPC connection, typically through a TLS proxy. HTTPS cookie retrieval uses TLS independently of this setting. |
-| `tls-fingerprint` | `--tls-fingerprint=HEX` | Default `null`. Optional certificate pin for RPC TLS, separate from `daemon-cookie-fingerprint` and its saved cookie endpoint pin. |
+| `tls` | `--tls` | Default `false`. Encrypts the separate node RPC connection, typically through a TLS proxy. This setting does not download credentials. |
+| `tls-fingerprint` | `--tls-fingerprint=HEX` | Default `null`. Optional certificate pin for RPC TLS. |
 | `enabled` | Config only | Default `true`; `false` disables this pool entry. |
 
-The node's `zecnero-cookie-cred`, certificate/key paths, and `[mining].miner_address`
-are daemon settings, not miner command-line options. Give each miner its own
-`daemon-cookie-auth` login from the array; each can choose its own `user` wallet.
+`[mining].miner_address` is a daemon setting. Each miner can select its own
+`user` payout address if the node supports it.
 `daemon-zmq-port`, `nicehash`, `keepalive`, and `rig-id` do not control Zecnero's
 direct RPC mining protocol.
 
@@ -118,9 +112,7 @@ Place a pool's command-line options after its `--url`. For example, from `build/
 ```sh
 ./xmrigDaemon --url NODE_ADDRESS:18732 --daemon --algo rx/zecnero \
   --user YOUR_ZECNERO_TESTNET_ADDRESS \
-  --daemon-cookie-file ./.cookie \
-  --daemon-cookie-source https://NODE_ADDRESS:18734 \
-  --daemon-cookie-auth miner1:YOUR_PASSWORD
+  --daemon-cookie-file /path/to/node/rpc/testnet/.cookie
 ```
 
 Prefer an owner-readable config file for passwords instead of putting them in
@@ -146,21 +138,9 @@ inside `cpu`.
 
 ## Wallet and authentication for direct RPC
 
-Choose one authentication mode per direct-RPC pool entry:
-
-- **Local file only:** set `daemon-cookie-file` to the daemon-owned `.cookie`.
-  Leave `daemon-cookie-source`, `daemon-cookie-auth`, and
-  `daemon-cookie-fingerprint` unset or `null`. The miner rereads the file for
-  every RPC, including after cookie rotation. It does not create or download it.
-- **Authenticated HTTPS retrieval:** set `daemon-cookie-source` to the HTTPS
-  endpoint and `daemon-cookie-auth` to its login. `daemon-cookie-file` is the
-  miner's local destination; existing fingerprint verification and automatic
-  refresh remain enabled. This requires the daemon's separate HTTPS feature.
-
-A retrieval login receives the full RPC cookie, not a mining-only credential.
-The hardened local-cookie daemon branch does not expose an HTTPS endpoint.
-The HTTPS implementation is preserved in a separate branch for review.
-
+Direct RPC cookie authentication reads the daemon-owned local file specified by
+`daemon-cookie-file`. The miner rereads it for every request and after rotation.
+It never downloads, generates, copies or replaces node credentials.
 
 Pool `user` is the payout wallet address. It is sent as `mineraddress` to the node,
 which constructs the coinbase. Omit it, use an empty string, or the legacy `x`
@@ -174,47 +154,25 @@ rejected. The miner requires the node's `mineraddress` capability for overrides.
   "daemon": true,
   "user": "YOUR_ZECNERO_TESTNET_ADDRESS",
   "pass": "x",
-  "daemon-cookie-file": "./.cookie",
-  "daemon-cookie-source": "https://NODE_ADDRESS:18734",
-  "daemon-cookie-auth": "miner1:YOUR_PASSWORD",
+  "daemon-cookie-file": "/path/to/node/rpc/testnet/.cookie",
   "daemon-poll-interval": 1000,
   "daemon-job-timeout": 15000
 }
 ```
 
-The daemon config contains one TOML array under `[rpc]`:
+The node creates and rotates its `.cookie` file. Set `daemon-cookie-file` to that
+existing file. The miner reads it for each request, including after HTTP 401 or a
+node restart. Missing or unreadable files cause a retry; the miner never creates,
+copies, downloads or replaces the file. Use the actual configured `rpc.cookie_dir`.
+Relative paths are resolved from the miner's working directory.
 
-```toml
-zecnero-cookie-cred = ["miner1:YOUR_PASSWORD", "miner2:ANOTHER_PASSWORD"]
-```
-
-Configure the daemon's optional `[rpc.cookie_endpoint]` with `listen_addr`,
-`cert_file`, and `key_file`. The node accepts each configured login independently.
-After the first successful authenticated retrieval, the miner saves the certificate
-fingerprint from the TLS connection to `<daemon-cookie-file>.fingerprint` with
-owner-only permissions. Later connections verify this saved pin before sending
-credentials, and reject a changed certificate. The saved record includes the host
-and port; use a separate cookie file for each endpoint.
-
-The initial connection uses trust on first use and must reach the intended daemon
-on a trusted network. The login authenticates the miner, not the server. Set the
-optional `daemon-cookie-fingerprint` to a verified 64-digit SHA-256 pin if you want
-to authenticate the first connection in advance or approve a certificate rotation.
-Failed logins never create a saved pin. A malformed pin file is rejected.
-The miner retrieves and atomically creates its cookie file, and retrieves a fresh
-one on reconnection, deletion, or HTTP 401. No shared filesystem is required.
-The relative cookie path uses the process working directory; running from `build/`
-creates `build/.cookie`. Failed retrieval never replaces a good cookie.
-
-`user` remains the wallet; `daemon-cookie-auth` is the retrieval login. For HTTP
-Basic RPC without cookies, use `daemon-rpc-user` and `pass`. Authentication fields
-survive CC configuration serialization. Config files containing passwords should
-be owner-readable only. Keep the separate HTTP RPC traffic on a trusted LAN/VPN
-or use a TLS proxy (`tls` and `tls-fingerprint` configure RPC TLS).
-
-Same-machine users may point `daemon-cookie-file` directly at the daemon's cookie,
-or use a local path for `daemon-cookie-source`. The remote endpoint is not needed
-for these modes. The local config has matching credentials for the daemon in `/home/jonathan/data/zecnerod/target/release/zecnero.conf`.
+For mining from another machine, prefer a Stratum pool/bridge. Direct RPC requires
+operator-managed access to the cookie (for example, a protected read-only mount)
+or credentials provided by an authenticated RPC proxy. The cookie grants full
+node RPC access. The old HTTPS cookie-download options have been removed.
+`daemon-rpc-user` and `pass` are supported only if the RPC server/proxy supports
+that login; `user` remains the payout wallet. Use `tls`/`tls-fingerprint` for RPC
+transport where appropriate.
 
 ## Build
 
@@ -234,7 +192,6 @@ run against the normal `build/xmrigMiner` binary:
 ```sh
 python3 tests/zecnero-rpc.py build/xmrigMiner
 python3 tests/zecnero-sync.py build/xmrigMiner
-python3 tests/zecnero-sync.py build/xmrigMiner --https
 python3 tests/zecnero-failover.py build/xmrigMiner
 ```
 
@@ -245,7 +202,6 @@ it does not add another executable.
 
 ```sh
 python3 tests/zecnero-regtest.py --node /path/to/zecnerod --miner build/xmrigMiner --mode light
-python3 tests/zecnero-remote.py --node /path/to/zecnerod --miner build/xmrigMiner
 ```
 
 These use isolated Regtest chains. The remote test covers TLS authentication,

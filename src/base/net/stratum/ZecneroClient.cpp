@@ -11,7 +11,6 @@
 #include "net/JobResult.h"
 #include <algorithm>
 #include <fstream>
-#include <sys/stat.h>
 #include <uv.h>
 
 namespace {
@@ -56,94 +55,6 @@ bool readCookie(const char *path, std::string &credentials, std::string &error)
     return true;
 }
 
-bool writeCookie(const char *path, const std::string &credentials, std::string &error, bool replace = true)
-{
-    // mkstemp creates an exclusive, owner-only (0600 on Unix) temporary file.
-    // Rename only after a complete write so readers never see a partial cookie.
-    uv_fs_t req;
-    const std::string pattern = std::string(path) + ".tmp-XXXXXX";
-    const int fd = uv_fs_mkstemp(nullptr, &req, pattern.c_str(), nullptr);
-    const std::string temporary = fd >= 0 ? req.path : "";
-    uv_fs_req_cleanup(&req);
-    int status = fd < 0 ? fd : 0;
-    if (fd >= 0) {
-        size_t offset = 0;
-        while (offset < credentials.size()) {
-            auto buffer = uv_buf_init(const_cast<char *>(credentials.data() + offset),
-                                      static_cast<unsigned int>(credentials.size() - offset));
-            const int written = uv_fs_write(nullptr, &req, fd, &buffer, 1, static_cast<int64_t>(offset), nullptr);
-            uv_fs_req_cleanup(&req);
-            if (written <= 0) { status = written < 0 ? written : UV_EIO; break; }
-            offset += static_cast<size_t>(written);
-        }
-        const int closed = uv_fs_close(nullptr, &req, fd, nullptr);
-        uv_fs_req_cleanup(&req);
-        if (status == 0 && closed < 0) { status = closed; }
-        if (status == 0) {
-            status = replace ? uv_fs_rename(nullptr, &req, temporary.c_str(), path, nullptr)
-                             : uv_fs_link(nullptr, &req, temporary.c_str(), path, nullptr);
-            uv_fs_req_cleanup(&req);
-        }
-        if (status < 0 || !replace) {
-            uv_fs_unlink(nullptr, &req, temporary.c_str(), nullptr);
-            uv_fs_req_cleanup(&req);
-        }
-    }
-    if (status < 0) {
-        error = std::string("cannot create/refresh file '") + path + "': " + uv_strerror(status);
-        return false;
-    }
-    return true;
-}
-
-bool validFingerprint(const std::string &value)
-{
-    return value.size() == 64 && std::all_of(value.begin(), value.end(), [](char c) {
-        return (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F');
-    });
-}
-
-std::string normalizedFingerprint(std::string value)
-{
-    for (char &c : value) { if (c >= 'A' && c <= 'F') { c += 'a' - 'A'; } }
-    return value;
-}
-
-bool readFingerprint(const std::string &path, const std::string &origin, std::string &pin, std::string &error)
-{
-    pin.clear();
-    uv_fs_t req;
-    const int status = uv_fs_lstat(nullptr, &req, path.c_str(), nullptr);
-    const auto mode = status >= 0 ? req.statbuf.st_mode : 0;
-    uv_fs_req_cleanup(&req);
-    if (status == UV_ENOENT) { return true; }
-    if (status < 0 || (mode & S_IFMT) != S_IFREG) {
-        error = "cannot read saved HTTPS fingerprint (expected a regular file): " + path;
-        return false;
-    }
-    std::ifstream file(path, std::ios::binary);
-    char buffer[4097];
-    file.read(buffer, sizeof(buffer));
-    if (!file.is_open() || file.bad() || file.gcount() == sizeof(buffer)) {
-        error = "cannot read saved HTTPS fingerprint: " + path;
-        return false;
-    }
-    std::string record(buffer, static_cast<size_t>(file.gcount()));
-    while (!record.empty() && (record.back() == '\n' || record.back() == '\r')) { record.pop_back(); }
-    const auto newline = record.find('\n');
-    if (newline == std::string::npos || record.substr(0, newline) != origin) {
-        error = "saved HTTPS fingerprint belongs to a different cookie endpoint: " + path;
-        return false;
-    }
-    pin = record.substr(newline + 1);
-    if (!validFingerprint(pin)) {
-        error = "invalid saved HTTPS fingerprint: " + path;
-        return false;
-    }
-    pin = normalizedFingerprint(pin);
-    return true;
-}
-
 const rapidjson::Value &field(const rapidjson::Value &value, const char *name)
 {
     static const rapidjson::Value missing;
@@ -165,7 +76,6 @@ void xmrig::ZecneroClient::clearRequests(const char *reason)
 {
     m_httpListener.reset(); // outstanding HTTP requests keep only weak references
     m_templateRequest = 0;
-    m_cookieRequest = 0;
     m_work.clear();
     m_job.reset();
     while (!m_results.empty()) { handleSubmitResponse(m_results.begin()->first, reason); }
@@ -187,8 +97,7 @@ void xmrig::ZecneroClient::connect()
     clearRequests("RPC reconnected; block acceptance unknown");
     m_state = ConnectingState;
     m_httpListener = std::make_shared<HttpListener>(this);
-    if (remoteCookie()) { retrieveCookie(); }
-    else { getBlockTemplate(); }
+    getBlockTemplate();
 }
 
 void xmrig::ZecneroClient::fail(const char *message)
@@ -201,104 +110,14 @@ void xmrig::ZecneroClient::fail(const char *message)
     m_listener->onClose(this, static_cast<int>(++m_failures));
 }
 
-bool xmrig::ZecneroClient::remoteCookie() const
-{
-    const auto &source = m_pool.daemonCookieSource();
-    return !source.isEmpty() && std::string(source.data()).find("://") != std::string::npos;
-}
-
-void xmrig::ZecneroClient::retrieveCookie()
-{
-#ifndef XMRIG_FEATURE_TLS
-    fail("HTTPS cookie retrieval requires a TLS-enabled build");
-#else
-    const std::string source = m_pool.daemonCookieSource().data();
-    const auto &configuredPin = m_pool.daemonCookieFingerprint();
-    if (source.compare(0, 8, "https://") != 0 || m_pool.daemonCookieFile().isEmpty() ||
-        m_pool.daemonCookieAuth().isEmpty()) {
-        fail("remote cookies require an HTTPS source, destination file and login"); return;
-    }
-    if (source.find_first_of("@#\r\n\t ") != std::string::npos) { fail("invalid HTTPS cookie URL"); return; }
-    const auto slash = source.find('/', 8);
-    const std::string authority = source.substr(8, slash == std::string::npos ? slash : slash - 8);
-    std::string host, portText;
-    if (!authority.empty() && authority[0] == '[') {
-        const auto end = authority.find(']');
-        if (end == std::string::npos || (end + 1 < authority.size() && authority[end + 1] != ':')) { fail("invalid HTTPS cookie host"); return; }
-        host = authority.substr(1, end - 1);
-        if (end + 1 < authority.size()) { portText = authority.substr(end + 2); }
-    } else {
-        const auto colon = authority.find(':');
-        host = authority.substr(0, colon);
-        if (colon != std::string::npos) { portText = authority.substr(colon + 1); }
-    }
-    unsigned port = 443;
-    if (!portText.empty()) {
-        if (portText.size() > 5 || !std::all_of(portText.begin(), portText.end(), [](char c) { return c >= '0' && c <= '9'; })) { fail("invalid HTTPS cookie port"); return; }
-        port = static_cast<unsigned>(std::stoul(portText));
-    }
-    if (host.empty() || port == 0 || port > 65535 || host.find('?') != std::string::npos) { fail("invalid HTTPS cookie host or port"); return; }
-    std::string login = m_pool.daemonCookieAuth().data();
-    if (login.find(':') == std::string::npos) {
-        const auto comma = login.find(',');
-        if (comma != std::string::npos) { login[comma] = ':'; }
-    }
-    const auto separator = login.find(':');
-    if (login.size() > 4096 || separator == std::string::npos || separator == 0 || separator + 1 == login.size() ||
-        std::any_of(login.begin(), login.end(), [](unsigned char c) { return c < 32 || c == 127; })) {
-        fail("daemon-cookie-auth must contain username:password without control characters"); return;
-    }
-    std::string normalizedHost = host;
-    for (char &c : normalizedHost) { if (c >= 'A' && c <= 'Z') { c += 'a' - 'A'; } }
-    const std::string origin = "https://" + (host.find(':') == std::string::npos ? normalizedHost : "[" + normalizedHost + "]") + ":" + std::to_string(port);
-    std::string fingerprint, error;
-    if (!configuredPin.isEmpty()) {
-        fingerprint = configuredPin.data();
-        if (!validFingerprint(fingerprint)) { fail("daemon-cookie-fingerprint must be a 64-digit SHA-256 fingerprint"); return; }
-        fingerprint = normalizedFingerprint(fingerprint);
-    }
-    else {
-        if (!readFingerprint(std::string(m_pool.daemonCookieFile().data()) + ".fingerprint", origin, fingerprint, error)) { fail(error.c_str()); return; }
-        // Retain established trust even if the companion file is deleted while running.
-        if (fingerprint.empty() && origin == m_cookieOrigin) { fingerprint = m_cookieFingerprint; }
-    }
-    m_cookieOrigin = origin;
-    m_cookieFingerprint = fingerprint;
-    const std::string path = slash == std::string::npos ? "/" : source.substr(slash);
-    FetchRequest request(HTTP_GET, host.c_str(), static_cast<uint16_t>(port), path.c_str(), true, isQuiet());
-    if (!fingerprint.empty()) { request.fingerprint = fingerprint.c_str(); }
-    request.timeout = 10000;
-    request.headers.emplace("Authorization", "Basic " + base64(login));
-    m_cookieRequest = m_sequence++;
-    fetch(tag(), std::move(request), m_httpListener, 0, static_cast<uint64_t>(m_cookieRequest));
-#endif
-}
-
 bool xmrig::ZecneroClient::authorization(std::string &value, std::string &error) const
 {
     std::string credentials;
     const auto &destination = m_pool.daemonCookieFile();
-    const auto &source = m_pool.daemonCookieSource();
-    if (!source.isEmpty() && !remoteCookie()) {
-        if (destination.isEmpty()) {
-            error = "daemon-cookie-source requires daemon-cookie-file";
-            return false;
-        }
-        // Only the node can generate a password it will accept. Synchronize a
-        // local copy from the configured authoritative file, including rotation.
-        if (!readCookie(source.data(), credentials, error)) { return false; }
-        std::string existing, ignored;
-        if (!readCookie(destination.data(), existing, ignored) || existing != credentials) {
-            if (!writeCookie(destination.data(), credentials, error)) { return false; }
-            LOG_NOTICE("%s created/refreshed RPC cookie file %s", tag(), destination.data());
-        }
-    }
-    else if (!destination.isEmpty()) {
-        // Re-read for every request: the daemon rotates its cookie on restart.
-        if (!readCookie(destination.data(), credentials, error)) {
-            error += "; set daemon-cookie-source to the node's cookie to create a local copy";
-            return false;
-        }
+    if (!destination.isEmpty()) {
+        // Read the node-owned file for every RPC, including after rotation/reconnect.
+        // The miner never generates, copies, downloads or replaces node credentials.
+        if (!readCookie(destination.data(), credentials, error)) { return false; }
     }
     else {
         credentials = std::string(m_pool.daemonRpcUser().isEmpty() ? "" : m_pool.daemonRpcUser().data()) + ':' + m_password.data();
@@ -368,45 +187,6 @@ void xmrig::ZecneroClient::onHttpData(const HttpData &data)
 {
     if (m_state == UnconnectedState) { return; }
     const int64_t id = static_cast<int64_t>(data.rpcId);
-    if (id == m_cookieRequest && m_cookieRequest != 0) {
-        m_cookieRequest = 0;
-        if (data.status != 200) { fail("HTTPS cookie retrieval failed; check endpoint, login and TLS fingerprint"); return; }
-        std::string credentials = data.body;
-        while (!credentials.empty() && (credentials.back() == '\r' || credentials.back() == '\n')) { credentials.pop_back(); }
-        const auto colon = credentials.find(':');
-        if (credentials.size() > 4096 || colon == std::string::npos || colon == 0 || colon + 1 == credentials.size() ||
-            credentials.find_first_of("\r\n") != std::string::npos || credentials.find('\0') != std::string::npos) {
-            fail("HTTPS endpoint returned an invalid cookie"); return;
-        }
-        // Get the certificate digest from the TLS connection, never from an HTTP header.
-        const char *peerPin = data.tlsFingerprint();
-        if (!peerPin || !validFingerprint(peerPin)) { fail("HTTPS response has no valid certificate fingerprint"); return; }
-        const std::string fingerprint = normalizedFingerprint(peerPin);
-        if (!m_cookieFingerprint.empty() && m_cookieFingerprint != fingerprint) { fail("HTTPS cookie certificate changed"); return; }
-        const std::string pinFile = std::string(m_pool.daemonCookieFile().data()) + ".fingerprint";
-        std::string storedPin, error;
-        const bool explicitPin = !m_pool.daemonCookieFingerprint().isEmpty();
-        const bool readable = readFingerprint(pinFile, m_cookieOrigin, storedPin, error);
-        if (!explicitPin && (!readable || (!storedPin.empty() && storedPin != fingerprint))) {
-            fail(readable ? "saved HTTPS cookie certificate changed during retrieval" : error.c_str()); return;
-        }
-        if (!readable || storedPin != fingerprint) {
-            const std::string record = m_cookieOrigin + "\n" + fingerprint + "\n";
-            // First enrollment is exclusive: two miners cannot replace each other's trust.
-            if (!writeCookie(pinFile.c_str(), record, error, explicitPin)) {
-                if (explicitPin || !readFingerprint(pinFile, m_cookieOrigin, storedPin, error) || storedPin != fingerprint) { fail(error.c_str()); return; }
-            }
-            LOG_NOTICE("%s saved HTTPS certificate fingerprint to %s", tag(), pinFile.c_str());
-        }
-        m_cookieFingerprint = fingerprint;
-        std::string existing;
-        if (!readCookie(m_pool.daemonCookieFile().data(), existing, error) || existing != credentials) {
-            if (!writeCookie(m_pool.daemonCookieFile().data(), credentials, error)) { fail(error.c_str()); return; }
-            LOG_NOTICE("%s retrieved RPC cookie over authenticated HTTPS", tag());
-        }
-        getBlockTemplate();
-        return;
-    }
     const bool isTemplate = id == m_templateRequest;
     if (!isTemplate && m_results.count(id) == 0) { return; } // superseded request
     if (isTemplate) { m_templateRequest = 0; }

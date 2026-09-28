@@ -1,3 +1,6 @@
+# Unreleased
+* Zecnero direct RPC reads the node-owned local cookie file only. Removed cookie download options; automatic rereading after node cookie rotation is retained.
+
 # 3.4.9
 * Added satoshicash RandomX variant (rx/scash) +25% faster compared to cpuminer-scash
 # 3.4.8

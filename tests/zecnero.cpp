@@ -89,20 +89,16 @@ static void protocol()
     { auto x=sample(); x["sizelimit"].SetUint(142); check(!b.parse(x,error), "oversized block"); }
     { auto x=sample(); x["transactions"].Clear(); for(unsigned i=0;i<252;i++) { rapidjson::Value tx(rapidjson::kObjectType); tx.AddMember("data","ff",x.GetAllocator()); x["transactions"].PushBack(tx,x.GetAllocator()); }
       check(b.parse(x,error), "253 transactions"); const auto raw=b.block(0); check(raw[141]==253 && raw[142]==253 && raw[143]==0, "CompactSize 253"); }
-    { rapidjson::Document p; p.Parse(R"({"url":"127.0.0.1:18732","algo":"rx/zecnero","daemon":true,"user":"u","pass":"p","daemon-cookie-file":"/tmp/cookie","daemon-cookie-source":"https://localhost:18734/mining/cookie","daemon-cookie-auth":"miner1:test-only","daemon-cookie-fingerprint":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","daemon-rpc-user":"rpc"})");
+    { rapidjson::Document p; p.Parse(R"({"url":"127.0.0.1:18732","algo":"rx/zecnero","daemon":true,"user":"u","pass":"p","daemon-cookie-file":"/tmp/cookie","daemon-rpc-user":"rpc"})");
       Pool pool(p); rapidjson::Document out; auto encoded=pool.toJSON(out); Pool decoded(encoded);
-      check(pool==decoded && decoded.daemonCookieFile()=="/tmp/cookie" && decoded.daemonCookieSource()=="https://localhost:18734/mining/cookie" && decoded.daemonCookieAuth()=="miner1:test-only" && decoded.daemonCookieFingerprint()=="aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" && decoded.daemonRpcUser()=="rpc" && decoded.password()=="p", "RPC auth config roundtrip"); }
+      check(pool==decoded && decoded.daemonCookieFile()=="/tmp/cookie" && decoded.daemonRpcUser()=="rpc" && decoded.password()=="p", "RPC auth config roundtrip"); }
     { BaseTransform base; IConfigTransform &transform = base; rapidjson::Document config(rapidjson::kObjectType);
       transform.transform(config, IConfig::UrlKey, "127.0.0.1:18732");
       transform.transform(config, IConfig::DaemonCookieFileKey, "./.cookie");
-      transform.transform(config, IConfig::DaemonCookieSourceKey, "https://localhost:18734");
-      transform.transform(config, IConfig::DaemonCookieAuthKey, "miner:test-only");
-      transform.transform(config, IConfig::DaemonCookieFingerprintKey, std::string(64, 'a').c_str());
       transform.transform(config, IConfig::DaemonRpcUserKey, "rpc-user");
       transform.transform(config, IConfig::UserKey, "payout-wallet");
       Pool pool(config["pools"][0]);
-      check(pool.daemonCookieFile()=="./.cookie" && pool.daemonCookieSource()=="https://localhost:18734" &&
-            pool.daemonCookieAuth()=="miner:test-only" && pool.daemonCookieFingerprint()==std::string(64,'a').c_str() &&
+      check(pool.daemonCookieFile()=="./.cookie" &&
             pool.daemonRpcUser()=="rpc-user" && pool.user()=="payout-wallet", "Zecnero CLI fields and wallet stay separate"); }
     std::cout << "Protocol, target boundaries, seed epochs and config tests passed\n";
 }

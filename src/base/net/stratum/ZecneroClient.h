@@ -38,8 +38,6 @@ protected:
 
 private:
     struct Work { Job job; ZecneroBlockTemplate block; };
-    bool remoteCookie() const;
-    void retrieveCookie();
     void getBlockTemplate();
     bool sendRpc(int64_t id, const char *method, rapidjson::Value &params, rapidjson::Document &doc);
     bool authorization(std::string &value, std::string &error) const;
@@ -50,13 +48,10 @@ private:
     std::shared_ptr<IHttpListener> m_httpListener;
     std::deque<Work> m_work;
     int64_t m_templateRequest = 0;
-    int64_t m_cookieRequest = 0;
     uint64_t m_jobTime = 0;
     bool m_waitingForSync = false;
     String m_tlsFingerprint;
     String m_tlsVersion;
-    std::string m_cookieOrigin;
-    std::string m_cookieFingerprint;
 };
 
 } // namespace xmrig

@@ -176,15 +176,6 @@ void xmrig::BaseTransform::transform(rapidjson::Document &doc, int key, const ch
     case IConfig::DaemonCookieFileKey: /* --daemon-cookie-file */
         return add(doc, Pools::kPools, Pool::kDaemonCookieFile, arg);
 
-    case IConfig::DaemonCookieSourceKey: /* --daemon-cookie-source */
-        return add(doc, Pools::kPools, Pool::kDaemonCookieSource, arg);
-
-    case IConfig::DaemonCookieAuthKey: /* --daemon-cookie-auth */
-        return add(doc, Pools::kPools, Pool::kDaemonCookieAuth, arg);
-
-    case IConfig::DaemonCookieFingerprintKey: /* --daemon-cookie-fingerprint */
-        return add(doc, Pools::kPools, Pool::kDaemonCookieFingerprint, arg);
-
     case IConfig::DaemonRpcUserKey: /* --daemon-rpc-user */
         return add(doc, Pools::kPools, Pool::kDaemonRpcUser, arg);
 

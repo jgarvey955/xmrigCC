@@ -108,15 +108,12 @@
             "user": "",
             "pass": "x",
             "daemon": true,
-            "daemon-cookie-file": "./.cookie",
-            "daemon-cookie-source": "https://NODE_ADDRESS:18734",
+            "daemon-cookie-file": "/path/to/node/rpc/testnet/.cookie",
             "daemon-poll-interval": 1000,
             "daemon-job-timeout": 15000,
             "enabled": true,
             "tls": false,
             "nicehash": false,
-            "daemon-cookie-auth": "miner1:CHANGE_ME",
-            "daemon-cookie-fingerprint": null,
             "daemon-rpc-user": null,
             "tls-fingerprint": null
         }

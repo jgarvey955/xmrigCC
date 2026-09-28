@@ -3,11 +3,9 @@
 import base64
 import copy
 import http.server
-import hashlib
 import json
 import pathlib
 import signal
-import ssl
 import subprocess
 import sys
 import tempfile
@@ -21,11 +19,10 @@ def main():
     fixture['capabilities'] = ['mineraddress']
     source = root / 'node.cookie'
     source.write_text('__cookie__:sync-test\n')
-    cookie = root / 'miner.cookie'
+    cookie = source
     log = root / 'events.log'
-    use_https = '--https' in sys.argv[2:]
     state = {'ready': False, 'polls': 0, 'submits': 0, 'errors': [],
-             'credential': '__cookie__:sync-test', 'cookie_gets': 0}
+             'credential': '__cookie__:sync-test'}
     lock = threading.Lock()
 
     class Handler(http.server.BaseHTTPRequestHandler):
@@ -68,37 +65,6 @@ def main():
 
     server = http.server.ThreadingHTTPServer(('127.0.0.1', 0), Handler)
     threading.Thread(target=server.serve_forever, daemon=True).start()
-    cookie_server = None
-    cookie_source = str(source)
-    fingerprint = 'a' * 64
-    if use_https:
-        cert, key = root / 'cert.pem', root / 'key.pem'
-        subprocess.run(['openssl', 'req', '-x509', '-newkey', 'rsa:2048', '-nodes',
-                        '-keyout', str(key), '-out', str(cert), '-days', '1',
-                        '-subj', '/CN=localhost'], check=True, stdout=subprocess.DEVNULL,
-                       stderr=subprocess.DEVNULL)
-
-        class CookieHandler(http.server.BaseHTTPRequestHandler):
-            def log_message(self, *args):
-                pass
-
-            def do_GET(self):
-                assert self.path == '/'
-                assert self.headers.get('Authorization') == 'Basic ' + base64.b64encode(b'miner:test-only').decode()
-                state['cookie_gets'] += 1
-                body = state['credential'].encode()
-                self.send_response(200)
-                self.send_header('Content-Length', str(len(body)))
-                self.end_headers()
-                self.wfile.write(body)
-
-        cookie_server = http.server.ThreadingHTTPServer(('127.0.0.1', 0), CookieHandler)
-        context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
-        context.load_cert_chain(cert, key)
-        cookie_server.socket = context.wrap_socket(cookie_server.socket, server_side=True)
-        threading.Thread(target=cookie_server.serve_forever, daemon=True).start()
-        cookie_source = f'https://127.0.0.1:{cookie_server.server_port}'
-        fingerprint = hashlib.sha256(ssl.PEM_cert_to_DER_cert(cert.read_text())).hexdigest()
     config = {
         'autosave': False, 'background': False, 'colors': False, 'watch': False,
         'donate-level': 0, 'dmi': False, 'log-file': str(log),
@@ -110,9 +76,8 @@ def main():
     config_path.write_text(json.dumps(config))
     command = [str(pathlib.Path(sys.argv[1]).resolve()), '--daemonized', '-c', str(config_path),
                '--url', f'127.0.0.1:{server.server_port}', '--daemon', '--algo', 'rx/zecnero',
-               '--user', 'test-payout-wallet', '--daemon-cookie-file', str(cookie),
-               '--daemon-cookie-source', cookie_source, '--daemon-cookie-auth', 'miner:test-only',
-               '--daemon-cookie-fingerprint', fingerprint, '--daemon-rpc-user', 'rpc-user']
+               '--user', 'test-payout-wallet', '--daemon-cookie-file', str(cookie)]
+    cookie.unlink()  # The miner must wait for the node to create its credential file.
     with (root / 'stdout.log').open('wb') as output:
         proc = subprocess.Popen(command, stdout=output, stderr=subprocess.STDOUT)
 
@@ -131,18 +96,22 @@ def main():
 
     try:
         waiting = 'waiting for Zecnero daemon to finish syncing; mining paused'
+        wait_for(lambda: 'cannot read cookie file' in logs())
+        assert not cookie.exists(), 'miner created the node credential file'
+        cookie.write_text('malformed-cookie\n')
+        wait_for(lambda: 'invalid username:password cookie file' in logs())
+        assert cookie.read_text() == 'malformed-cookie\n', 'miner replaced invalid node cookie'
+        assert state['polls'] == 0, 'miner sent RPC without valid file credentials'
+        cookie.write_text(state['credential'] + '\n')
         wait_for(lambda: state['polls'] >= 3)
         assert waiting in logs()
         assert 'init dataset' not in logs() and 'new job' not in logs()
         assert state['submits'] == 0
-        if use_https:
-            before = state['polls']
-            state['credential'] = '__cookie__:rotated-during-sync'
-            source.write_text(state['credential'] + '\n')
-            wait_for(lambda: state['cookie_gets'] >= 2 and logs().count(waiting) >= 2)
-            wait_for(lambda: state['polls'] >= before + 3)
-            assert state['submits'] == 0 and 'init dataset' not in logs()
-            assert cookie.read_text().strip() == state['credential']
+        before = state['polls']
+        state['credential'] = '__cookie__:rotated-during-sync'
+        source.write_text(state['credential'] + '\n')
+        wait_for(lambda: state['polls'] >= before + 3)
+        assert state['submits'] == 0 and 'init dataset' not in logs()
         wait_messages = logs().count(waiting)
         state['ready'] = True
         wait_for(lambda: state['submits'] >= 1)
@@ -156,9 +125,8 @@ def main():
         assert 'paused' in logs()
         state['ready'] = True
         wait_for(lambda: state['submits'] > submitted)
-        assert cookie.read_text().strip() == source.read_text().strip()
-        print('PASS: CLI cookie options, no work before sync, pause on catch-up, automatic resume' +
-              (' and HTTPS cookie rotation while waiting' if use_https else ''))
+        assert cookie.read_text().strip() == state['credential']
+        print('PASS: missing cookie retry, local cookie rotation, sync pause and resume')
     finally:
         if proc.poll() is None:
             proc.send_signal(signal.SIGINT)
@@ -169,9 +137,6 @@ def main():
                 proc.wait()
         server.shutdown()
         server.server_close()
-        if cookie_server:
-            cookie_server.shutdown()
-            cookie_server.server_close()
         print(f'Sync test artifacts: {root}')
 
 

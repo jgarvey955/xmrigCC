@@ -286,7 +286,7 @@ This build fixes donation at 5%. Config and command-line values do not override 
 
 This XMRigCC build also supports `rx/zecnero` and `rx/zecnero2` (alias
 `rx2/zecnero`), direct node RPC, miner-config payout addresses, and authenticated
-HTTPS cookie retrieval. The miner follows the daemon's PoW version automatically:
+local cookie-file authentication. The miner follows the daemon's PoW version automatically:
 opted-in Regtest switches at block 2, and Testnet switches at block 1,000,000.
 
 See [Zecnero setup and configuration](doc/ZECNERO.md) and the
