@@ -146,6 +146,22 @@ inside `cpu`.
 
 ## Wallet and authentication for direct RPC
 
+Choose one authentication mode per direct-RPC pool entry:
+
+- **Local file only:** set `daemon-cookie-file` to the daemon-owned `.cookie`.
+  Leave `daemon-cookie-source`, `daemon-cookie-auth`, and
+  `daemon-cookie-fingerprint` unset or `null`. The miner rereads the file for
+  every RPC, including after cookie rotation. It does not create or download it.
+- **Authenticated HTTPS retrieval:** set `daemon-cookie-source` to the HTTPS
+  endpoint and `daemon-cookie-auth` to its login. `daemon-cookie-file` is the
+  miner's local destination; existing fingerprint verification and automatic
+  refresh remain enabled. This requires the daemon's separate HTTPS feature.
+
+A retrieval login receives the full RPC cookie, not a mining-only credential.
+The hardened local-cookie daemon branch does not expose an HTTPS endpoint.
+The HTTPS implementation is preserved in a separate branch for review.
+
+
 Pool `user` is the payout wallet address. It is sent as `mineraddress` to the node,
 which constructs the coinbase. Omit it, use an empty string, or the legacy `x`
 default to use the daemon's configured mining address. Invalid addresses are
@@ -236,8 +252,9 @@ These use isolated Regtest chains. The remote test covers TLS authentication,
 multiple logins, failed pins/passwords, cookie creation/deletion/rotation, daemon
 restarts, concurrent wallet requests, daemon-address fallback, wallet-only mining,
 and fast-mode mining across v1 at block 1 to v2 from block 2 onward on opted-in
-Regtest. Node consensus tests also validate the public Testnet activation
-boundary at height 1,000,000.
+Regtest. The split node review branches assign no v2 activation height. The earlier
+Regtest transition test requires the preserved experimental node, not the
+local-cookie hardening branch.
 
 ## Consensus implementation provenance
 

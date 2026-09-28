@@ -72,6 +72,8 @@ static inline const std::string &usage()
     u += "  -o, --url=HOST:PORT           node RPC (Testnet: 127.0.0.1:18732)\n";
     u += "  -u, --user=ADDRESS           payout wallet; omit, empty or x uses daemon wallet\n";
     u += "      --daemon-cookie-file=PATH local RPC cookie (read or create from source)\n";
+    u += "                               file-only mode: omit daemon-cookie-source\n";
+    u += "                               source configured: retrieve/copy and refresh cookie\n";
     u += "      --daemon-cookie-source=SOURCE\n";
     u += "                               HTTPS URL (https://HOST:18734) or local cookie path\n";
     u += "      --daemon-cookie-auth=USER:PASS\n";
