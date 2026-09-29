@@ -80,13 +80,6 @@ static inline const std::string &usage()
     u += "      --submit-to-origin        also submit solution back to self-select URL\n";
 #   endif
 
-#   ifdef XMRIG_ALGO_RANDOMX
-    u += "      --randomx-aes-test        verify shared AES kernels across all RandomX variants and exit\n";
-    u += "      --randomx-aes-bench=ALGO  compare reference/selected AES using full RandomX hashes\n";
-    u += "                               optional --threads=N --seconds=N --aes-impl=NAME\n";
-    u += "                               offline diagnostics: no pools, wallet or MSR changes\n";
-#   endif
-
     u += "  -r, --retries=N               number of times to retry before switch to backup server (default: 5)\n";
     u += "  -R, --retry-pause=N           time to pause between retries (default: 5)\n";
     u += "      --user-agent              set custom user-agent string for pool\n";

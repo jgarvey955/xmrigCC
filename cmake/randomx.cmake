@@ -30,8 +30,6 @@ if (WITH_RANDOMX)
 
     list(APPEND SOURCES_CRYPTO
         src/crypto/randomx/aes_hash.cpp
-        src/crypto/rx/RxHardwareAES.cpp
-        src/crypto/rx/RxAesDiagnostics.cpp
         src/crypto/randomx/allocator.cpp
         src/crypto/randomx/blake2_generator.cpp
         src/crypto/randomx/blake2/blake2b.c
@@ -169,23 +167,6 @@ if (WITH_RANDOMX)
 
         list(APPEND HEADERS_CRYPTO src/crypto/rx/Profiler.h)
         list(APPEND SOURCES_CRYPTO src/crypto/rx/Profiler.cpp)
-    endif()
-    if (WITH_VAES)
-        include(CheckCXXCompilerFlag)
-        if (MSVC)
-            check_cxx_compiler_flag("/arch:AVX512" RANDOMX_VAES512_SUPPORTED)
-        else()
-            check_cxx_compiler_flag("-mavx512f -mvaes" RANDOMX_VAES512_SUPPORTED)
-        endif()
-        if (RANDOMX_VAES512_SUPPORTED)
-            add_definitions(-DXMRIG_RANDOMX_VAES512)
-            list(APPEND SOURCES_CRYPTO src/crypto/randomx/aes_hash_vaes512.cpp)
-            if (MSVC)
-                set_source_files_properties(src/crypto/randomx/aes_hash_vaes512.cpp PROPERTIES COMPILE_FLAGS "/O2 /arch:AVX512")
-            else()
-                set_source_files_properties(src/crypto/randomx/aes_hash_vaes512.cpp PROPERTIES COMPILE_FLAGS "-O3 -mavx512f -mvaes")
-            endif()
-        endif()
     endif()
 else()
     remove_definitions(/DXMRIG_ALGO_RANDOMX)

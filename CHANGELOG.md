@@ -1,6 +1,4 @@
 # Unreleased
-* Port upstream RandomX VAES-512 hash/refill optimization for Zen 5 across the RandomX family, with CPU/OS checks and reference verification. Other CPUs retain the existing AES path.
-* Add offline RandomX AES hash-equivalence tests and full-hashing A/B measurements to the existing miner. See [RandomX performance](doc/RANDOMX-PERFORMANCE.md).
 * Zecnero direct RPC reads the node-owned local cookie file only. Removed cookie download options; automatic rereading after node cookie rotation is retained.
 
 # 3.4.9

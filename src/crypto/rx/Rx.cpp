@@ -25,7 +25,6 @@
 #include "crypto/rx/RxQueue.h"
 #include "crypto/randomx/randomx.h"
 #include "crypto/randomx/aes_hash.hpp"
-#include "crypto/rx/RxHardwareAES.h"
 
 
 #ifdef XMRIG_FEATURE_MSR
@@ -160,8 +159,6 @@ bool xmrig::Rx::init(const T &seed, const RxConfig &config, const CpuConfig &cpu
 
         osInitialized = true;
     }
-
-    if (cpu.isHwAES()) { prepareHardwareAES(seed.algorithm().l3()); }
 
     if (isReady(seed)) {
         return true;

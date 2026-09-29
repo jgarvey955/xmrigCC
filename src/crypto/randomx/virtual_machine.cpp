@@ -31,7 +31,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <stdexcept>
 #include "crypto/randomx/virtual_machine.hpp"
 #include "crypto/randomx/aes_hash.hpp"
-#include "crypto/rx/RxHardwareAES.h"
 #include "crypto/randomx/allocator.hpp"
 #include "crypto/randomx/blake2/blake2.h"
 #include "crypto/randomx/common.hpp"
@@ -109,7 +108,6 @@ namespace randomx {
 		}
 
 		this->scratchpad = scratchpad;
-		if (!softAes) { hardwareAES = xmrig::selectedHardwareAES(ScratchpadSize).function; }
 	}
 
 	template<int softAes>
@@ -121,7 +119,7 @@ namespace randomx {
 	template<int softAes>
 	void VmBase<softAes>::hashAndFill(void* out, uint64_t (&fill_state)[8]) {
 		if (!softAes) {
-			hardwareAES(scratchpad, ScratchpadSize, &reg.a, fill_state);
+			hashAndFillAes1Rx4<0, 2>(scratchpad, ScratchpadSize, &reg.a, fill_state);
 		}
 		else {
 			(*GetSoftAESImpl())(scratchpad, ScratchpadSize, &reg.a, fill_state);

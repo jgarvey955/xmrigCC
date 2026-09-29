@@ -40,9 +40,7 @@ public:
         Usage,
         Version,
         Topo,
-        Platforms,
-        RandomXAesTest,
-        RandomXAesBench
+        Platforms
     };
 
     static Id get(const Process &process);
