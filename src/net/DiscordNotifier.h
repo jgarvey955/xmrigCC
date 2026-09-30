@@ -84,9 +84,9 @@ private:
     const char *workerName(IClient *client) const;
     std::string acceptedMessage(IClient *client, const SubmitResult &result) const;
     std::string rejectedMessage(IClient *client, const SubmitResult &result, const char *error) const;
-    std::string summaryMessage(IClient *client, uint64_t count, uint64_t seconds) const;
+    std::string summaryMessage(IClient *client, const SubmitResult &result, uint64_t count, uint64_t seconds) const;
     void accept(IClient *client, const SubmitResult &result);
-    void flushSummary(IClient *client, uint64_t now);
+    void flushSummary(IClient *client, const SubmitResult &result, uint64_t now);
     void reject(IClient *client, const SubmitResult &result, const char *error);
     void send(const std::string &content) const;
 

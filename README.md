@@ -256,6 +256,23 @@ Misc:
 ```
 
 
+### Discord share notifications
+
+Accepted and rejected Discord notifications include `Coin` and `Algorithm`,
+even with `discord.verbose` disabled. The algorithm is saved with the submitted
+share, so a subsequent job change cannot change the notification's algorithm.
+Batch summaries show `Last coin` and `Last algorithm` for the last accepted
+share; the totals can span multiple algorithms or coins.
+
+Set `coin` in each pool entry (for example, `"coin": "SAL"` for Salvium or
+`"coin": "XMR"` for Monero). Daemon mining also uses the coin detected from the
+wallet, and `rx/zecnero` / `rx/zecnero2` identify Zecnero automatically. Other
+unidentified coins display `Unknown (set pool coin)` because algorithms such
+as `rx/0` are shared by multiple coins.
+
+Run the local notification checks with
+`python3 tests/discord-notifications.py --miner build/xmrigMiner`.
+
 ## Common Issues
 ### XMRigMiner
 * XMRigMiner is just the worker, it is not designed to work standalone. Please start **XMRigDaemon** instead.

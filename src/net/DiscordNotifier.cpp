@@ -48,6 +48,21 @@ static void appendLine(std::string &out, const char *key, const char *value)
 }
 
 
+static void appendMiningDetails(std::string &out, const SubmitResult &result, bool last = false)
+{
+    std::string coin = "Unknown (set pool coin)";
+    if (result.coin.isValid()) {
+        coin = std::string(result.coin.name()) + " (" + result.coin.code() + ")";
+    }
+    else if (result.algorithm.isZecnero()) {
+        coin = "Zecnero";
+    }
+
+    appendLine(out, last ? "Last coin" : "Coin", coin.c_str());
+    appendLine(out, last ? "Last algorithm" : "Algorithm", result.algorithm.isValid() ? result.algorithm.name() : "Unknown");
+}
+
+
 static std::string poolNameWithIp(IClient *client)
 {
     const Pool &pool = client->pool();
@@ -244,6 +259,8 @@ std::string xmrig::DiscordNotifier::acceptedMessage(IClient *client, const Submi
         out = std::string(config.mention.data()) + " " + out;
     }
 
+    appendMiningDetails(out, result);
+
     if (config.includeWorker) {
         appendLine(out, "Worker", workerName(client));
     }
@@ -272,6 +289,8 @@ std::string xmrig::DiscordNotifier::rejectedMessage(IClient *client, const Submi
              result.diff, result.elapsed, error ? error : "unknown");
 
     std::string out = line;
+    appendMiningDetails(out, result);
+
     if (m_config->discord().includeWorker) {
         appendLine(out, "Worker", workerName(client));
     }
@@ -280,7 +299,7 @@ std::string xmrig::DiscordNotifier::rejectedMessage(IClient *client, const Submi
 }
 
 
-std::string xmrig::DiscordNotifier::summaryMessage(IClient *client, uint64_t count, uint64_t seconds) const
+std::string xmrig::DiscordNotifier::summaryMessage(IClient *client, const SubmitResult &result, uint64_t count, uint64_t seconds) const
 {
     const DiscordConfig &config = m_config->discord();
     char line[512] = { 0 };
@@ -291,6 +310,8 @@ std::string xmrig::DiscordNotifier::summaryMessage(IClient *client, uint64_t cou
     if (!config.mention.isEmpty()) {
         out = std::string(config.mention.data()) + " " + out;
     }
+
+    appendMiningDetails(out, result, true);
 
     if (config.includeWorker) {
         appendLine(out, "Last worker", workerName(client));
@@ -327,15 +348,15 @@ void xmrig::DiscordNotifier::accept(IClient *client, const SubmitResult &result)
     m_windowDiff += result.diff;
 
     if (now - m_windowStart >= config.acceptedInterval) {
-        flushSummary(client, now);
+        flushSummary(client, result, now);
     }
 }
 
 
-void xmrig::DiscordNotifier::flushSummary(IClient *client, uint64_t now)
+void xmrig::DiscordNotifier::flushSummary(IClient *client, const SubmitResult &result, uint64_t now)
 {
     if (m_windowAccepted > 0) {
-        send(summaryMessage(client, m_windowAccepted, now - m_windowStart));
+        send(summaryMessage(client, result, m_windowAccepted, now - m_windowStart));
     }
 
     m_windowAccepted = 0;

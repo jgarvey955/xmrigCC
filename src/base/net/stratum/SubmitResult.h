@@ -26,6 +26,7 @@
 #define XMRIG_SUBMITRESULT_H
 
 
+#include "base/crypto/Coin.h"
 #include "base/tools/Chrono.h"
 
 
@@ -37,7 +38,10 @@ class SubmitResult
 public:
     SubmitResult() = default;
 
-    inline SubmitResult(int64_t seq, uint64_t diff, uint64_t actualDiff, int64_t reqId, uint32_t backend) :
+    inline SubmitResult(int64_t seq, uint64_t diff, uint64_t actualDiff, int64_t reqId, uint32_t backend,
+                        const Algorithm &algorithm = Algorithm(), const Coin &coin = Coin()) :
+        algorithm(algorithm),
+        coin(coin),
         reqId(reqId),
         seq(seq),
         backend(backend),
@@ -48,6 +52,9 @@ public:
 
     inline void done() { elapsed = Chrono::steadyMSecs() - m_start; }
 
+    // Keep the submitted work's identity even if a new job arrives before the reply.
+    Algorithm algorithm;
+    Coin coin;
     int64_t reqId           = 0;
     int64_t seq             = 0;
     uint32_t backend        = 0;
