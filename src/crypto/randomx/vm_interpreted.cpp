@@ -95,8 +95,8 @@ namespace randomx {
 				rx_vec_i128 freg[RegisterCountFlt];
 
 				for (unsigned i = 0; i < RegisterCountFlt; ++i) {
-					memcpy(&ekey[i], &nreg.e[i], sizeof(ekey[i]));
-					memcpy(&freg[i], &nreg.f[i], sizeof(freg[i]));
+					ekey[i] = rx_cast_vec_f2i(nreg.e[i]);
+					freg[i] = rx_cast_vec_f2i(nreg.f[i]);
 				}
 
 				for (unsigned i = 0; i < RegisterCountFlt; ++i) {
@@ -107,7 +107,7 @@ namespace randomx {
 				}
 
 				for (unsigned i = 0; i < RegisterCountFlt; ++i)
-					memcpy(&nreg.f[i], &freg[i], sizeof(freg[i]));
+					nreg.f[i] = rx_cast_vec_i2f(freg[i]);
 			}
 			else {
 				for (unsigned i = 0; i < RegisterCountFlt; ++i)
