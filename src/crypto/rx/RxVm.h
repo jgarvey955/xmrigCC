@@ -24,6 +24,9 @@
 #include <cstdint>
 
 
+#include "base/crypto/Algorithm.h"
+
+
 class randomx_vm;
 
 
@@ -38,8 +41,29 @@ class RxDataset;
 class RxVm
 {
 public:
+    // Number of attempts create() makes before it gives up and returns nullptr.
+    static constexpr uint32_t kCreateAttempts = 3;
+
+    // Returns nullptr if the VM could not be created after kCreateAttempts attempts.
     static randomx_vm *create(RxDataset *dataset, uint8_t *scratchpad, bool softAes, const Assembly &assembly, uint32_t node);
     static void destroy(randomx_vm *vm);
+
+    // Zecnero NU2: why `algorithm` is not hashed with a VM made by create() on
+    // `dataset`, with what to do about it, or nullptr if it is. Only an
+    // algorithm with RxAlgo::isFastJitOnly() can be unsupported.
+    static const char *unsupported(Algorithm::Id algorithm, const RxDataset *dataset);
+    static const char *unsupported(Algorithm::Id algorithm, bool fullMem, bool jit, bool lightByConfig);
+
+    // Zecnero NU2: false if `algorithm` must not be hashed on `dataset`
+    // (unsupported() is not nullptr). Logs why, with what to do, once each time
+    // the miner switches to that algorithm. Mining rx/zecnero on a dataset that
+    // could not mine rx/zecnero2 logs a warning once, ahead of NU2.
+    static bool isSupported(const Algorithm &algorithm, const RxDataset *dataset, uint64_t height);
+
+#   ifdef XMRIG_RX_TEST_HOOKS
+    // Test hook: the next `count` calls to randomx_create_vm made by create() report failure.
+    static void failNextCreates(uint32_t count);
+#   endif
 };
 
 

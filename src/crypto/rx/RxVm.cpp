@@ -20,9 +20,50 @@
 
 #include "crypto/randomx/randomx.h"
 #include "backend/cpu/Cpu.h"
+#include "crypto/rx/RxAlgo.h"
 #include "crypto/rx/RxCache.h"
 #include "crypto/rx/RxDataset.h"
 #include "crypto/rx/RxVm.h"
+#include "base/io/log/Log.h"
+#include "base/io/log/Tags.h"
+
+
+#include <atomic>
+#include <chrono>
+#include <cinttypes>
+#include <cstdio>
+#include <thread>
+
+
+#ifdef XMRIG_RX_TEST_HOOKS
+#   include <atomic>
+#   include <cstdlib>
+
+
+// Starts from XMRIG_TEST_FAIL_VM_CREATES so that a whole miner built with the hook can be exercised.
+static std::atomic<uint32_t> failCreates{ static_cast<uint32_t>(std::getenv("XMRIG_TEST_FAIL_VM_CREATES") ? std::strtoul(std::getenv("XMRIG_TEST_FAIL_VM_CREATES"), nullptr, 10) : 0) };
+
+
+void xmrig::RxVm::failNextCreates(uint32_t count)
+{
+    failCreates = count;
+}
+#endif
+
+
+static randomx_vm *createVm(randomx_flags flags, randomx_cache *cache, randomx_dataset *dataset, uint8_t *scratchpad, uint32_t node)
+{
+#   ifdef XMRIG_RX_TEST_HOOKS
+    uint32_t pending = failCreates.load();
+    while (pending > 0) {
+        if (failCreates.compare_exchange_weak(pending, pending - 1)) {
+            return nullptr;
+        }
+    }
+#   endif
+
+    return randomx_create_vm(flags, cache, dataset, scratchpad, node);
+}
 
 
 randomx_vm *xmrig::RxVm::create(RxDataset *dataset, uint8_t *scratchpad, bool softAes, const Assembly &assembly, uint32_t node)
@@ -58,7 +99,23 @@ randomx_vm *xmrig::RxVm::create(RxDataset *dataset, uint8_t *scratchpad, bool so
         flags |= RANDOMX_FLAG_AMD;
     }
 
-    return randomx_create_vm(static_cast<randomx_flags>(flags), !dataset->get() ? dataset->cache()->get() : nullptr, dataset->get(), scratchpad, node);
+    randomx_cache *cache = !dataset->get() ? dataset->cache()->get() : nullptr;
+
+    for (uint32_t attempt = 1; attempt <= kCreateAttempts; ++attempt) {
+        randomx_vm *vm = createVm(static_cast<randomx_flags>(flags), cache, dataset->get(), scratchpad, node);
+        if (vm) {
+            return vm;
+        }
+
+        if (attempt < kCreateAttempts) {
+            LOG_WARN("%s " YELLOW_BOLD("failed to create RandomX VM (attempt %u of %u), retrying"), Tags::randomx(), attempt, kCreateAttempts);
+            std::this_thread::sleep_for(std::chrono::milliseconds(100 * attempt));
+        }
+    }
+
+    LOG_ERR("%s " RED_BOLD("failed to create RandomX VM after %u attempts"), Tags::randomx(), kCreateAttempts);
+
+    return nullptr;
 }
 
 
@@ -67,4 +124,71 @@ void xmrig::RxVm::destroy(randomx_vm* vm)
     if (vm) {
         randomx_destroy_vm(vm);
     }
+}
+
+
+const char *xmrig::RxVm::unsupported(Algorithm::Id algorithm, const RxDataset *dataset)
+{
+    // The same full-memory and JIT decisions as create().
+    const bool fullMem = dataset->get() != nullptr;
+    const bool jit     = !dataset->cache() || dataset->cache()->isJIT();
+
+    return unsupported(algorithm, fullMem, jit, dataset->mode() == RxConfig::LightMode);
+}
+
+
+const char *xmrig::RxVm::unsupported(Algorithm::Id algorithm, bool fullMem, bool jit, bool lightByConfig)
+{
+    if (!RxAlgo::isFastJitOnly(algorithm)) {
+        return nullptr;
+    }
+
+    if (!fullMem) {
+        return lightByConfig ? "RandomX runs in light mode because the config asks for it (\"randomx\": {\"mode\": \"light\"} or --randomx-mode=light); set the mode to auto"
+                             : "RandomX runs in light mode because the 2080 MB dataset could not be allocated; free more RAM";
+    }
+
+    if (!jit) {
+        return "the RandomX JIT is not available (the system refused executable memory); allow JIT code for xmrig-zecnero";
+    }
+
+    return nullptr;
+}
+
+
+bool xmrig::RxVm::isSupported(const Algorithm &algorithm, const RxDataset *dataset, uint64_t height)
+{
+    // Reset whenever something else is hashed, so each switch to a refused
+    // algorithm logs once and not once per thread or per job.
+    static std::atomic<bool> refusalLogged{ false };
+    static std::atomic<bool> warned{ false };
+
+    const char *reason = unsupported(algorithm, dataset);
+    if (!reason) {
+        refusalLogged = false;
+
+        if (algorithm == Algorithm::RX_ZECNERO) {
+            const char *ahead = unsupported(Algorithm::RX_ZECNERO2, dataset);
+            if (ahead && !warned.exchange(true)) {
+                LOG_WARN("%s" YELLOW_BOLD("rx/zecnero2 (NU2) will not be mined on this machine: %s, and restart before NU2.")
+                         YELLOW(" This version mines RandomX v2 only in fast mode with the JIT, which needs about 2.3 GB of free RAM and an OS that allows JIT code; without them it stops hashing at the NU2 height."),
+                         Tags::randomx(), ahead);
+            }
+        }
+
+        return true;
+    }
+
+    if (!refusalLogged.exchange(true)) {
+        char where[48] = "NU2";
+        if (height) {
+            snprintf(where, sizeof(where), "NU2, block %" PRIu64, height);
+        }
+
+        LOG_ERR("%s" RED_BOLD("%s (%s) is not mined: %s, and restart, or update xmrig-zecnero.")
+                RED(" This version mines RandomX v2 only in fast mode with the JIT, which needs about 2.3 GB of free RAM and an OS that allows JIT code; no shares are sent until then."),
+                Tags::randomx(), algorithm.name(), where, reason);
+    }
+
+    return false;
 }

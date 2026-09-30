@@ -52,6 +52,7 @@ public:
 
     inline randomx_dataset *get() const     { return m_dataset; }
     inline RxCache *cache() const           { return m_cache; }
+    inline RxConfig::Mode mode() const      { return m_mode; }
     inline void setCache(RxCache *cache)    { m_cache = cache; }
 
     bool init(const Buffer &seed, uint32_t numThreads, int priority);

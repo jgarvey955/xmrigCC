@@ -31,6 +31,14 @@
 struct RandomX_ConfigurationBase;
 
 
+// Zecnero NU2: the switch behind RxAlgo::kZecnero2FastJitOnly. 1 (the default)
+// hashes rx/zecnero2 only in fast mode with the JIT. A verification build of the
+// other modes may set it to 0; a release must not until they are verified.
+#ifndef XMRIG_RX_ZECNERO2_FAST_JIT_ONLY
+#   define XMRIG_RX_ZECNERO2_FAST_JIT_ONLY 1
+#endif
+
+
 namespace xmrig
 {
 
@@ -38,6 +46,15 @@ namespace xmrig
 class RxAlgo
 {
 public:
+    // Zecnero NU2: the miner hashes rx/zecnero2 only in fast mode with the JIT,
+    // the path verified against the rx/zecnero2 vectors, and refuses its jobs
+    // with a full dataset missing or without the JIT (RxVm::isSupported). This
+    // is the one switch for that rule: relax it only after light mode and the
+    // interpreter have been verified against the rx/zecnero2 vectors as well.
+    static constexpr bool kZecnero2FastJitOnly = XMRIG_RX_ZECNERO2_FAST_JIT_ONLY != 0;
+
+    static inline constexpr bool isFastJitOnly(Algorithm::Id algorithm) { return kZecnero2FastJitOnly && algorithm == Algorithm::RX_ZECNERO2; }
+
     static Algorithm::Id apply(Algorithm::Id algorithm);
     static const RandomX_ConfigurationBase *base(Algorithm::Id algorithm);
     static uint32_t programCount(Algorithm::Id algorithm);

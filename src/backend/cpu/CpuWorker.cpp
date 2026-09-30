@@ -141,6 +141,15 @@ void xmrig::CpuWorker<N>::allocateRandomX_VM()
         dataset = Rx::dataset(m_job.currentJob(), node());
     }
 
+    // Zecnero NU2: a job whose algorithm is not hashed in this mode is not hashed
+    // at all (RxAlgo::kZecnero2FastJitOnly). Without a VM, start() idles until the next job.
+    if (!RxVm::isSupported(m_job.currentJob().algorithm(), dataset, m_job.currentJob().height())) {
+        RxVm::destroy(m_vm);
+        m_vm = nullptr;
+
+        return false;
+    }
+
     if (!m_vm) {
         // Try to allocate scratchpad from dataset's 1 GB huge pages, if normal huge pages are not available
         uint8_t* scratchpad = m_memory->isHugePages() ? m_memory->scratchpad() : dataset->tryAllocateScrathpad();
