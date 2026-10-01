@@ -10,9 +10,9 @@ param(
 $ErrorActionPreference = "Stop"
 
 $FallbackVersions = @{
-    libuv   = "1.52.1"
-    hwloc   = "2.13.0"
-    openssl = "4.0.0"
+    libuv   = "1.53.0"
+    hwloc   = "2.15.0"
+    openssl = "4.0.3"
     zlib    = "1.3.2"
 }
 
