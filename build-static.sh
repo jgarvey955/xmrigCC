@@ -7,10 +7,9 @@ usage() {
     printf '%s\n' \
         'Usage: ./build-static.sh' \
         '' \
-        'Build static Linux CPU miner, daemon, and server binaries with OpenSSL/TLS using musl.' \
-        'Requires Docker or Podman; uses all available CPU cores.' \
-        'BUILD_DIR selects the output directory (default: build).' \
-        'The resulting binaries run directly on Linux without a container.'
+        'Build native static Linux CPU miner, daemon, and server binaries with OpenSSL/TLS.' \
+        'Uses the installed C/C++ toolchain and all available CPU cores.' \
+        'BUILD_DIR selects the output directory (default: build).'
 }
 
 if [ "$#" -gt 0 ]; then
@@ -21,47 +20,59 @@ if [ "$#" -gt 0 ]; then
 fi
 
 if [ "$(uname -s)" != Linux ]; then
-    printf '%s\n' 'Run this script on the target Linux architecture.' >&2
+    printf '%s\n' 'Run this script on the target Linux machine.' >&2
     exit 1
 fi
 
-if command -v docker >/dev/null 2>&1; then
-    engine=docker
-elif command -v podman >/dev/null 2>&1; then
-    engine=podman
-else
-    printf '%s\n' 'Install Docker or Podman to build static binaries with musl.' >&2
-    exit 1
-fi
-
-if ! "$engine" info >/dev/null 2>&1; then
-    printf 'Cannot access %s. Start it and ensure your user has permission to run it.\n' "$engine" >&2
-    exit 1
-fi
+JOBS=$(nproc 2>/dev/null || getconf _NPROCESSORS_ONLN)
+export JOBS
 
 BUILD_DIR="${BUILD_DIR:-$SCRIPT_DIR/build}"
 case "$BUILD_DIR" in
     /*) ;;
     *) BUILD_DIR="$SCRIPT_DIR/$BUILD_DIR" ;;
 esac
-mkdir -p "$BUILD_DIR"
-BUILD_DIR=$(CDPATH= cd -- "$BUILD_DIR" && pwd)
 
-builder_image=xmrigcc-static-builder:alpine-3.24.2
-printf '\nStage 1/3: Preparing build tools and dependencies (cached when available)\n'
-"$engine" build --file "$SCRIPT_DIR/scripts/Dockerfile.static" \
-    --tag "$builder_image" "$SCRIPT_DIR/scripts"
+for command in cmake make perl patch readelf; do
+    if ! command -v "$command" >/dev/null 2>&1; then
+        printf 'Required build tool not found: %s\n' "$command" >&2
+        exit 1
+    fi
+done
 
-# A separate CMake directory prevents reuse of any earlier glibc build cache.
-printf '\nStage 2/3: Configuring and compiling the miner, daemon, and server\n'
-set --
-if [ "$engine" = podman ]; then
-    set -- --userns=keep-id
-fi
-"$engine" run --rm "$@" --user "$(id -u):$(id -g)" \
-    --mount "type=bind,source=$SCRIPT_DIR,target=/source,readonly" \
-    --mount "type=bind,source=$BUILD_DIR,target=/output" \
-    --workdir /output "$builder_image" \
-    /bin/sh /source/scripts/build-static-container.sh
+printf '\nStage 1/3: Building dependencies\n'
+"$SCRIPT_DIR/scripts/build_deps.sh"
 
+printf '\nStage 2/3: Building the miner, daemon, and server\n'
+cmake -S "$SCRIPT_DIR" -B "$BUILD_DIR" \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DCMAKE_RUNTIME_OUTPUT_DIRECTORY:PATH="$BUILD_DIR" \
+    -DXMRIG_DEPS:PATH="$SCRIPT_DIR/scripts/deps" \
+    -DBUILD_STATIC=ON \
+    -DWITH_TLS=ON \
+    -DWITH_HWLOC=ON \
+    -DWITH_ZLIB=ON \
+    -DWITH_CC_CLIENT=ON \
+    -DWITH_CC_SERVER=ON \
+    -DWITH_OPENCL=OFF \
+    -DWITH_CUDA=OFF \
+    -DMINER_EXECUTABLE_NAME=xmrigMiner \
+    -DDAEMON_EXECUTABLE_NAME=xmrigDaemon
+cmake --build "$BUILD_DIR" --parallel "$JOBS"
+
+printf '\nStage 3/3: Verifying static binaries\n'
+for name in xmrigMiner xmrigDaemon xmrigServer; do
+    binary="$BUILD_DIR/$name"
+    program_headers=$(readelf -lW "$binary")
+    dynamic_section=$(readelf -dW "$binary")
+    case "$program_headers" in
+        *INTERP*) printf 'Static verification failed: %s has a dynamic interpreter.\n' "$name" >&2; exit 1 ;;
+    esac
+    case "$dynamic_section" in
+        *'(NEEDED)'*) printf 'Static verification failed: %s requires shared libraries.\n' "$name" >&2; exit 1 ;;
+    esac
+    printf 'Verified static binary: %s\n' "$binary"
+done
+
+"$BUILD_DIR/xmrigMiner" --version
 printf '\nStatic binaries are in %s\n' "$BUILD_DIR"

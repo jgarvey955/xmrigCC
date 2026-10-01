@@ -90,28 +90,26 @@ List of all supported algos can be found [here](doc/ALGORITHMS.md)
 
 ## Build on Linux
 
-For fully static binaries, run the root-level helper on the target machine:
+For static binaries, run the root-level helper on the target machine:
 
 ```sh
 ./build-static.sh
 ```
 
-Install Docker or Podman and ensure your user can run it. The script builds the
-bundled dependencies and applications with musl in an Alpine 3.24.2 container,
-using all available CPU cores. This removes glibc's static-link dependency
-warnings while keeping TLS, hwloc, zlib, and CC support enabled. The builder
-caches its dependencies separately from the host's `scripts/deps` directory.
+The script uses the installed Linux C/C++ toolchain and all available CPU cores.
+It builds the bundled dependencies and statically links the applications with
+OpenSSL/TLS enabled. Install the usual C/C++ build tools, CMake, Make, Perl,
+patch, wget, and binutils (`readelf`).
 
-The outputs are `xmrigMiner`, `xmrigDaemon`, and `xmrigServer` in `build/`.
-They run directly on Linux without a container and are checked for dynamic
-interpreters and linked shared libraries. Build on the target architecture
-(for example, ARM64 on a 64-bit Raspberry Pi). `BUILD_DIR` overrides the output
-directory; relative paths are resolved from the repository root. Intermediate
-musl build files live in `build/musl/`, separate from glibc build caches.
+Outputs are `build/xmrigMiner`, `build/xmrigDaemon`, and `build/xmrigServer`.
+`BUILD_DIR` overrides the output directory; relative paths are resolved from the
+repository root. The script checks each executable for a dynamic interpreter
+and linked shared libraries. Build on the target Linux architecture.
 
-OpenSSL's linked-in providers support TLS. Fully static musl executables cannot
-load external shared-library plugins or OpenSSL provider modules. These builds
-use the project's existing CPU-only static configuration, excluding CUDA/OpenCL.
+Static glibc builds retain glibc's runtime limitations for name-service lookups
+and dynamically loaded modules. Their linker notices remain visible; the ELF
+static-link checks do not guarantee independence from runtime-loaded libraries.
+These builds use the project's existing CPU-only static configuration.
 
 Build the current dependencies and link system libraries dynamically:
 
