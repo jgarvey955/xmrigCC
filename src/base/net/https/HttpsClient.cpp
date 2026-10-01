@@ -21,6 +21,7 @@
 #include <cassert>
 #include <openssl/err.h>
 #include <openssl/ssl.h>
+#include "base/net/tls/TlsVerify.h"
 #include <uv.h>
 
 
@@ -82,6 +83,8 @@ void xmrig::HttpsClient::handshake()
     if (!m_ssl) {
         return;
     }
+
+    if (!tls::verifyPeer(m_ssl, host(), !req().fingerprint.isNull())) { return close(UV_EPROTO); }
 
     SSL_set_connect_state(m_ssl);
     SSL_set_bio(m_ssl, m_read, m_write);
@@ -230,7 +233,7 @@ bool xmrig::HttpsClient::verifyFingerprint(X509 *cert)
 
     Cvt::toHex(m_fingerprint, sizeof(m_fingerprint), md, 32);
 
-    return req().fingerprint.isNull() || strncasecmp(m_fingerprint, req().fingerprint.data(), 64) == 0;
+    return req().fingerprint.isNull() || (req().fingerprint.size() == 64 && strncasecmp(m_fingerprint, req().fingerprint.data(), 64) == 0);
 }
 
 

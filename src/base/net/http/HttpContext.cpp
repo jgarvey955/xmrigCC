@@ -194,6 +194,8 @@ void xmrig::HttpContext::closeAll()
 int xmrig::HttpContext::onHeaderField(llhttp_t *parser, const char *at, size_t length)
 {
     auto ctx = static_cast<HttpContext*>(parser->data);
+    if (length > 65536 - ctx->m_headerBytes) { return -1; }
+    ctx->m_headerBytes += length;
 
     if (ctx->m_wasHeaderValue) {
         if (!ctx->m_lastHeaderField.empty()) {
@@ -213,6 +215,8 @@ int xmrig::HttpContext::onHeaderField(llhttp_t *parser, const char *at, size_t l
 int xmrig::HttpContext::onHeaderValue(llhttp_t *parser, const char *at, size_t length)
 {
     auto ctx = static_cast<HttpContext*>(parser->data);
+    if (length > 65536 - ctx->m_headerBytes) { return -1; }
+    ctx->m_headerBytes += length;
 
     if (!ctx->m_wasHeaderValue) {
         ctx->m_lastHeaderValue = std::string(at, length);
@@ -227,14 +231,22 @@ int xmrig::HttpContext::onHeaderValue(llhttp_t *parser, const char *at, size_t l
 
 void xmrig::HttpContext::attach(llhttp_settings_t *settings)
 {
-    settings->on_message_begin  = nullptr;
+    settings->on_message_begin = [](llhttp_t *parser) -> int {
+        auto ctx = static_cast<HttpContext*>(parser->data);
+        if (ctx->m_messageComplete) { return -1; }
+        ctx->body.clear();
+        if (ctx->isRequest()) { ctx->url.clear(); }
+        return 0;
+    };
     settings->on_status         = nullptr;
     settings->on_chunk_header   = nullptr;
     settings->on_chunk_complete = nullptr;
 
     settings->on_url = [](llhttp_t *parser, const char *at, size_t length) -> int
     {
-        static_cast<HttpContext*>(parser->data)->url = std::string(at, length);
+        auto ctx = static_cast<HttpContext*>(parser->data);
+        if (length > 8192 - ctx->url.size()) { return -1; }
+        ctx->url.append(at, length);
         return 0;
     };
 
@@ -243,6 +255,8 @@ void xmrig::HttpContext::attach(llhttp_settings_t *settings)
 
     settings->on_headers_complete = [](llhttp_t *parser) -> int {
         auto ctx = static_cast<HttpContext*>(parser->data);
+        const size_t limit = ctx->isRequest() ? 8 * 1024 * 1024 : 64 * 1024 * 1024;
+        if ((parser->flags & F_CONTENT_LENGTH) && parser->content_length > limit) { return -1; }
         ctx->status = parser->status_code;
 
         if (parser->type == HTTP_REQUEST) {
@@ -258,7 +272,10 @@ void xmrig::HttpContext::attach(llhttp_settings_t *settings)
 
     settings->on_body = [](llhttp_t *parser, const char *at, size_t len) -> int
     {
-        static_cast<HttpContext*>(parser->data)->body.append(at, len);
+        auto ctx = static_cast<HttpContext*>(parser->data);
+        const size_t limit = ctx->isRequest() ? 8 * 1024 * 1024 : 64 * 1024 * 1024;
+        if (len > limit - ctx->body.size()) { return -1; }
+        ctx->body.append(at, len);
 
         return 0;
     };
@@ -266,6 +283,7 @@ void xmrig::HttpContext::attach(llhttp_settings_t *settings)
     settings->on_message_complete = [](llhttp_t *parser) -> int
     {
         auto ctx      = static_cast<HttpContext*>(parser->data);
+        ctx->m_messageComplete = true;
         auto listener = ctx->httpListener();
 
         if (listener) {
@@ -286,4 +304,3 @@ void xmrig::HttpContext::setHeader()
     m_lastHeaderField.clear();
     m_lastHeaderValue.clear();
 }
-

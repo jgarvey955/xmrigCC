@@ -38,7 +38,7 @@ namespace argon2 {
 class Impl
 {
 public:
-    static bool select(const String &nameHint, bool benchmark = false);
+    static bool select(const String &nameHint, bool benchmark = true);
     static const String &name();
 };
 

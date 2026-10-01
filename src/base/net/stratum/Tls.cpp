@@ -30,6 +30,7 @@
 
 #include <cassert>
 #include <openssl/ssl.h>
+#include "base/net/tls/TlsVerify.h"
 
 
 xmrig::Client::Tls::Tls(Client *client) :
@@ -68,6 +69,8 @@ bool xmrig::Client::Tls::handshake(const char* servername)
     if (!m_ssl) {
         return false;
     }
+
+    if (!tls::verifyPeer(m_ssl, m_client->m_pool.host().data(), m_client->m_pool.fingerprint() != nullptr)) { return false; }
 
     if (servername) {
         SSL_set_tlsext_host_name(m_ssl, servername);
@@ -108,7 +111,8 @@ void xmrig::Client::Tls::read(const char *data, size_t size)
     if (!SSL_is_init_finished(m_ssl)) {
         const int rc = SSL_connect(m_ssl);
 
-        if (rc < 0 && SSL_get_error(m_ssl, rc) == SSL_ERROR_WANT_READ) {
+        const int error = SSL_get_error(m_ssl, rc);
+        if (rc < 0 && (error == SSL_ERROR_WANT_READ || error == SSL_ERROR_WANT_WRITE)) {
             send();
         } else if (rc == 1) {
             X509 *cert = SSL_get_peer_certificate(m_ssl);
@@ -122,6 +126,8 @@ void xmrig::Client::Tls::read(const char *data, size_t size)
             X509_free(cert);
             m_ready = true;
             m_client->login();
+      } else {
+          m_client->close();
       }
 
       return;
@@ -183,5 +189,5 @@ bool xmrig::Client::Tls::verifyFingerprint(X509 *cert)
     Cvt::toHex(m_fingerprint, sizeof(m_fingerprint), md, 32);
     const char *fingerprint = m_client->m_pool.fingerprint();
 
-    return fingerprint == nullptr || strncasecmp(m_fingerprint, fingerprint, 64) == 0;
+    return fingerprint == nullptr || (strlen(fingerprint) == 64 && strncasecmp(m_fingerprint, fingerprint, 64) == 0);
 }

@@ -89,6 +89,7 @@ public:
 #   endif
 
 #   ifdef XMRIG_FEATURE_TLS
+    inline bool tlsAllowUntrusted() const { return m_tlsAllowUntrusted; }
     inline const TlsConfig &tls() const                     { return m_tls; }
 #   endif
 
@@ -121,6 +122,7 @@ protected:
 
 #   ifdef XMRIG_FEATURE_TLS
     TlsConfig m_tls;
+    bool m_tlsAllowUntrusted = true;
 #   endif
 
 #   ifdef XMRIG_FEATURE_CC_CLIENT

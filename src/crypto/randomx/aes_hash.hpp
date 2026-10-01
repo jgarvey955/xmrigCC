@@ -52,3 +52,12 @@ void fillAes4Rx4(void *state, size_t outputSize, void *buffer);
 
 template<int softAes, int unroll>
 void hashAndFillAes1Rx4(void *scratchpad, size_t scratchpadSize, void *hash, void* fill_state);
+
+// Selected once, from CPU/OS-supported implementations, using private scratch memory.
+hashAndFillAes1Rx4_impl* GetHardAESImpl();
+#ifdef XMRIG_RANDOMX_VAES256
+void hashAndFillAes1Rx4_VAES256(void*, size_t, void*, void*);
+#endif
+#ifdef XMRIG_RANDOMX_VAES512
+void hashAndFillAes1Rx4_VAES512(void*, size_t, void*, void*);
+#endif

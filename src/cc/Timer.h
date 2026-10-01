@@ -22,6 +22,8 @@
 #include <chrono>
 #include <functional>
 #include <thread>
+#include <condition_variable>
+#include <mutex>
 
 class Timer
 {
@@ -43,23 +45,29 @@ public:
 
   void start()
   {
+    std::lock_guard<std::mutex> lock(m_mutex);
+    if (m_running) { return; }
     m_running = true;
     m_thread = std::thread([&]()
     {
-      while (m_running)
+      std::unique_lock<std::mutex> lock(m_mutex);
+      while (!m_condition.wait_for(lock, std::chrono::milliseconds(m_interval), [&]() { return !m_running; }))
       {
-        auto delta = std::chrono::steady_clock::now() + std::chrono::milliseconds(m_interval);
-        std::this_thread::sleep_until(delta);
-        m_func();
+        const auto callback = m_func;
+        lock.unlock();
+        callback();
+        lock.lock();
       }
     });
-
-    m_thread.detach();
   }
 
   void stop()
   {
-    m_running = false;
+    {
+      std::lock_guard<std::mutex> lock(m_mutex);
+      m_running = false;
+    }
+    m_condition.notify_all();
 
     if (m_thread.joinable())
     {
@@ -69,27 +77,33 @@ public:
 
   void setFunction(std::function<void(void)> func)
   {
+    std::lock_guard<std::mutex> lock(m_mutex);
     m_func = func;
   }
 
   void setInterval(uint64_t interval)
   {
+    std::lock_guard<std::mutex> lock(m_mutex);
     m_interval = interval;
   }
 
   bool isRunning()
   {
+    std::lock_guard<std::mutex> lock(m_mutex);
     return m_running;
   }
 
   uint64_t getInterval()
   {
+    std::lock_guard<std::mutex> lock(m_mutex);
     return m_interval;
   }
 
 private:
   std::function<void(void)> m_func;
   std::thread m_thread;
+  std::mutex m_mutex;
+  std::condition_variable m_condition;
 
   uint64_t m_interval = 0;
   bool m_running = false;

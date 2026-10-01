@@ -346,3 +346,13 @@ opted-in Regtest switches at block 2, and Testnet switches at block 1,000,000.
 
 See [Zecnero setup and configuration](doc/ZECNERO.md) and the
 [Testnet example config](config-zecnero-testnet.example.json).
+
+
+The root configuration setting `"tls-allow-untrusted": true` preserves connections
+to private/self-signed TLS services. Set it to `false` to require a trusted
+certificate chain and matching hostname for outgoing TLS connections. This
+setting defaults to `true` for compatibility and is saved with miner/proxy
+configuration; the server accepts the same setting for outgoing notifications.
+Explicit `tls-fingerprint` pins are always enforced in either mode. Strict mode
+uses the system CA bundle or the `SSL_CERT_FILE` / `SSL_CERT_DIR` environment
+settings for a private CA.

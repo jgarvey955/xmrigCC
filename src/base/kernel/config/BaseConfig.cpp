@@ -87,6 +87,7 @@ bool xmrig::BaseConfig::read(const IJsonReader &reader, const char *fileName)
 
 #   ifdef XMRIG_FEATURE_TLS
     m_tls = reader.getValue(kTls);
+    m_tlsAllowUntrusted = reader.getBool("tls-allow-untrusted", m_tlsAllowUntrusted);
 #   endif
 
     Log::setColors(reader.getBool(kColors, Log::isColors()));

@@ -484,187 +484,225 @@ bool ClientStatus::parseFromJson(const rapidjson::Document& document)
 {
   bool result = false;
 
-  if (document.HasMember("client_status"))
+  if (document.IsObject() && document.HasMember("client_status"))
   {
     const rapidjson::Value& clientStatus = document["client_status"];
+    if (!clientStatus.IsObject()) { return false; }
 
     if (clientStatus.HasMember("current_status"))
     {
+      if (!clientStatus["current_status"].IsString()) { return false; }
       m_currentStatus = toStatus(clientStatus["current_status"].GetString());
     }
 
     if (clientStatus.HasMember("client_id"))
     {
+      if (!clientStatus["client_id"].IsString()) { return false; }
       m_clientId = clientStatus["client_id"].GetString();
     }
 
     if (clientStatus.HasMember("current_pool"))
     {
+      if (!clientStatus["current_pool"].IsString()) { return false; }
       m_currentPool = clientStatus["current_pool"].GetString();
     }
 
     if (clientStatus.HasMember("current_pool_user"))
     {
+      if (!clientStatus["current_pool_user"].IsString()) { return false; }
       m_currentPoolUser = clientStatus["current_pool_user"].GetString();
     }
 
     if (clientStatus.HasMember("current_pool_pass"))
     {
+      if (!clientStatus["current_pool_pass"].IsString()) { return false; }
       m_currentPoolPass = clientStatus["current_pool_pass"].GetString();
     }
 
     if (clientStatus.HasMember("current_pool_rig_id"))
     {
+      if (!clientStatus["current_pool_rig_id"].IsString()) { return false; }
       m_currentPoolRigId = clientStatus["current_pool_rig_id"].GetString();
     }
 
     if (clientStatus.HasMember("current_algo_name"))
     {
-      m_currentAlgoName = std::regex_replace(clientStatus["current_algo_name"].GetString(), std::regex("randomx"),
-                                             "rx");
-      m_currentAlgoName = std::regex_replace(m_currentAlgoName, std::regex("cryptonight"), "cn");
-      m_currentAlgoName = std::regex_replace(m_currentAlgoName, std::regex("cryptonight-extremelite"), "cn");
+      if (!clientStatus["current_algo_name"].IsString()) { return false; }
+      static const std::regex randomxName("randomx");
+      static const std::regex cryptonightName("cryptonight");
+      static const std::regex extremeliteName("cryptonight-extremelite");
+      m_currentAlgoName = std::regex_replace(clientStatus["current_algo_name"].GetString(), randomxName, "rx");
+      m_currentAlgoName = std::regex_replace(m_currentAlgoName, cryptonightName, "cn");
+      m_currentAlgoName = std::regex_replace(m_currentAlgoName, extremeliteName, "cn");
     }
 
     if (clientStatus.HasMember("current_pow_variant_name"))
     {
+      if (!clientStatus["current_pow_variant_name"].IsString()) { return false; }
       m_currentPowVariantName = clientStatus["current_pow_variant_name"].GetString();
     }
 
     if (clientStatus.HasMember("cpu_brand"))
     {
+      if (!clientStatus["cpu_brand"].IsString()) { return false; }
       m_cpuBrand = clientStatus["cpu_brand"].GetString();
     }
 
     if (clientStatus.HasMember("external_ip"))
     {
+      if (!clientStatus["external_ip"].IsString()) { return false; }
       m_externalIp = clientStatus["external_ip"].GetString();
     }
 
     if (clientStatus.HasMember("version"))
     {
+      if (!clientStatus["version"].IsString()) { return false; }
       m_version = clientStatus["version"].GetString();
     }
 
     if (clientStatus.HasMember("log"))
     {
+      if (!clientStatus["log"].IsString()) { return false; }
       m_log = clientStatus["log"].GetString();
     }
 
     if (clientStatus.HasMember("hugepages_available"))
     {
+      if (!clientStatus["hugepages_available"].IsBool()) { return false; }
       m_hasHugepages = clientStatus["hugepages_available"].GetBool();
     }
 
     if (clientStatus.HasMember("hugepages_enabled"))
     {
+      if (!clientStatus["hugepages_enabled"].IsBool()) { return false; }
       m_isHugepagesEnabled = clientStatus["hugepages_enabled"].GetBool();
     }
 
     if (clientStatus.HasMember("cpu_is_x64"))
     {
+      if (!clientStatus["cpu_is_x64"].IsBool()) { return false; }
       m_isCpuX64 = clientStatus["cpu_is_x64"].GetBool();
     }
 
     if (clientStatus.HasMember("cpu_is_vm"))
     {
+      if (!clientStatus["cpu_is_vm"].IsBool()) { return false; }
       m_isVM = clientStatus["cpu_is_vm"].GetBool();
     }
 
     if (clientStatus.HasMember("cpu_has_aes"))
     {
+      if (!clientStatus["cpu_has_aes"].IsBool()) { return false; }
       m_hasCpuAES = clientStatus["cpu_has_aes"].GetBool();
     }
 
     if (clientStatus.HasMember("hashrate_short"))
     {
+      if (!clientStatus["hashrate_short"].IsNumber()) { return false; }
       m_hashrateShort = clientStatus["hashrate_short"].GetDouble();
     }
 
     if (clientStatus.HasMember("hashrate_medium"))
     {
+      if (!clientStatus["hashrate_medium"].IsNumber()) { return false; }
       m_hashrateMedium = clientStatus["hashrate_medium"].GetDouble();
     }
 
     if (clientStatus.HasMember("hashrate_long"))
     {
+      if (!clientStatus["hashrate_long"].IsNumber()) { return false; }
       m_hashrateLong = clientStatus["hashrate_long"].GetDouble();
     }
 
     if (clientStatus.HasMember("hashrate_highest"))
     {
+      if (!clientStatus["hashrate_highest"].IsNumber()) { return false; }
       m_hashrateHighest = clientStatus["hashrate_highest"].GetDouble();
     }
 
     if (clientStatus.HasMember("hash_factor"))
     {
+      if (!clientStatus["hash_factor"].IsInt()) { return false; }
       m_hashFactor = clientStatus["hash_factor"].GetInt();
     }
 
     if (clientStatus.HasMember("total_pages"))
     {
+      if (!clientStatus["total_pages"].IsInt()) { return false; }
       m_totalPages = clientStatus["total_pages"].GetInt();
     }
 
     if (clientStatus.HasMember("total_hugepages"))
     {
+      if (!clientStatus["total_hugepages"].IsInt()) { return false; }
       m_totalHugepages = clientStatus["total_hugepages"].GetInt();
     }
 
     if (clientStatus.HasMember("current_threads"))
     {
+      if (!clientStatus["current_threads"].IsInt()) { return false; }
       m_currentThreads = clientStatus["current_threads"].GetInt();
     }
 
     if (clientStatus.HasMember("current_ways"))
     {
+      if (!clientStatus["current_ways"].IsInt()) { return false; }
       m_currentWays = clientStatus["current_ways"].GetInt();
     }
 
     if (clientStatus.HasMember("cpu_sockets"))
     {
+      if (!clientStatus["cpu_sockets"].IsInt()) { return false; }
       m_cpuSockets = clientStatus["cpu_sockets"].GetInt();
     }
 
     if (clientStatus.HasMember("cpu_cores"))
     {
+      if (!clientStatus["cpu_cores"].IsInt()) { return false; }
       m_cpuCores = clientStatus["cpu_cores"].GetInt();
     }
 
     if (clientStatus.HasMember("cpu_threads"))
     {
+      if (!clientStatus["cpu_threads"].IsInt()) { return false; }
       m_cpuThreads = clientStatus["cpu_threads"].GetInt();
     }
 
     if (clientStatus.HasMember("cpu_l2"))
     {
+      if (!clientStatus["cpu_l2"].IsInt()) { return false; }
       m_cpuL2 = clientStatus["cpu_l2"].GetInt();
     }
 
     if (clientStatus.HasMember("cpu_l3"))
     {
+      if (!clientStatus["cpu_l3"].IsInt()) { return false; }
       m_cpuL3 = clientStatus["cpu_l3"].GetInt();
     }
 
     if (clientStatus.HasMember("cpu_nodes"))
     {
+      if (!clientStatus["cpu_nodes"].IsInt()) { return false; }
       m_nodes = clientStatus["cpu_nodes"].GetInt();
     }
 
     if (clientStatus.HasMember("max_cpu_usage"))
     {
+      if (!clientStatus["max_cpu_usage"].IsInt()) { return false; }
       m_maxCpuUsage = clientStatus["max_cpu_usage"].GetInt();
     }
 
-    if (clientStatus.HasMember("gpu_info_list") && clientStatus["gpu_info_list"].IsArray())
+    if (clientStatus.HasMember("gpu_info_list"))
     {
+      if (!clientStatus["gpu_info_list"].IsArray()) { return false; }
       m_gpuInfoList.clear();
 
       auto gpuInfoList = clientStatus["gpu_info_list"].GetArray();
       for (rapidjson::Value::ConstValueIterator itr = gpuInfoList.Begin(); itr != gpuInfoList.End(); ++itr)
       {
         GPUInfo gpuInfo;
-        gpuInfo.parseFromJson((*itr)["gpu_info"]);
+        if (!itr->IsObject() || !itr->HasMember("gpu_info") ||
+            !gpuInfo.parseFromJson((*itr)["gpu_info"])) { return false; }
 
         m_gpuInfoList.push_back(gpuInfo);
       }
@@ -672,51 +710,61 @@ bool ClientStatus::parseFromJson(const rapidjson::Document& document)
 
     if (clientStatus.HasMember("shares_good"))
     {
+      if (!clientStatus["shares_good"].IsUint64()) { return false; }
       m_sharesGood = clientStatus["shares_good"].GetUint64();
     }
 
     if (clientStatus.HasMember("shares_total"))
     {
+      if (!clientStatus["shares_total"].IsUint64()) { return false; }
       m_sharesTotal = clientStatus["shares_total"].GetUint64();
     }
 
     if (clientStatus.HasMember("hashes_total"))
     {
+      if (!clientStatus["hashes_total"].IsUint64()) { return false; }
       m_hashesTotal = clientStatus["hashes_total"].GetUint64();
     }
 
     if (clientStatus.HasMember("nonce_partitioned"))
     {
+      if (!clientStatus["nonce_partitioned"].IsBool()) { return false; }
       m_noncePartitioned = clientStatus["nonce_partitioned"].GetBool();
     }
 
     if (clientStatus.HasMember("nonce_prefix"))
     {
+      if (!clientStatus["nonce_prefix"].IsUint()) { return false; }
       m_noncePrefix = clientStatus["nonce_prefix"].GetUint();
     }
 
     if (clientStatus.HasMember("nonce_mapper_id"))
     {
+      if (!clientStatus["nonce_mapper_id"].IsInt()) { return false; }
       m_nonceMapperId = clientStatus["nonce_mapper_id"].GetInt();
     }
 
     if (clientStatus.HasMember("total_memory"))
     {
+      if (!clientStatus["total_memory"].IsUint64()) { return false; }
       m_totalMemory = clientStatus["total_memory"].GetUint64();
     }
 
     if (clientStatus.HasMember("free_memory"))
     {
+      if (!clientStatus["free_memory"].IsUint64()) { return false; }
       m_freeMemory = clientStatus["free_memory"].GetUint64();
     }
 
     if (clientStatus.HasMember("avg_time"))
     {
+      if (!clientStatus["avg_time"].IsUint()) { return false; }
       m_avgTime = clientStatus["avg_time"].GetUint();
     }
 
     if (clientStatus.HasMember("uptime"))
     {
+      if (!clientStatus["uptime"].IsUint64()) { return false; }
       m_uptime = clientStatus["uptime"].GetUint64();
     }
 

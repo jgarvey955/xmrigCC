@@ -1,4 +1,5 @@
 {
+    "tls-allow-untrusted": true,
     "api": {
         "id": null,
         "worker-id": null

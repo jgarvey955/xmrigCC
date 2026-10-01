@@ -119,7 +119,7 @@ namespace randomx {
 	template<int softAes>
 	void VmBase<softAes>::hashAndFill(void* out, uint64_t (&fill_state)[8]) {
 		if (!softAes) {
-			hashAndFillAes1Rx4<0, 2>(scratchpad, ScratchpadSize, &reg.a, fill_state);
+			GetHardAESImpl()(scratchpad, ScratchpadSize, &reg.a, fill_state);
 		}
 		else {
 			(*GetSoftAESImpl())(scratchpad, ScratchpadSize, &reg.a, fill_state);

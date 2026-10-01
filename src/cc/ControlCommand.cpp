@@ -51,15 +51,18 @@ bool ControlCommand::parseFromJson(const rapidjson::Document& document)
 {
   bool result = false;
 
-  if (document.HasMember("control_command"))
+  if (document.IsObject() && document.HasMember("control_command"))
   {
     const rapidjson::Value& controlCommand = document["control_command"];
+    if (!controlCommand.IsObject()) { return false; }
     if (controlCommand.HasMember("command"))
     {
+      if (!controlCommand["command"].IsString()) { return false; }
       m_command = toCommand(controlCommand["command"].GetString());
 
       if (controlCommand.HasMember("payload"))
       {
+      if (!controlCommand["payload"].IsString()) { return false; }
         m_payload = controlCommand["payload"].GetString();
       }
 

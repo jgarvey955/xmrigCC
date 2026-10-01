@@ -35,6 +35,7 @@ public:
   inline bool colors() const                      { return m_colors; }
   inline bool background() const                  { return m_background; }
   inline bool syslog() const                      { return m_syslog; }
+  inline bool tlsAllowUntrusted() const { return m_tlsAllowUntrusted; }
   inline bool useTLS() const                      { return m_useTLS; }
   inline bool usePushover() const                 { return !m_pushoverUserKey.empty() && !m_pushoverApiToken.empty(); }
   inline bool useTelegram() const                 { return !m_telegramBotToken.empty() && !m_telegramChatId.empty(); }
@@ -69,6 +70,7 @@ private:
   bool m_background = false;
   bool m_syslog = false;
   bool m_useTLS = false;
+  bool m_tlsAllowUntrusted = true;
   bool m_pushOfflineMiners = true;
   bool m_pushZeroHashrateMiners = true;
   bool m_pushPeriodicStatus = true;

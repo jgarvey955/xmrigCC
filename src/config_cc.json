@@ -1,4 +1,5 @@
 {
+    "tls-allow-untrusted": true,
     "background": false,                        // true to run the cc-server in the background (no console)
     "colors": true,                             // false to disable colored output
     "log-file": null,                           // log all output to a file

@@ -82,6 +82,8 @@ private:
 
     void setHeader();
 
+    size_t m_headerBytes           = 0;
+    bool m_messageComplete         = false;
     bool m_wasHeaderValue           = false;
     const uint64_t m_timestamp;
     llhttp_t *m_parser;

@@ -28,6 +28,7 @@ static uint64_t benchmark_impl(const argon2_impl *impl) {
     memset(memory, 0, sizeof(memory));
 
     argon2_instance_t instance;
+    memset(&instance, 0, sizeof(instance));
     instance.version        = ARGON2_VERSION_NUMBER;
     instance.memory         = memory;
     instance.passes         = 1;
@@ -62,7 +63,7 @@ void argon2_select_impl()
 {
     argon2_impl_list impls;
     const argon2_impl *best_impl = NULL;
-    uint64_t best_bench = UINT_MAX;
+    uint64_t best_bench = UINT64_MAX;
 
     argon2_get_impl_list(&impls);
 
@@ -107,6 +108,9 @@ int argon2_select_impl_by_name(const char *name)
         const argon2_impl *impl = &impls.entries[i];
 
         if (strcasecmp(impl->name, name) == 0) {
+            if (impl->check != NULL && !impl->check()) {
+                return 0;
+            }
             selected_argon_impl = *impl;
 
             return 1;

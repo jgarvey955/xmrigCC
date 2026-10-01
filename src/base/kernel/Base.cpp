@@ -21,6 +21,9 @@
 
 
 #include "base/kernel/Base.h"
+#ifdef XMRIG_FEATURE_TLS
+#include "base/net/tls/TlsVerify.h"
+#endif
 #include "base/io/json/Json.h"
 #include "base/io/json/JsonChain.h"
 #include "base/io/log/backends/ConsoleLog.h"
@@ -111,6 +114,9 @@ public:
     {
         Config *previousConfig = config;
         config = newConfig;
+#ifdef XMRIG_FEATURE_TLS
+        tls::setAllowUntrusted(config->tlsAllowUntrusted());
+#endif
 
         for (IBaseListener *listener : listeners) {
             listener->onConfigChanged(config, previousConfig);
@@ -201,6 +207,9 @@ int xmrig::Base::init()
     d_ptr->ccClient = new CCClient(this);
 #   endif
 
+#ifdef XMRIG_FEATURE_TLS
+    tls::setAllowUntrusted(config()->tlsAllowUntrusted());
+#endif
     Platform::init(config()->userAgent());
 
     if (isBackground()) {

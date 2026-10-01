@@ -33,6 +33,9 @@
 #include "base/cc/interfaces/ICommandListener.h"
 
 #include "CCClient.h"
+#ifdef XMRIG_FEATURE_TLS
+#include "base/net/tls/TlsVerify.h"
+#endif
 #include "App.h"
 #include "version.h"
 
@@ -438,8 +441,10 @@ std::shared_ptr<httplib::ClientImpl> xmrig::CCClient::getClient()
 # ifdef XMRIG_FEATURE_TLS
     if (config.useTLS())
     {
-      cli = std::make_shared<httplib::SSLClient>(config.host(), config.port());
-      cli->enable_server_certificate_verification(false);
+      auto secureClient = std::make_shared<httplib::SSLClient>(config.host(), config.port());
+      tls::loadSystemTrust(secureClient->ssl_context());
+      secureClient->enable_server_certificate_verification(!tls::allowUntrusted());
+      cli = secureClient;
     }
     else
     {

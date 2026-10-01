@@ -27,12 +27,14 @@
 #include "base/tools/String.h"
 #include "crypto/argon2/Impl.h"
 
+#include <mutex>
+
 
 
 namespace xmrig {
 
 
-static bool selected = false;
+static std::once_flag selected;
 static String implName;
 
 
@@ -53,7 +55,8 @@ extern int xmrig_ar2_check_sse2();
 
 bool xmrig::argon2::Impl::select(const String &nameHint, bool benchmark)
 {
-    if (!selected) {
+    bool initialized = false;
+    std::call_once(selected, [&]() {
 #       if defined(__x86_64__) || defined(_M_AMD64)
         auto hint = nameHint;
 
@@ -72,18 +75,18 @@ bool xmrig::argon2::Impl::select(const String &nameHint, bool benchmark)
             }
         }
 
-        if (!hint.isEmpty()) {
-            argon2_select_impl_by_name(hint);
+        if (hint.isEmpty() || !argon2_select_impl_by_name(hint)) {
+            // This runs once before mining starts, using the selector's private
+            // benchmark buffer. It never allocates or modifies a RandomX cache.
+            argon2_select_impl();
         }
 #       endif
 
-        selected = true;
         implName = argon2_get_impl_name();
+        initialized = true;
+    });
 
-        return true;
-    }
-
-    return false;
+    return initialized;
 }
 
 

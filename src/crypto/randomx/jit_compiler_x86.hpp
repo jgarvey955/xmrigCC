@@ -57,6 +57,7 @@ namespace randomx {
 		template<size_t N>
 		void generateSuperscalarHash(SuperscalarProgram (&programs)[N]);
 		void generateDatasetInitCode();
+		bool isDatasetInitAVX2() const { return initDatasetAVX2; }
 
 		inline ProgramFunc *getProgramFunc() const {
 #			ifdef XMRIG_SECURE_JIT

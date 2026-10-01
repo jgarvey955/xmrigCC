@@ -514,6 +514,23 @@ extern "C" {
 		assert(cache != nullptr);
 		assert(startItem < DatasetItemCount && itemCount <= DatasetItemCount);
 		assert(startItem + itemCount <= DatasetItemCount);
+		if (itemCount == 0) {
+			return;
+		}
+#if defined(XMRIG_FEATURE_ASM) && (defined(_M_X64) || defined(__x86_64__))
+		// The AVX2 JIT emits five items per iteration. Keep each worker's
+		// writes inside its assigned range, including short and uneven tails.
+		if (cache->jit && cache->jit->isDatasetInitAVX2()) {
+			const auto batched = itemCount - itemCount % 5;
+			if (batched) {
+				cache->datasetInit(cache, dataset->memory + startItem * randomx::CacheLineSize, startItem, startItem + batched);
+			}
+			for (auto i = batched; i < itemCount; ++i) {
+				randomx::initDatasetItem(cache, dataset->memory + (startItem + i) * randomx::CacheLineSize, startItem + i);
+			}
+			return;
+		}
+#endif
 		cache->datasetInit(cache, dataset->memory + startItem * randomx::CacheLineSize, startItem, startItem + itemCount);
 	}
 

@@ -100,6 +100,7 @@ bool CCServerConfig::read(const xmrig::IJsonReader& reader)
   m_adminPass = reader.getString("pass", m_adminPass.c_str());
   m_token = reader.getString("access-token", m_token.c_str());
   m_useTLS = reader.getBool("use-tls", m_useTLS);
+  m_tlsAllowUntrusted = reader.getBool("tls-allow-untrusted", m_tlsAllowUntrusted);
   m_keyFile = reader.getString("key-file", m_keyFile.c_str());
   m_certFile = reader.getString("cert-file", m_certFile.c_str());
 

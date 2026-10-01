@@ -26,6 +26,7 @@
 #include "CCServerConfig.h"
 #include "Service.h"
 #include "Httpd.h"
+#include "base/tools/SecretCompare.h"
 #include "version.h"
 
 namespace
@@ -86,6 +87,8 @@ int Httpd::start()
                     m_config->port()
   );
 
+  m_srv->set_payload_max_length(8 * 1024 * 1024);
+
   m_srv->Get(R"(/.*)", [this](const httplib::Request& req, httplib::Response& res)
   {
     res.status = this->m_service->handleGET(req, res);;
@@ -139,7 +142,7 @@ int Httpd::start()
 
 void Httpd::stop()
 {
-  if (m_srv->is_running())
+  if (m_srv && m_srv->is_running())
   {
     m_srv->stop();
   }
@@ -166,7 +169,7 @@ int Httpd::basicAuth(const httplib::Request& req, httplib::Response& res)
     auto authHeader = req.get_header_value("Authorization");
     auto credentials = httplib::make_basic_authentication_header(m_config->adminUser(), m_config->adminPass());
 
-    if (!authHeader.empty() && credentials.second == authHeader)
+    if (credentials.second.size() == authHeader.size() && xmrig::secretEquals(credentials.second.data(), authHeader.data(), authHeader.size()))
     {
       result = HTTP_OK;
     }
@@ -194,17 +197,17 @@ int Httpd::bearerAuth(const httplib::Request& req, httplib::Response& res)
 
   if (m_config->token().empty())
   {
-    LOG_WARN("[%s] %s %s (200 OK) - WARNING AccessToken not set!",
+    LOG_ERR("[%s] %s %s (403 FORBIDDEN) - AccessToken not set!",
              remoteAddr.c_str(), req.method.c_str(), req.path.c_str());
 
-    result = HTTP_OK;
+    result = HTTP_FORBIDDEN;
   }
   else
   {
     auto authHeader = req.get_header_value("Authorization");
     auto credentials = std::string("Bearer ") + m_config->token();
 
-    if (!authHeader.empty() && credentials == authHeader)
+    if (credentials.size() == authHeader.size() && xmrig::secretEquals(credentials.data(), authHeader.data(), authHeader.size()))
     {
       result = HTTP_OK;
     }

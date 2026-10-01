@@ -17,6 +17,7 @@
  */
 
 #include "base/api/Httpd.h"
+#include "base/tools/SecretCompare.h"
 #include "3rdparty/llhttp/llhttp.h"
 #include "base/api/Api.h"
 #include "base/io/log/Log.h"
@@ -194,5 +195,5 @@ int xmrig::Httpd::auth(const HttpData &req) const
         return 403 /* FORBIDDEN */;
     }
 
-    return strncmp(config.token().data(), token.c_str() + 7, config.token().size()) == 0 ? 200 : 403 /* FORBIDDEN */;
+    return secretEquals(config.token().data(), token.c_str() + 7, config.token().size()) ? 200 : 403 /* FORBIDDEN */;
 }

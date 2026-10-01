@@ -53,76 +53,91 @@ rapidjson::Value GPUInfo::toJson(rapidjson::MemoryPoolAllocator<rapidjson::CrtAl
 
 bool GPUInfo::parseFromJson(const rapidjson::Value& gpuInfo)
 {
+  if (!gpuInfo.IsObject()) { return false; }
   bool result = false;
 
   if (gpuInfo.HasMember("name"))
   {
+      if (!gpuInfo["name"].IsString()) { return false; }
     m_name = gpuInfo["name"].GetString();
     result = true;
   }
 
   if (gpuInfo.HasMember("type"))
   {
+      if (!gpuInfo["type"].IsString()) { return false; }
     m_type = gpuInfo["type"].GetString();
   }
 
   if (gpuInfo.HasMember("busId"))
   {
+      if (!gpuInfo["busId"].IsString()) { return false; }
     m_busId = gpuInfo["busId"].GetString();
   }
 
   if (gpuInfo.HasMember("device_idx"))
   {
+      if (!gpuInfo["device_idx"].IsInt()) { return false; }
     m_deviceIdx = gpuInfo["device_idx"].GetInt();
   }
 
   if (gpuInfo.HasMember("intensity"))
   {
+      if (!gpuInfo["intensity"].IsInt()) { return false; }
     m_intensity = gpuInfo["intensity"].GetInt();
   }
 
   if (gpuInfo.HasMember("work_size"))
   {
+      if (!gpuInfo["work_size"].IsInt()) { return false; }
     m_workSize = gpuInfo["work_size"].GetInt();
   }
 
   if (gpuInfo.HasMember("threads"))
   {
+      if (!gpuInfo["threads"].IsInt()) { return false; }
     m_threads = gpuInfo["threads"].GetInt();
   }
 
   if (gpuInfo.HasMember("compute_units"))
   {
+      if (!gpuInfo["compute_units"].IsInt()) { return false; }
     m_computeUnits = gpuInfo["compute_units"].GetInt();
   }
 
   if (gpuInfo.HasMember("block"))
   {
+      if (!gpuInfo["block"].IsInt()) { return false; }
     m_blocks = gpuInfo["block"].GetInt();
   }
 
   if (gpuInfo.HasMember("bfactor"))
   {
+      if (!gpuInfo["bfactor"].IsInt()) { return false; }
     m_bfactor = gpuInfo["bfactor"].GetInt();
   }
 
   if (gpuInfo.HasMember("bsleep"))
   {
+      if (!gpuInfo["bsleep"].IsInt()) { return false; }
     m_bsleep = gpuInfo["bsleep"].GetInt();
   }
 
   if (gpuInfo.HasMember("clock"))
   {
+      if (!gpuInfo["clock"].IsInt()) { return false; }
     m_clock = gpuInfo["clock"].GetInt();
   }
 
   if (gpuInfo.HasMember("free_mem"))
   {
+      if (!gpuInfo["free_mem"].IsInt()) { return false; }
     m_freeMem = static_cast<size_t>(gpuInfo["free_mem"].GetInt());
   }
 
   if (gpuInfo.HasMember("memory"))
   {
+      if (!gpuInfo["memory"].IsInt()) { return false; }
     m_memory = static_cast<size_t>(gpuInfo["memory"].GetInt());
   }
 

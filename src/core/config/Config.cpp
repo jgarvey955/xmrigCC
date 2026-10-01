@@ -306,6 +306,7 @@ void xmrig::Config::getJSON(rapidjson::Document &doc) const
 
 #   ifdef XMRIG_FEATURE_TLS
     doc.AddMember(StringRef(kTls),                      m_tls.toJSON(doc), allocator);
+    doc.AddMember("tls-allow-untrusted", m_tlsAllowUntrusted, allocator);
 #   endif
 
 #   ifdef XMRIG_FEATURE_CC_CLIENT

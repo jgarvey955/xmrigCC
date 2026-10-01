@@ -39,13 +39,17 @@
 #include "base/io/log/Log.h"
 #include "version.h"
 #include "Service.h"
+#ifdef XMRIG_FEATURE_TLS
+#include "base/net/tls/TlsVerify.h"
+#endif
 #include "fmt/format.h"
 
 namespace
 {
 std::string sanitize(const std::string& data)
 {
-  return std::regex_replace(data, std::regex(R"(([^\x20-~]+)|([\\/:?"<>|~;]+))"), "_");
+  static const std::regex invalid(R"(([^\x20-~]+)|([\\/:?"<>|~;]+))");
+  return std::regex_replace(data, invalid, "_");
 }
 };
 
@@ -64,6 +68,9 @@ Service::~Service()
 
 bool Service::start()
 {
+#ifdef XMRIG_FEATURE_TLS
+  xmrig::tls::setAllowUntrusted(m_config->tlsAllowUntrusted());
+#endif
   m_timer = std::make_shared<Timer>([&]()
   {
     auto time_point = std::chrono::system_clock::now();
@@ -107,13 +114,12 @@ bool Service::start()
 
 void Service::stop()
 {
-  std::lock_guard<std::mutex> lock(m_mutex);
-
   if (m_timer)
   {
     m_timer->stop();
   }
 
+  std::lock_guard<std::mutex> lock(m_mutex);
   m_clientCommand.clear();
   m_clientStatus.clear();
   m_clientLog.clear();
@@ -121,6 +127,7 @@ void Service::stop()
 
 int Service::handleGET(const httplib::Request& req, httplib::Response& res)
 {
+  std::lock_guard<std::mutex> lock(m_mutex);
   int resultCode = HTTP_NOT_FOUND;
 
   const auto clientId = req.get_param_value("clientId");
@@ -292,7 +299,6 @@ int Service::getClientStatusList(httplib::Response& res)
 
 int Service::getClientStatistics(httplib::Response& res)
 {
-  std::lock_guard<std::mutex> lock(m_mutex);
 
   rapidjson::Document respDocument;
   respDocument.SetObject();
@@ -343,7 +349,7 @@ int Service::setClientStatus(const httplib::Request& req, const std::string& cli
   if (!respDocument.Parse(req.body.c_str()).HasParseError())
   {
     ClientStatus clientStatus;
-    clientStatus.parseFromJson(respDocument);
+    if (!clientStatus.parseFromJson(respDocument)) { return HTTP_BAD_REQUEST; }
     clientStatus.setExternalIp(remoteAddr);
 
     setClientLog(static_cast<size_t>(m_config->clientLogHistory()), clientId, clientStatus.getLog());
@@ -620,7 +626,7 @@ int Service::setClientCommand(const httplib::Request& req, const std::string& cl
   rapidjson::Document respDocument;
   if (!respDocument.Parse(req.body.c_str()).HasParseError())
   {
-    controlCommand.parseFromJson(respDocument);
+    if (!controlCommand.parseFromJson(respDocument)) { return HTTP_BAD_REQUEST; }
 
     m_clientCommand[clientId] = controlCommand;
 
@@ -687,9 +693,14 @@ std::string Service::getClientConfigFileName(const std::string& clientId)
 
 void Service::sendMinerOfflinePush(uint64_t now)
 {
+  // Snapshot shared status under the lock; notification I/O must not hold it.
+  const auto clients = [this]() {
+    std::lock_guard<std::mutex> lock(m_mutex);
+    return m_clientStatus;
+  }();
   uint64_t offlineThreshold = now - OFFLINE_TRESHOLD_IN_MS;
 
-  for (const auto& clientStatus: m_clientStatus)
+  for (const auto& clientStatus: clients)
   {
     uint64_t lastStatus = clientStatus.second.getLastStatusUpdate() * 1000;
     if (lastStatus < offlineThreshold)
@@ -723,9 +734,14 @@ void Service::sendMinerOfflinePush(uint64_t now)
 
 void Service::sendMinerZeroHashratePush(uint64_t now)
 {
+  // Snapshot shared status under the lock; notification I/O must not hold it.
+  const auto clients = [this]() {
+    std::lock_guard<std::mutex> lock(m_mutex);
+    return m_clientStatus;
+  }();
   uint64_t offlineThreshold = now - OFFLINE_TRESHOLD_IN_MS;
 
-  for (const auto& clientStatus: m_clientStatus)
+  for (const auto& clientStatus: clients)
   {
     if (offlineThreshold < clientStatus.second.getLastStatusUpdate() * 1000)
     {
@@ -779,6 +795,11 @@ void Service::sendMinerZeroHashratePush(uint64_t now)
 
 void Service::sendServerStatusPush(uint64_t now)
 {
+  // Snapshot shared status under the lock; notification I/O must not hold it.
+  const auto clients = [this]() {
+    std::lock_guard<std::mutex> lock(m_mutex);
+    return m_clientStatus;
+  }();
   size_t onlineMiner = 0;
   size_t offlineMiner = 0;
 
@@ -790,7 +811,7 @@ void Service::sendServerStatusPush(uint64_t now)
   uint64_t sharesTotal = 0;
   uint64_t offlineThreshold = now - OFFLINE_TRESHOLD_IN_MS;
 
-  for (const auto& clientStatus: m_clientStatus)
+  for (const auto& clientStatus: clients)
   {
     if (offlineThreshold < clientStatus.second.getLastStatusUpdate() * 1000)
     {
@@ -809,9 +830,9 @@ void Service::sendServerStatusPush(uint64_t now)
     }
   }
 
-  if (!m_clientStatus.empty())
+  if (!clients.empty())
   {
-    avgTime = avgTime / m_clientStatus.size();
+    avgTime = avgTime / clients.size();
   }
 
   std::stringstream message;
@@ -845,7 +866,8 @@ void Service::triggerPush(const std::string& title, const std::string& message)
 void Service::sendViaPushover(const std::string& title, const std::string& message)
 {
   auto cli = std::make_shared<httplib::SSLClient>("api.pushover.net", 443);
-  cli->enable_server_certificate_verification(false);
+  xmrig::tls::loadSystemTrust(cli->ssl_context());
+  cli->enable_server_certificate_verification(!xmrig::tls::allowUntrusted());
 
   httplib::Params params;
   params.emplace("token", m_config->pushoverApiToken());
@@ -867,7 +889,8 @@ void Service::sendViaPushover(const std::string& title, const std::string& messa
 void Service::sendViaTelegram(const std::string& title, const std::string& message)
 {
   auto cli = std::make_shared<httplib::SSLClient>("api.telegram.org", 443);
-  cli->enable_server_certificate_verification(false);
+  xmrig::tls::loadSystemTrust(cli->ssl_context());
+  cli->enable_server_certificate_verification(!xmrig::tls::allowUntrusted());
 
   std::string text = "<b>" + title + "</b>\n\n" + message;
   std::string path = std::string("/bot") + m_config->telegramBotToken() + std::string("/sendMessage");
@@ -896,7 +919,8 @@ void Service::sendViaDiscord(const std::string& title, const std::string& messag
   if (std::regex_match(webHookUrl, matcher, std::regex(R"((?:(https?):)?(?://(discord.com:\[([\d:]+)\]|([^:/?#]+))(?::(\d+))?)?([^?#]*(?:\?[^#]*)?)(?:#.*)?)")))
   {
     auto cli = std::make_shared<httplib::SSLClient>("discord.com", 443);
-    cli->enable_server_certificate_verification(false);
+    xmrig::tls::loadSystemTrust(cli->ssl_context());
+    cli->enable_server_certificate_verification(!xmrig::tls::allowUntrusted());
 
     auto description = std::regex_replace(message, std::regex("\n"), "\\n");
     auto body = fmt::format(R"({{"username": "{}", "embeds": [{{ "title": "{}", "description": "{}"}}]}})",

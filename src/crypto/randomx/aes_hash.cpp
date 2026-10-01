@@ -27,6 +27,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include <thread>
+#include <chrono>
+#include <algorithm>
+#include <cstring>
+#include "backend/cpu/Cpu.h"
 #include <vector>
 #include <array>
 
@@ -551,4 +555,63 @@ void SelectSoftAESImpl(size_t threadsCount)
     }
   }
   softAESImpl = impl[fast_idx];
+}
+
+hashAndFillAes1Rx4_impl* GetHardAESImpl()
+{
+    // C++ static initialization serializes concurrent workers and never changes
+    // dispatch after mining starts. No dataset/cache is created or modified here.
+    static hashAndFillAes1Rx4_impl *const selected = []() {
+        auto *best = &hashAndFillAes1Rx4<0, 2>;
+#if defined(XMRIG_RANDOMX_VAES256) || defined(XMRIG_RANDOMX_VAES512)
+        const auto *cpu = xmrig::Cpu::info();
+        std::vector<hashAndFillAes1Rx4_impl *> candidates{best};
+#ifdef XMRIG_RANDOMX_VAES256
+        if (cpu->hasAES() && cpu->hasAVX2() && cpu->hasVAES()) {
+            candidates.push_back(&hashAndFillAes1Rx4_VAES256);
+        }
+#endif
+#ifdef XMRIG_RANDOMX_VAES512
+        // Keep automatic AVX-512 dispatch on the Zen generations validated
+        // here (Zen 4) and by the upstream kernel (Zen 5).
+        const auto arch = cpu->arch();
+        if ((arch == xmrig::ICpuInfo::ARCH_ZEN4 || arch == xmrig::ICpuInfo::ARCH_ZEN5) &&
+            cpu->hasAES() && cpu->has(xmrig::ICpuInfo::FLAG_AVX512F) && cpu->hasVAES()) {
+            candidates.push_back(&hashAndFillAes1Rx4_VAES512);
+        }
+#endif
+        if (candidates.size() == 1) { return best; }
+        std::vector<uint8_t> reference(2 * 1024 * 1024), scratch(reference.size());
+        for (size_t i = 0; i < reference.size(); ++i) { reference[i] = static_cast<uint8_t>(i * 37 + 11); }
+        alignas(64) uint8_t expectedHash[64]{}, expectedState[64]{}, hash[64]{}, state[64]{};
+        best(reference.data(), reference.size(), expectedHash, expectedState);
+        std::vector<bool> valid(candidates.size(), true);
+        for (size_t i = 0; i < candidates.size(); ++i) {
+            std::fill(state, state + 64, 0);
+            // Recreate the input without retaining another mining-sized allocation.
+            for (size_t j = 0; j < scratch.size(); ++j) { scratch[j] = static_cast<uint8_t>(j * 37 + 11); }
+            candidates[i](scratch.data(), scratch.size(), hash, state);
+            valid[i] = scratch == reference && !memcmp(hash, expectedHash, 64) && !memcmp(state, expectedState, 64);
+        }
+        std::vector<double> elapsed(candidates.size(), 0.0);
+        for (size_t round = 0; round < 3; ++round) {
+            for (size_t step = 0; step < candidates.size(); ++step) {
+                const size_t i = (round + step) % candidates.size();
+                if (!valid[i]) { continue; }
+                const auto begin = std::chrono::steady_clock::now();
+                for (unsigned repeat = 0; repeat < 256; ++repeat) {
+                    candidates[i](scratch.data(), scratch.size(), hash, state);
+                }
+                elapsed[i] += std::chrono::duration<double>(std::chrono::steady_clock::now() - begin).count();
+            }
+        }
+        double bestTime = elapsed[0];
+        for (size_t i = 1; i < candidates.size(); ++i) {
+            // Preserve the existing path unless a wider one wins beyond small timing noise.
+            if (valid[i] && elapsed[i] < bestTime * 0.97) { best = candidates[i]; bestTime = elapsed[i]; }
+        }
+#endif
+        return best;
+    }();
+    return selected;
 }
