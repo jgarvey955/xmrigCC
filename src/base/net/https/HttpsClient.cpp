@@ -88,7 +88,7 @@ void xmrig::HttpsClient::handshake()
 
     SSL_set_connect_state(m_ssl);
     SSL_set_bio(m_ssl, m_read, m_write);
-    SSL_set_tlsext_host_name(m_ssl, host());
+    if (!tls::setServerName(m_ssl, host())) { return close(UV_EPROTO); }
 
     SSL_do_handshake(m_ssl);
 

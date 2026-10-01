@@ -42,6 +42,18 @@ inline void loadSystemTrust(SSL_CTX *ctx)
     ERR_clear_error();
 }
 
+inline bool isIpAddress(const char *host)
+{
+    unsigned char address[16];
+    return host && (uv_inet_pton(AF_INET, host, address) == 0 || uv_inet_pton(AF_INET6, host, address) == 0);
+}
+
+inline bool setServerName(SSL *ssl, const char *host)
+{
+    // RFC 6066 permits DNS hostnames only in the SNI host_name extension.
+    return !host || !*host || isIpAddress(host) || SSL_set_tlsext_host_name(ssl, host) == 1;
+}
+
 inline bool verifyPeer(SSL *ssl, const char *host, bool pinned)
 {
     if (!ssl || !host || !*host) { return false; }
@@ -51,9 +63,8 @@ inline bool verifyPeer(SSL *ssl, const char *host, bool pinned)
     SSL_set_verify(ssl, (pinned || untrustedAllowed) ? SSL_VERIFY_NONE : SSL_VERIFY_PEER, nullptr);
     if (pinned || untrustedAllowed) { return true; }
     loadSystemTrust(SSL_get_SSL_CTX(ssl));
-    unsigned char address[16];
     auto *param = SSL_get0_param(ssl);
-    if (uv_inet_pton(AF_INET, host, address) == 0 || uv_inet_pton(AF_INET6, host, address) == 0) {
+    if (isIpAddress(host)) {
         return X509_VERIFY_PARAM_set1_ip_asc(param, host) == 1;
     }
     return X509_VERIFY_PARAM_set1_host(param, host, 0) == 1;

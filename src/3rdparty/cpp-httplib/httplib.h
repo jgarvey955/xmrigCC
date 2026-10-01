@@ -7371,8 +7371,13 @@ inline bool SSLClient::initialize_ssl(Socket &socket, Error &error) {
           return true;
         },
         [&](SSL *ssl) {
-          SSL_set_tlsext_host_name(ssl, host_.c_str());
-          return true;
+          struct in_addr address4;
+          struct in6_addr address6;
+          if (inet_pton(AF_INET, host_.c_str(), &address4) == 1 ||
+              inet_pton(AF_INET6, host_.c_str(), &address6) == 1) {
+            return true;
+          }
+          return SSL_set_tlsext_host_name(ssl, host_.c_str()) == 1;
         });
 
     if (ssl) {

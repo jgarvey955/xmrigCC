@@ -72,9 +72,7 @@ bool xmrig::Client::Tls::handshake(const char* servername)
 
     if (!tls::verifyPeer(m_ssl, m_client->m_pool.host().data(), m_client->m_pool.fingerprint() != nullptr)) { return false; }
 
-    if (servername) {
-        SSL_set_tlsext_host_name(m_ssl, servername);
-    }
+    if (!tls::setServerName(m_ssl, servername)) { return false; }
 
     SSL_set_connect_state(m_ssl);
     SSL_set_bio(m_ssl, m_read, m_write);
