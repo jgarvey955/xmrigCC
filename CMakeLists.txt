@@ -303,6 +303,7 @@ endif()
 
 if (WITH_CC_CLIENT)
     add_executable(xmrigDaemon src/cc/XMRigd.cpp res/app.rc)
+    target_compile_definitions(xmrigDaemon PRIVATE XMRIG_DAEMON_PROJECT)
     set_target_properties(xmrigDaemon PROPERTIES OUTPUT_NAME ${DAEMON_EXECUTABLE_NAME})
 endif()
 

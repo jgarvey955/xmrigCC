@@ -25,10 +25,6 @@
 #include <cstdio>
 #include <uv.h>
 
-#ifdef XMRIG_FEATURE_TLS
-#   include <openssl/opensslv.h>
-#endif
-
 #ifdef XMRIG_FEATURE_HWLOC
 #   include <hwloc.h>
 #endif
@@ -39,6 +35,7 @@
 #endif
 
 #include "base/kernel/Entry.h"
+#include "base/kernel/BuildInfo.h"
 #include "base/kernel/Process.h"
 #include "core/config/usage.h"
 #include "version.h"
@@ -75,28 +72,7 @@ static int showVersion()
 #   endif
     "\n");
 
-    printf("\nlibuv/%s\n", uv_version_string());
-
-#   if defined(XMRIG_FEATURE_TLS)
-    {
-#       if defined(LIBRESSL_VERSION_TEXT)
-        printf("LibreSSL/%s\n", LIBRESSL_VERSION_TEXT + 9);
-#       elif defined(OPENSSL_VERSION_TEXT)
-        constexpr const char *v = &OPENSSL_VERSION_TEXT[8];
-        printf("OpenSSL/%.*s\n", static_cast<int>(strchr(v, ' ') - v), v);
-#       endif
-    }
-#   endif
-
-#   if defined(XMRIG_FEATURE_HWLOC)
-#   if defined(HWLOC_VERSION)
-    printf("hwloc/%s\n", HWLOC_VERSION);
-#   elif HWLOC_API_VERSION >= 0x20000
-    printf("hwloc/2\n");
-#   else
-    printf("hwloc/1\n");
-#   endif
-#   endif
+    printf(" build: %s\n\n%s\n", buildLinkage(), libraryVersions().c_str());
 
     return 0;
 }

@@ -17,12 +17,8 @@
 
 #include <string>
 
-#ifdef XMRIG_FEATURE_TLS
-#   include <openssl/opensslv.h>
-#   include <cstring>
-#endif
-
 #include "base/io/log/Log.h"
+#include "base/kernel/BuildInfo.h"
 #include "version.h"
 #include "Summary.h"
 
@@ -41,15 +37,9 @@ static void printVersions()
   xmrig::Log::print(GREEN_BOLD(" * ") WHITE_BOLD("%-13s") CYAN_BOLD("%s/%s") WHITE_BOLD(" %s") BLUE_BOLD(" (%s)"),
                     "ABOUT", APP_NAME, APP_VERSION, buf, BUILD_TYPE);
 
-  std::string libs;
-
-#if defined(XMRIG_FEATURE_TLS) && defined(OPENSSL_VERSION_TEXT)
-  {
-    constexpr const char* v = OPENSSL_VERSION_TEXT + 8;
-    snprintf(buf, sizeof buf, "OpenSSL/%.*s ", static_cast<int>(strchr(v, ' ') - v), v);
-    libs += buf;
-  }
-#endif
+  xmrig::Log::print(GREEN_BOLD(" * ") WHITE_BOLD("%-13s%s"), "BUILD", xmrig::buildLinkage());
+  // The server uses networking and compression, but not the miner's CPU topology backend.
+  xmrig::Log::print(GREEN_BOLD(" * ") WHITE_BOLD("%-13s%s"), "LIBS", xmrig::libraryVersions(false).c_str());
 }
 
 static void printCommands()

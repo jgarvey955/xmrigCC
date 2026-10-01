@@ -18,6 +18,7 @@
 
 
 #include "base/kernel/config/BaseConfig.h"
+#include "base/kernel/BuildInfo.h"
 #include "3rdparty/rapidjson/document.h"
 #include "base/io/json/Json.h"
 #include "base/io/log/Log.h"
@@ -33,15 +34,6 @@
 #include <cstdlib>
 #include <cstring>
 #include <uv.h>
-
-
-#ifdef XMRIG_FEATURE_TLS
-#   include <openssl/opensslv.h>
-#endif
-
-#ifdef XMRIG_FEATURE_HWLOC
-#   include "backend/cpu/Cpu.h"
-#endif
 
 
 namespace xmrig {
@@ -151,26 +143,8 @@ void xmrig::BaseConfig::printVersions()
 
     Log::print(GREEN_BOLD(" * ") WHITE_BOLD("%-13s") CYAN_BOLD("%s/%s") WHITE_BOLD(" %s") WHITE_BOLD(" (built for %s") WHITE_BOLD(" %s,") WHITE_BOLD(" %s)") BLUE_BOLD(" (%s)"), "ABOUT", APP_NAME, APP_VERSION, buf, APP_OS, APP_ARCH, APP_BITS, BUILD_TYPE);
 
-    std::string libs;
-
-#   if defined(XMRIG_FEATURE_TLS)
-    {
-#       if defined(LIBRESSL_VERSION_TEXT)
-        snprintf(buf, sizeof buf, "LibreSSL/%s ", LIBRESSL_VERSION_TEXT + 9);
-        libs += buf;
-#       elif defined(OPENSSL_VERSION_TEXT)
-        constexpr const char *v = &OPENSSL_VERSION_TEXT[8];
-        snprintf(buf, sizeof buf, "OpenSSL/%.*s ", static_cast<int>(strchr(v, ' ') - v), v);
-        libs += buf;
-#       endif
-    }
-#   endif
-
-#   if defined(XMRIG_FEATURE_HWLOC)
-    libs += Cpu::info()->backend();
-#   endif
-
-    Log::print(GREEN_BOLD(" * ") WHITE_BOLD("%-13slibuv/%s %s"), "LIBS", uv_version_string(), libs.c_str());
+    Log::print(GREEN_BOLD(" * ") WHITE_BOLD("%-13s%s"), "BUILD", buildLinkage());
+    Log::print(GREEN_BOLD(" * ") WHITE_BOLD("%-13s%s"), "LIBS", libraryVersions().c_str());
 }
 
 

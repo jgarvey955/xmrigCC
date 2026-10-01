@@ -19,6 +19,7 @@ set(HEADERS_BASE
     src/base/io/Signals.h
     src/base/io/Watcher.h
     src/base/kernel/Base.h
+    src/base/kernel/BuildInfo.h
     src/base/kernel/config/BaseConfig.h
     src/base/kernel/config/BaseTransform.h
     src/base/kernel/config/Title.h

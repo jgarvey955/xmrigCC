@@ -13,6 +13,10 @@ if (CMAKE_BUILD_TYPE STREQUAL "Release")
     add_definitions(-DNDEBUG)
 endif()
 
+if (BUILD_STATIC)
+    add_definitions(-DXMRIG_BUILD_STATIC)
+endif()
+
 include(CheckSymbolExists)
 
 if (CMAKE_CXX_COMPILER_ID MATCHES GNU)

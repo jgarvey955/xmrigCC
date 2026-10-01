@@ -15,11 +15,13 @@
  *   along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <cstdio>
 #include <cstdlib>
 #include <string>
 #include <fstream>
 #include <thread>
-#include <uv.h>
+#include "base/kernel/BuildInfo.h"
+#include "version.h"
 
 #include "XMRigd.h"
 
@@ -47,6 +49,11 @@ bool fileFound(const std::string& filePath)
 
 int main(int argc, char** argv)
 {
+  printf(" * ABOUT        " APP_NAME "Daemon/" APP_VERSION "\n");
+  printf(" * BUILD        %s\n", xmrig::buildLinkage());
+  printf(" * LIBS         %s\n", xmrig::runtimeLibraryVersions().c_str());
+  fflush(stdout);
+
   std::string ownPath(argv[0]);
   std::string params = " --daemonized";
   for (int i = 1; i < argc; i++)
