@@ -89,7 +89,7 @@ public:
     inline uint64_t target() const                      { return m_target; }
     inline int32_t proxyMapperId() const                { return m_proxyMapperId; }
     inline uint8_t *blob()                              { return m_blob; }
-    inline uint8_t fixedByte() const                    { return *(m_blob + 42); }
+    inline uint8_t fixedByte() const                    { return *(m_blob + nonceOffset() + 3); }
     inline uint8_t index() const                        { return m_index; }
     inline void reset()                                 { m_size = 0; m_diff = 0; }
     inline void setDonate(bool donate)                  { m_donate = donate; }
