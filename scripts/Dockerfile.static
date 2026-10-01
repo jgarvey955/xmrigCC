@@ -3,4 +3,5 @@ FROM alpine:3.24.2
 RUN apk add --no-cache build-base cmake ninja linux-headers perl pkgconf curl wget binutils patch
 
 COPY build_deps.sh build.uv.sh build.hwloc.sh build.openssl4.sh build.zlib.sh hwloc-visibility-notice.patch /opt/dependency-scripts/
-RUN cd /opt/dependency-scripts && JOBS="$(nproc)" ./build_deps.sh
+RUN cd /opt/dependency-scripts && JOBS="$(nproc)" CMAKE_GENERATOR=Ninja \
+    NINJA_STATUS='[libuv %p | %f/%t completed] ' ./build_deps.sh

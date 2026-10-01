@@ -102,12 +102,12 @@ using all available CPU cores. This removes glibc's static-link dependency
 warnings while keeping TLS, hwloc, zlib, and CC support enabled. The builder
 caches its dependencies separately from the host's `scripts/deps` directory.
 
-The outputs are `xmrigMiner`, `xmrigDaemon`, and `xmrigServer` in `build-static/`.
+The outputs are `xmrigMiner`, `xmrigDaemon`, and `xmrigServer` in `build/`.
 They run directly on Linux without a container and are checked for dynamic
 interpreters and linked shared libraries. Build on the target architecture
 (for example, ARM64 on a 64-bit Raspberry Pi). `BUILD_DIR` overrides the output
 directory; relative paths are resolved from the repository root. Intermediate
-musl build files live in `build-static/musl/`, separate from glibc build caches.
+musl build files live in `build/musl/`, separate from glibc build caches.
 
 OpenSSL's linked-in providers support TLS. Fully static musl executables cannot
 load external shared-library plugins or OpenSSL provider modules. These builds
