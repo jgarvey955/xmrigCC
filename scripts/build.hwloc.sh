@@ -16,6 +16,8 @@ wget -4 https://download.open-mpi.org/release/hwloc/v${HWLOC_VERSION_MAJOR}.${HW
 tar -xzf hwloc-${HWLOC_VERSION}.tar.gz
 
 cd hwloc-${HWLOC_VERSION}
+# Keep hwloc's successful visibility-flag check as a notice, preserving the flag.
+patch -p1 < ../../hwloc-visibility-notice.patch
 ./configure --disable-shared --enable-static --disable-io --disable-libudev --disable-libxml2
 make -j"${JOBS:-$(nproc || sysctl -n hw.ncpu || sysctl -n hw.logicalcpu)}"
 cp -fr include ../../deps

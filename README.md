@@ -96,16 +96,22 @@ For fully static binaries, run the root-level helper on the target machine:
 ./build-static.sh
 ```
 
-It uses all available CPU cores, rebuilds the bundled dependencies, and writes
-`xmrigMiner`, `xmrigDaemon`,
-and `xmrigServer` to `build-static/`, with TLS, hwloc, zlib, and CC support
-enabled. Each executable is checked for dynamic interpreters and shared-library
-dependencies. `BUILD_DIR` overrides the output directory; relative paths are
-resolved from the repository root. Run it with the native Linux C/C++ build
-tools, CMake, Perl, wget, and binutils (`readelf`) installed. glibc's static-link
-warnings remain visible; runtime-loaded modules can still depend on matching
-system libraries. The project's existing static-build configuration excludes
-CUDA/OpenCL backends, so these miners support CPU mining.
+Install Docker or Podman and ensure your user can run it. The script builds the
+bundled dependencies and applications with musl in an Alpine 3.24.2 container,
+using all available CPU cores. This removes glibc's static-link dependency
+warnings while keeping TLS, hwloc, zlib, and CC support enabled. The builder
+caches its dependencies separately from the host's `scripts/deps` directory.
+
+The outputs are `xmrigMiner`, `xmrigDaemon`, and `xmrigServer` in `build-static/`.
+They run directly on Linux without a container and are checked for dynamic
+interpreters and linked shared libraries. Build on the target architecture
+(for example, ARM64 on a 64-bit Raspberry Pi). `BUILD_DIR` overrides the output
+directory; relative paths are resolved from the repository root. Intermediate
+musl build files live in `build-static/musl/`, separate from glibc build caches.
+
+OpenSSL's linked-in providers support TLS. Fully static musl executables cannot
+load external shared-library plugins or OpenSSL provider modules. These builds
+use the project's existing CPU-only static configuration, excluding CUDA/OpenCL.
 
 Build the current dependencies and link system libraries dynamically:
 

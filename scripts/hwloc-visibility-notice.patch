@@ -1,0 +1,7 @@
+--- a/configure
++++ b/configure
+@@ -25967,2 +25967,2 @@
+-  { printf '%s\n' "$as_me:${as_lineno-$LINENO}: WARNING: \"$HWLOC_VISIBILITY_CFLAGS\" has been added to the hwloc CFLAGS" >&5
+-printf '%s\n' "$as_me: WARNING: \"$HWLOC_VISIBILITY_CFLAGS\" has been added to the hwloc CFLAGS" >&2;}
++  { printf '%s\n' "$as_me:${as_lineno-$LINENO}: \"$HWLOC_VISIBILITY_CFLAGS\" has been added to the hwloc CFLAGS" >&5
++printf '%s\n' "$as_me: \"$HWLOC_VISIBILITY_CFLAGS\" has been added to the hwloc CFLAGS" >&6;}

@@ -1,0 +1,4 @@
+*
+!Dockerfile.static
+!build*.sh
+!hwloc-visibility-notice.patch
