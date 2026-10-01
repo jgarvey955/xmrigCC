@@ -45,6 +45,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "backend/cpu/Cpu.h"
 #include "crypto/common/VirtualMemory.h"
+#include <algorithm>
 #include <mutex>
 
 #include <cassert>
@@ -572,6 +573,20 @@ extern "C" {
 			}
 		}
 
+
+		// Zecnero: the offset below keeps only 4 KB free at the end of the pool,
+		// less than an interpreter VM needs (about 16 KB), so start over at the
+		// beginning whenever the largest VM would not fit.
+		static const size_t max_vm_size = std::max({
+			sizeof(randomx::InterpretedLightVmDefault), sizeof(randomx::InterpretedVmDefault),
+			sizeof(randomx::CompiledLightVmDefault),    sizeof(randomx::CompiledVmDefault),
+			sizeof(randomx::InterpretedLightVmHardAes), sizeof(randomx::InterpretedVmHardAes),
+			sizeof(randomx::CompiledLightVmHardAes),    sizeof(randomx::CompiledVmHardAes)
+		});
+
+		if (vm_pool_offset[node] + max_vm_size > VM_POOL_SIZE) {
+			vm_pool_offset[node] = 0;
+		}
 
 		void* p = vm_pool[node] + vm_pool_offset[node];
 		size_t vm_size = 0;
