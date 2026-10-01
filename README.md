@@ -88,6 +88,23 @@ List of all supported algos can be found [here](doc/ALGORITHMS.md)
 * Git tree: https://github.com/Bendr0id/xmrigCC.git
     * Clone with `git clone https://github.com/Bendr0id/xmrigCC.git` :hammer: [official XMRig Build instructions](https://xmrig.com/docs/miner/build)
 
+## Build on Linux
+
+Build the current dependencies and link system libraries dynamically:
+
+```sh
+scripts/build_deps.sh
+cmake -S . -B build -DXMRIG_DEPS=scripts/deps -DBUILD_STATIC=OFF \
+    -DWITH_TLS=ON -DWITH_HWLOC=ON -DWITH_ZLIB=ON
+cmake --build build --parallel
+```
+
+The bundled libuv, hwloc, OpenSSL, and zlib libraries remain statically linked.
+Dynamic system-library linking preserves DNS resolution and module loading
+without glibc static-link warnings. Existing feature options remain available.
+Fully static system linking is still available with `BUILD_STATIC=ON`, with
+glibc's associated runtime limitations.
+
 ## Usage
 ### Basic example XMRigCCServer
 ```

@@ -11,10 +11,8 @@ mkdir -p build && cd build
 wget  -4 https://dist.libuv.org/dist/v${UV_VERSION}/libuv-v${UV_VERSION}.tar.gz -O v${UV_VERSION}.tar.gz
 tar -xzf v${UV_VERSION}.tar.gz
 
-cd libuv-v${UV_VERSION}
-sh autogen.sh
-./configure --disable-shared
-make -j$(nproc || sysctl -n hw.ncpu || sysctl -n hw.logicalcpu)
-cp -fr include ../../deps
-cp .libs/libuv.a ../../deps/lib
-cd ..
+cmake -S "libuv-v${UV_VERSION}" -B "libuv-v${UV_VERSION}/cmake-build" \
+    -DCMAKE_BUILD_TYPE=Release -DLIBUV_BUILD_SHARED=OFF -DBUILD_TESTING=OFF
+cmake --build "libuv-v${UV_VERSION}/cmake-build" --parallel "$(nproc || sysctl -n hw.ncpu || sysctl -n hw.logicalcpu)"
+cp -R "libuv-v${UV_VERSION}/include/." ../deps/include/
+cp "libuv-v${UV_VERSION}/cmake-build/libuv.a" ../deps/lib/
