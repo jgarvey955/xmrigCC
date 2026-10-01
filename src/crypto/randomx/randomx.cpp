@@ -46,6 +46,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "backend/cpu/Cpu.h"
 #include "crypto/common/VirtualMemory.h"
 #include <algorithm>
+#include <cstdlib>
 #include <mutex>
 
 #include <cassert>
@@ -166,6 +167,35 @@ RandomX_ConfigurationZecneroV2::RandomX_ConfigurationZecneroV2()
     ArgonSalt = "ZecneroRX\x01";
 }
 
+#if defined(_M_X64) || defined(__x86_64__)
+// Zecnero: in a test build (XMRIG_RX_TEST_HOOKS), XMRIG_TEST_NO_BMI2 and
+// XMRIG_TEST_JCC_ERRATUM generate the JIT code of a CPU without BMI2 or with
+// the JCC erratum, so that a test can check that code on any x86-64 CPU.
+#ifdef XMRIG_FEATURE_ASM
+static bool cpuHasBMI2()
+{
+#	ifdef XMRIG_RX_TEST_HOOKS
+	if (std::getenv("XMRIG_TEST_NO_BMI2")) {
+		return false;
+	}
+#	endif
+
+	return xmrig::Cpu::info()->hasBMI2();
+}
+#endif
+
+static bool cpuHasJccErratum()
+{
+#	ifdef XMRIG_RX_TEST_HOOKS
+	if (std::getenv("XMRIG_TEST_JCC_ERRATUM")) {
+		return true;
+	}
+#	endif
+
+	return xmrig::Cpu::info()->jccErratum();
+}
+#endif
+
 RandomX_ConfigurationBase::RandomX_ConfigurationBase()
 	: ArgonIterations(3)
 	, ArgonLanes(1)
@@ -238,7 +268,7 @@ RandomX_ConfigurationBase::RandomX_ConfigurationBase()
 		const uint8_t* b = addr(randomx_sshash_end);
 		memcpy(codeSshPrefetchTweaked, a, b - a);
 	}
-	if (xmrig::Cpu::info()->hasBMI2()) {
+	if (cpuHasBMI2()) {
 		const uint8_t* a = addr(randomx_prefetch_scratchpad_bmi2);
 		const uint8_t* b = addr(randomx_prefetch_scratchpad_end);
 		memcpy(codePrefetchScratchpadTweaked, a, b - a);
@@ -285,7 +315,7 @@ void RandomX_ConfigurationBase::Apply()
 	//*(uint32_t*)(codeReadDatasetTweaked + 24) = DatasetBaseMask;
 	//*(uint32_t*)(codeReadDatasetLightSshInitTweaked + 59) = DatasetBaseMask;
 
-	const bool hasBMI2 = xmrig::Cpu::info()->hasBMI2();
+	const bool hasBMI2 = cpuHasBMI2();
 
 	*(uint32_t*)(codePrefetchScratchpadTweaked + (hasBMI2 ? 7 : 4)) = ScratchpadL3Mask64_Calculated;
 	*(uint32_t*)(codePrefetchScratchpadTweaked + (hasBMI2 ? 17 : 18)) = ScratchpadL3Mask64_Calculated;
@@ -399,7 +429,7 @@ typedef void(randomx::JitCompilerX86::* InstructionGeneratorX86_2)(const randomx
 	INST_HANDLE(FSQRT_R, FDIV_M);
 
 #if defined(_M_X64) || defined(__x86_64__)
-	if (xmrig::Cpu::info()->jccErratum()) {
+	if (cpuHasJccErratum()) {
 		INST_HANDLE2(CBRANCH, CBRANCH<true>, FSQRT_R);
 	}
 	else {

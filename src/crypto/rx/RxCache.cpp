@@ -30,6 +30,11 @@
 #include "crypto/randomx/randomx.h"
 
 
+#ifdef XMRIG_RX_TEST_HOOKS
+#   include <cstdlib>
+#endif
+
+
 static_assert(RANDOMX_FLAG_JIT == 8, "RANDOMX_FLAG_JIT flag mismatch");
 
 
@@ -85,7 +90,13 @@ void xmrig::RxCache::create(uint8_t *memory)
         return;
     }
 
+#   ifdef XMRIG_RX_TEST_HOOKS
+    // XMRIG_TEST_NO_JIT: behave as on a system that refuses executable memory,
+    // so that a test build can run the interpreter in fast and light mode.
+    m_cache = std::getenv("XMRIG_TEST_NO_JIT") ? nullptr : randomx_create_cache(RANDOMX_FLAG_JIT, memory);
+#   else
     m_cache = randomx_create_cache(RANDOMX_FLAG_JIT, memory);
+#   endif
 
     if (!m_cache) {
         m_jit   = false;

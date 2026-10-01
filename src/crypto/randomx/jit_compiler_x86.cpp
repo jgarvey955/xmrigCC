@@ -32,6 +32,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <cstring>
 #include <climits>
 #include <atomic>
+#include <cstdlib>
 
 #include "crypto/randomx/jit_compiler_x86.hpp"
 #include "backend/cpu/Cpu.h"
@@ -237,6 +238,19 @@ namespace randomx {
 		BranchesWithin32B = xmrig::Cpu::info()->jccErratum();
 
 		hasAES = xmrig::Cpu::info()->hasAES();
+
+#		ifdef XMRIG_RX_TEST_HOOKS
+		// Zecnero: XMRIG_TEST_JIT_SOFT_AES and XMRIG_TEST_JCC_ERRATUM generate
+		// the code of a CPU without AES-NI or with the JCC erratum, so that a
+		// test build can check it on any x86-64 CPU (see randomx.cpp).
+		if (std::getenv("XMRIG_TEST_JIT_SOFT_AES")) {
+			hasAES = false;
+		}
+
+		if (std::getenv("XMRIG_TEST_JCC_ERRATUM")) {
+			BranchesWithin32B = true;
+		}
+#		endif
 
 		hasAVX = xmrig::Cpu::info()->hasAVX();
 		hasAVX2 = xmrig::Cpu::info()->hasAVX2();
