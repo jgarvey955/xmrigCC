@@ -14,7 +14,7 @@ tar -xzf openssl-${OPENSSL_VERSION}.tar.gz
 
 cd openssl-${OPENSSL_VERSION}
 ./config -no-shared -no-asm -no-zlib -no-comp -no-dgram -no-filenames -no-cms no-jitter no-fips-jitter no-tests
-make -j$(nproc || sysctl -n hw.ncpu || sysctl -n hw.logicalcpu) build_libs
+make -j"${JOBS:-$(nproc || sysctl -n hw.ncpu || sysctl -n hw.logicalcpu)}" build_libs
 cp -fr include ../../deps
 cp libcrypto.a ../../deps/lib
 cp libssl.a ../../deps/lib

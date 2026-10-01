@@ -13,6 +13,6 @@ tar -xzf v${UV_VERSION}.tar.gz
 
 cmake -S "libuv-v${UV_VERSION}" -B "libuv-v${UV_VERSION}/cmake-build" \
     -DCMAKE_BUILD_TYPE=Release -DLIBUV_BUILD_SHARED=OFF -DBUILD_TESTING=OFF
-cmake --build "libuv-v${UV_VERSION}/cmake-build" --parallel "$(nproc || sysctl -n hw.ncpu || sysctl -n hw.logicalcpu)"
+cmake --build "libuv-v${UV_VERSION}/cmake-build" --parallel "${JOBS:-$(nproc || sysctl -n hw.ncpu || sysctl -n hw.logicalcpu)}"
 cp -R "libuv-v${UV_VERSION}/include/." ../deps/include/
 cp "libuv-v${UV_VERSION}/cmake-build/libuv.a" ../deps/lib/

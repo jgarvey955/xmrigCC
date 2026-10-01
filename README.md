@@ -90,6 +90,23 @@ List of all supported algos can be found [here](doc/ALGORITHMS.md)
 
 ## Build on Linux
 
+For fully static binaries, run the root-level helper on the target machine:
+
+```sh
+./build-static.sh
+```
+
+It uses all available CPU cores, rebuilds the bundled dependencies, and writes
+`xmrigMiner`, `xmrigDaemon`,
+and `xmrigServer` to `build-static/`, with TLS, hwloc, zlib, and CC support
+enabled. Each executable is checked for dynamic interpreters and shared-library
+dependencies. `BUILD_DIR` overrides the output directory; relative paths are
+resolved from the repository root. Run it with the native Linux C/C++ build
+tools, CMake, Perl, wget, and binutils (`readelf`) installed. glibc's static-link
+warnings remain visible; runtime-loaded modules can still depend on matching
+system libraries. The project's existing static-build configuration excludes
+CUDA/OpenCL backends, so these miners support CPU mining.
+
 Build the current dependencies and link system libraries dynamically:
 
 ```sh

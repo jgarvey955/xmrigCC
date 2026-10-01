@@ -13,7 +13,7 @@ tar -xzf zlib-${ZLIB_VERSION}.tar.gz
 
 cd zlib-${ZLIB_VERSION}
 ./configure --static
-make -j$(nproc || sysctl -n hw.ncpu || sysctl -n hw.logicalcpu)
+make -j"${JOBS:-$(nproc || sysctl -n hw.ncpu || sysctl -n hw.logicalcpu)}"
 cp -fr zlib.h zconf.h ../../deps/include
 cp libz.a ../../deps/lib
 cd ..
