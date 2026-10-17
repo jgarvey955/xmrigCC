@@ -1,5 +1,5 @@
 # XMRigCC - Updated to work with SALVIUM
-to Donate SAL1 -> SC11UA22DFrAQerDwJwcf8Yh2ySTb7ipaFL8qSEX26tqUDdPf1RQBmmRuZG4SnRd8DNpp5vE1zDHnKNStiFDQsce49Q7fyp8Yp
+Donation XMR -> 45ny5y3EYkhF7KzTYbVnC3Zt6MmvszsSxPhdY1kg35GzNFX3BDPqK4gLzxJHqJXwSfC4GSB3cAUVfBj3mACNGZS42QsUQ6F
 
 XMRigCC is a high performance, open source, cross platform RandomX, GhostRider, KawPow, CryptoNight
 unified CPU/GPU miner. Official binaries are available for Windows, Linux, freebsd, macOS and Android.
@@ -335,7 +335,7 @@ Run the local notification checks with
 
 
 ## Donations
-This build fixes donation at 5%. Config and command-line values do not override it.
+This build fixes donation at 5% to the Monero HeroMiners TLS pool. Config and command-line values do not override it.
 
 ## Zecnero direct solo mining
 

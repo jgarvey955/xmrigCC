@@ -36,7 +36,7 @@
  *
  * If you plan on changing donations, please consider making a one-off donation to my wallet:
  *
- * XMR: 4BEn3sSa2SsHBcwa9dNdKnGvvbyHPABr2JzoY7omn7DA2hPv84pVFvwDrcwMCWgz3dQVcrkw3gE9aTC9Mi5HxzkfF9ev1eH
+ * XMR: 45ny5y3EYkhF7KzTYbVnC3Zt6MmvszsSxPhdY1kg35GzNFX3BDPqK4gLzxJHqJXwSfC4GSB3cAUVfBj3mACNGZS42QsUQ6F
  *
  */
 constexpr const int kDefaultDonateLevel = 5;
