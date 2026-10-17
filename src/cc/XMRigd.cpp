@@ -120,7 +120,7 @@ int main(int argc, char** argv)
     // execute miner and wait for result
     status = system(("\"" +fullMinerBinaryPath + "\""  + params).c_str());
 #if defined(_WIN32) || defined(WIN32)
-    } while (status != EINVAL && status != SIGHUP && status != SIGINT && status != EXIT_SUCCESS);
+    } while (status != EINVAL && status != SIGINT && status != EXIT_SUCCESS);
 
   if (status == EINVAL)
   {

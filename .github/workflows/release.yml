@@ -182,6 +182,9 @@ jobs:
             "-DOPENSSL_SSL_LIBRARY=$env:DEPS_DIR\lib\libssl.lib" `
             "-DOPENSSL_CRYPTO_LIBRARY=$env:DEPS_DIR\lib\libcrypto.lib"
           cmake.exe --build build-release --config Release --parallel
+          if ($LASTEXITCODE -ne 0) {
+            throw "xmrigCC build failed with exit code $LASTEXITCODE"
+          }
           & .\build-release\Release\xmrigMiner.exe --version
 
       - name: Package
