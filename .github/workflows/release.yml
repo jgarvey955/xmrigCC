@@ -203,6 +203,7 @@ jobs:
       - name: Publish release
         env:
           GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
           RELEASE_VERSION: ${{ inputs.version }}
         run: |
           gh release create "v${RELEASE_VERSION}" dist/* \
