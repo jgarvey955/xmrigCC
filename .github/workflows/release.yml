@@ -3,8 +3,8 @@ name: Build and publish release
 on:
   workflow_dispatch:
     inputs:
-      tag:
-        description: Release tag to create
+      version:
+        description: Release version (for example, 3.5.0)
         required: true
         type: string
 
@@ -38,17 +38,17 @@ jobs:
 
       - name: Package
         env:
-          RELEASE_TAG: ${{ inputs.tag }}
+          RELEASE_VERSION: ${{ inputs.version }}
           TARGET_ARCH: ${{ matrix.arch }}
         run: |
-          package="xmrigCC-${RELEASE_TAG}-linux-static-${TARGET_ARCH}"
+          package="xmrigCC-${RELEASE_VERSION}-linux-${TARGET_ARCH}"
           mkdir -p "staging/${package}" dist
           cp build-release/xmrigMiner build-release/xmrigDaemon build-release/xmrigServer "staging/${package}/"
           cp README.md LICENSE index.html src/config.json "staging/${package}/"
           cp config-zecnero-*.json "staging/${package}/"
           {
             printf 'Project: xmrigCC\n'
-            printf 'Tag: %s\n' "$RELEASE_TAG"
+            printf 'Version: %s\n' "$RELEASE_VERSION"
             printf 'Commit: %s\n' "$GITHUB_SHA"
             printf 'Platform: Linux static %s\n' "$TARGET_ARCH"
             printf 'TLS: enabled\nGPU backends: disabled\n'
@@ -101,17 +101,17 @@ jobs:
 
       - name: Package
         env:
-          RELEASE_TAG: ${{ inputs.tag }}
+          RELEASE_VERSION: ${{ inputs.version }}
           TARGET_ARCH: ${{ matrix.arch }}
         run: |
-          package="xmrigCC-${RELEASE_TAG}-macos-${TARGET_ARCH}"
+          package="xmrigCC-${RELEASE_VERSION}-macos-${TARGET_ARCH}"
           mkdir -p "staging/${package}" dist
           cp build-release/xmrigMiner build-release/xmrigDaemon build-release/xmrigServer "staging/${package}/"
           cp README.md LICENSE index.html src/config.json "staging/${package}/"
           cp config-zecnero-*.json "staging/${package}/"
           {
             printf 'Project: xmrigCC\n'
-            printf 'Tag: %s\n' "$RELEASE_TAG"
+            printf 'Version: %s\n' "$RELEASE_VERSION"
             printf 'Commit: %s\n' "$GITHUB_SHA"
             printf 'Platform: macOS %s\n' "$TARGET_ARCH"
             printf 'TLS: enabled\nGPU backends: disabled\nCode signing: unsigned\n'
@@ -156,9 +156,9 @@ jobs:
       - name: Package
         shell: pwsh
         env:
-          RELEASE_TAG: ${{ inputs.tag }}
+          RELEASE_VERSION: ${{ inputs.version }}
         run: |
-          $package = "xmrigCC-$env:RELEASE_TAG-windows-x64"
+          $package = "xmrigCC-$env:RELEASE_VERSION-windows-x64"
           $packageDir = Join-Path "staging" $package
           New-Item -ItemType Directory -Force $packageDir, "dist" | Out-Null
           Copy-Item "build-release\xmrigMiner.exe", "build-release\xmrigDaemon.exe", "build-release\xmrigServer.exe" $packageDir
@@ -166,7 +166,7 @@ jobs:
           Copy-Item "config-zecnero-*.json" $packageDir
           @(
             "Project: xmrigCC"
-            "Tag: $env:RELEASE_TAG"
+            "Version: $env:RELEASE_VERSION"
             "Commit: $env:GITHUB_SHA"
             "Platform: Windows x64"
             "TLS: enabled"
@@ -193,27 +193,19 @@ jobs:
 
       - name: Create checksums and release notes
         env:
-          RELEASE_TAG: ${{ inputs.tag }}
+          RELEASE_VERSION: ${{ inputs.version }}
         run: |
           cd dist
           sha256sum *.tar.gz *.zip > SHA256SUMS.txt
           cd ..
-          {
-            printf 'CPU-only release built from commit `%s`.\n\n' "$GITHUB_SHA"
-            printf -- '- Linux x64 and ARM64 are fully static and suitable for Ubuntu and other common Linux distributions.\n'
-            printf -- '- Windows x64 is statically linked and unsigned.\n'
-            printf -- '- macOS Intel and Apple Silicon builds are unsigned.\n'
-            printf -- '- TLS is enabled in every build; CUDA and OpenCL are disabled.\n'
-            printf -- '- Developer donation is fixed at 5%% and uses the configured Monero HeroMiners TLS endpoint.\n\n'
-            printf 'Verify downloads with `SHA256SUMS.txt`.\n'
-          } > release-notes.md
+          printf 'xmrigCC %s\n' "$RELEASE_VERSION" > release-notes.md
 
       - name: Publish release
         env:
           GH_TOKEN: ${{ github.token }}
-          RELEASE_TAG: ${{ inputs.tag }}
+          RELEASE_VERSION: ${{ inputs.version }}
         run: |
-          gh release create "$RELEASE_TAG" dist/* \
+          gh release create "v${RELEASE_VERSION}" dist/* \
             --target "$GITHUB_SHA" \
-            --title "xmrigCC ${RELEASE_TAG}" \
+            --title "xmrigCC ${RELEASE_VERSION}" \
             --notes-file release-notes.md
