@@ -1,0 +1,219 @@
+name: Build and publish release
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag to create
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  linux:
+    name: Linux ${{ matrix.arch }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-24.04
+            arch: x64
+          - runner: ubuntu-24.04-arm
+            arch: arm64
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install build tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y autoconf automake binutils build-essential cmake libtool patch perl python3 wget
+
+      - name: Build static CPU binaries
+        env:
+          BUILD_DIR: ${{ github.workspace }}/build-release
+        run: ./build-static.sh
+
+      - name: Package
+        env:
+          RELEASE_TAG: ${{ inputs.tag }}
+          TARGET_ARCH: ${{ matrix.arch }}
+        run: |
+          package="xmrigCC-${RELEASE_TAG}-linux-static-${TARGET_ARCH}"
+          mkdir -p "staging/${package}" dist
+          cp build-release/xmrigMiner build-release/xmrigDaemon build-release/xmrigServer "staging/${package}/"
+          cp README.md LICENSE index.html src/config.json "staging/${package}/"
+          cp config-zecnero-*.json "staging/${package}/"
+          {
+            printf 'Project: xmrigCC\n'
+            printf 'Tag: %s\n' "$RELEASE_TAG"
+            printf 'Commit: %s\n' "$GITHUB_SHA"
+            printf 'Platform: Linux static %s\n' "$TARGET_ARCH"
+            printf 'TLS: enabled\nGPU backends: disabled\n'
+          } > "staging/${package}/BUILDINFO.txt"
+          tar -C staging -czf "dist/${package}.tar.gz" "$package"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux-${{ matrix.arch }}
+          path: dist/*.tar.gz
+          if-no-files-found: error
+
+  macos:
+    name: macOS ${{ matrix.arch }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: macos-15-intel
+            arch: x64
+          - runner: macos-15
+            arch: arm64
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install build tools
+        run: brew install automake libtool wget
+
+      - name: Build static dependencies
+        run: |
+          export JOBS="$(sysctl -n hw.logicalcpu)"
+          scripts/build_deps.sh
+
+      - name: Build CPU binaries
+        run: |
+          cmake -S . -B build-release \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DXMRIG_DEPS="$PWD/scripts/deps" \
+            -DBUILD_STATIC=OFF \
+            -DWITH_TLS=ON \
+            -DWITH_HWLOC=ON \
+            -DWITH_ZLIB=ON \
+            -DWITH_CC_CLIENT=ON \
+            -DWITH_CC_SERVER=ON \
+            -DWITH_OPENCL=OFF \
+            -DWITH_CUDA=OFF
+          cmake --build build-release --parallel "$(sysctl -n hw.logicalcpu)"
+          build-release/xmrigMiner --version
+
+      - name: Package
+        env:
+          RELEASE_TAG: ${{ inputs.tag }}
+          TARGET_ARCH: ${{ matrix.arch }}
+        run: |
+          package="xmrigCC-${RELEASE_TAG}-macos-${TARGET_ARCH}"
+          mkdir -p "staging/${package}" dist
+          cp build-release/xmrigMiner build-release/xmrigDaemon build-release/xmrigServer "staging/${package}/"
+          cp README.md LICENSE index.html src/config.json "staging/${package}/"
+          cp config-zecnero-*.json "staging/${package}/"
+          {
+            printf 'Project: xmrigCC\n'
+            printf 'Tag: %s\n' "$RELEASE_TAG"
+            printf 'Commit: %s\n' "$GITHUB_SHA"
+            printf 'Platform: macOS %s\n' "$TARGET_ARCH"
+            printf 'TLS: enabled\nGPU backends: disabled\nCode signing: unsigned\n'
+          } > "staging/${package}/BUILDINFO.txt"
+          tar -C staging -czf "dist/${package}.tar.gz" "$package"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: macos-${{ matrix.arch }}
+          path: dist/*.tar.gz
+          if-no-files-found: error
+
+  windows:
+    name: Windows x64
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependency build tools
+        shell: pwsh
+        run: choco install strawberryperl nasm -y --no-progress
+
+      - name: Build static dependencies
+        shell: pwsh
+        run: |
+          & .\scripts\setup_windows_static_deps.ps1 `
+            -Prefix "$env:RUNNER_TEMP\xmrigcc-deps" `
+            -LibuvVersion "1.53.0" `
+            -HwlocVersion "2.15.0" `
+            -OpenSSLVersion "4.0.3" `
+            -ZlibVersion "1.3.2"
+
+      - name: Build static CPU binaries
+        shell: pwsh
+        run: |
+          & .\scripts\build_windows_static.ps1 `
+            -SourceDir "$env:GITHUB_WORKSPACE" `
+            -BuildDir "$env:GITHUB_WORKSPACE\build-release" `
+            -DepsDir "$env:RUNNER_TEMP\xmrigcc-deps"
+          & .\build-release\xmrigMiner.exe --version
+
+      - name: Package
+        shell: pwsh
+        env:
+          RELEASE_TAG: ${{ inputs.tag }}
+        run: |
+          $package = "xmrigCC-$env:RELEASE_TAG-windows-x64"
+          $packageDir = Join-Path "staging" $package
+          New-Item -ItemType Directory -Force $packageDir, "dist" | Out-Null
+          Copy-Item "build-release\xmrigMiner.exe", "build-release\xmrigDaemon.exe", "build-release\xmrigServer.exe" $packageDir
+          Copy-Item "README.md", "LICENSE", "index.html", "src\config.json" $packageDir
+          Copy-Item "config-zecnero-*.json" $packageDir
+          @(
+            "Project: xmrigCC"
+            "Tag: $env:RELEASE_TAG"
+            "Commit: $env:GITHUB_SHA"
+            "Platform: Windows x64"
+            "TLS: enabled"
+            "GPU backends: disabled"
+            "Code signing: unsigned"
+          ) | Set-Content -Encoding ASCII (Join-Path $packageDir "BUILDINFO.txt")
+          Compress-Archive -Path $packageDir -DestinationPath "dist\$package.zip"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-x64
+          path: dist/*.zip
+          if-no-files-found: error
+
+  release:
+    name: Publish GitHub release
+    needs: [linux, macos, windows]
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: Create checksums and release notes
+        env:
+          RELEASE_TAG: ${{ inputs.tag }}
+        run: |
+          cd dist
+          sha256sum *.tar.gz *.zip > SHA256SUMS.txt
+          cd ..
+          {
+            printf 'CPU-only release built from commit `%s`.\n\n' "$GITHUB_SHA"
+            printf -- '- Linux x64 and ARM64 are fully static and suitable for Ubuntu and other common Linux distributions.\n'
+            printf -- '- Windows x64 is statically linked and unsigned.\n'
+            printf -- '- macOS Intel and Apple Silicon builds are unsigned.\n'
+            printf -- '- TLS is enabled in every build; CUDA and OpenCL are disabled.\n'
+            printf -- '- Developer donation is fixed at 5%% and uses the configured Monero HeroMiners TLS endpoint.\n\n'
+            printf 'Verify downloads with `SHA256SUMS.txt`.\n'
+          } > release-notes.md
+
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ inputs.tag }}
+        run: |
+          gh release create "$RELEASE_TAG" dist/* \
+            --target "$GITHUB_SHA" \
+            --title "xmrigCC ${RELEASE_TAG}" \
+            --notes-file release-notes.md
