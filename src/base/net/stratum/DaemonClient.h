@@ -87,7 +87,7 @@ private:
     bool parseJob(const rapidjson::Value &params, int *code);
     bool parseResponse(int64_t id, const rapidjson::Value &result, const rapidjson::Value &error);
     int64_t getBlockTemplate();
-    int64_t rpcSend(const rapidjson::Document &doc, const std::map<std::string, std::string> &headers = {});
+    int64_t rpcSend(const rapidjson::Document &doc, const std::map<std::string, std::string> &headers = {}, bool submit = false);
     void retry();
     void send(const char *path);
     void setState(SocketState state);
@@ -96,6 +96,11 @@ private:
         API_CRYPTONOTE_DEFAULT,
         API_MONERO,
     } m_apiVersion = API_MONERO;
+
+    enum HttpRequestType {
+        ControlRequest,
+        SubmitRequest,
+    };
 
     BlockTemplate m_blocktemplate;
     Coin m_coin;
