@@ -108,10 +108,20 @@ if (WITH_CC_SERVER OR WITH_CC_CLIENT)
             if (XMRIG_ZLIB_INCLUDE_DIR AND XMRIG_ZLIB_LIBRARY)
                 set(ZLIB_INCLUDE_DIR "${XMRIG_ZLIB_INCLUDE_DIR}" CACHE PATH "zlib include directory" FORCE)
                 set(ZLIB_LIBRARY "${XMRIG_ZLIB_LIBRARY}" CACHE FILEPATH "zlib library" FORCE)
+                set(ZLIB_LIBRARY_RELEASE "${XMRIG_ZLIB_LIBRARY}" CACHE FILEPATH "zlib release library" FORCE)
+                set(ZLIB_LIBRARY_DEBUG "${XMRIG_ZLIB_LIBRARY}" CACHE FILEPATH "zlib debug library" FORCE)
+            else()
+                message(FATAL_ERROR "XMRIG_DEPS was provided but its zlib headers or static library were not found")
             endif()
         endif()
 
         find_package(ZLIB REQUIRED)
+        if (XMRIG_DEPS)
+            # FindZLIB may retain a system path from an older CMake cache.
+            # Make the link input deterministic when a static dependency tree
+            # was explicitly requested.
+            set(ZLIB_LIBRARIES "${XMRIG_ZLIB_LIBRARY}")
+        endif()
         add_definitions(/DCPPHTTPLIB_ZLIB_SUPPORT)
     endif()
 endif()

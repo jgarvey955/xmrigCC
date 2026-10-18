@@ -20,6 +20,7 @@
 #include <string>
 #include <fstream>
 #include <thread>
+#include <vector>
 #include "base/kernel/BuildInfo.h"
 #include "version.h"
 
@@ -30,6 +31,8 @@
 #include <windows.h>
 #include <signal.h>
 #else
+#include <signal.h>
+#include <unistd.h>
 #include <sys/wait.h>
 #include <sys/stat.h>
 #include <errno.h>
@@ -40,6 +43,82 @@
 #endif
 #define VALUE_TO_STRING(x) #x
 #define VALUE(x) VALUE_TO_STRING(x)
+
+#if !defined(_WIN32) && !defined(WIN32)
+namespace
+{
+volatile sig_atomic_t childProcessGroup = -1;
+
+void forwardSignal(int signal)
+{
+  const auto group = childProcessGroup;
+  if (group > 0)
+  {
+    kill(-group, signal);
+  }
+}
+
+int runMiner(const std::string& path, int argc, char** argv)
+{
+  const pid_t child = fork();
+  if (child < 0)
+  {
+    return errno == 0 ? EXIT_FAILURE : errno;
+  }
+
+  if (child == 0)
+  {
+    setpgid(0, 0);
+
+    std::vector<char*> args;
+    args.reserve(static_cast<size_t>(argc) + 2);
+    args.push_back(const_cast<char*>(path.c_str()));
+    for (int i = 1; i < argc; ++i)
+    {
+      args.push_back(argv[i]);
+    }
+    char daemonized[] = "--daemonized";
+    args.push_back(daemonized);
+    args.push_back(nullptr);
+
+    execv(path.c_str(), args.data());
+    _exit(errno == ENOENT ? 127 : 126);
+  }
+
+  setpgid(child, child);
+  childProcessGroup = child;
+
+  struct sigaction action{};
+  action.sa_handler = forwardSignal;
+  sigemptyset(&action.sa_mask);
+  sigaction(SIGTERM, &action, nullptr);
+  sigaction(SIGINT, &action, nullptr);
+  sigaction(SIGHUP, &action, nullptr);
+
+  int status = 0;
+  while (waitpid(child, &status, 0) < 0)
+  {
+    if (errno != EINTR)
+    {
+      childProcessGroup = -1;
+      return errno == 0 ? EXIT_FAILURE : errno;
+    }
+  }
+
+  childProcessGroup = -1;
+  if (WIFEXITED(status))
+  {
+    return WEXITSTATUS(status);
+  }
+  if (WIFSIGNALED(status))
+  {
+    return 128 + WTERMSIG(status);
+  }
+
+  return EXIT_FAILURE;
+}
+}
+#endif
 
 bool fileFound(const std::string& filePath)
 {
@@ -55,12 +134,14 @@ int main(int argc, char** argv)
   fflush(stdout);
 
   std::string ownPath(argv[0]);
+#if defined(_WIN32) || defined(WIN32)
   std::string params = " --daemonized";
   for (int i = 1; i < argc; i++)
   {
     params += " ";
     params += argv[i];
   }
+#endif
 
 #if defined(_WIN32) || defined(WIN32)
   auto pos = ownPath.rfind('\\');
@@ -71,11 +152,9 @@ int main(int argc, char** argv)
 #endif
 
   auto fullMinerBinaryPath = ownPath.substr(0, pos + 1) + minerBinaryName;
-  auto status = EXIT_SUCCESS;
-
-  do
+  while (true)
   {
-    status = EXIT_SUCCESS;
+    auto status = EXIT_SUCCESS;
 
     // apply update if we have one
     if (fileFound(fullMinerBinaryPath + UPDATE_EXTENSION))
@@ -118,16 +197,26 @@ int main(int argc, char** argv)
     }
 
     // execute miner and wait for result
-    status = system(("\"" +fullMinerBinaryPath + "\""  + params).c_str());
 #if defined(_WIN32) || defined(WIN32)
-    } while (status != EINVAL && status != SIGINT && status != EXIT_SUCCESS);
-
-  if (status == EINVAL)
-  {
-    std::this_thread::sleep_for(std::chrono::milliseconds(3000));
-  }
+    status = system(("\"" + fullMinerBinaryPath + "\"" + params).c_str());
+    if (status == EXIT_SUCCESS || status == EINVAL || status == SIGINT)
+    {
+      return status;
+    }
 #else
-  } while (WEXITSTATUS(status) != EINVAL && WEXITSTATUS(status) != SIGHUP && WEXITSTATUS(status) != SIGINT &&
-           WEXITSTATUS(status) != EXIT_SUCCESS);
+    status = runMiner(fullMinerBinaryPath, argc, argv);
+    if (status == EXIT_SUCCESS || status == EINVAL || status == 128 + SIGHUP ||
+        status == 128 + SIGINT || status == 128 + SIGTERM)
+    {
+      return status == EXIT_SUCCESS ? EXIT_SUCCESS : status;
+    }
 #endif
+
+    // Explicit restarts happen immediately; unexpected crashes are throttled
+    // to avoid a tight respawn loop.
+    if (status != RC_RESTART)
+    {
+      std::this_thread::sleep_for(std::chrono::seconds(1));
+    }
+  }
 }

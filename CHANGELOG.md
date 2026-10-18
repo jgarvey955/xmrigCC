@@ -1,4 +1,17 @@
-# Unreleased
+# 3.6.0
+* Updated llhttp to 9.4.3, fmt to 12.2.0, cpp-httplib to 0.61.0,
+  cxxopts to 3.3.1, and the OpenCL headers to 2026.05.29.
+* Preserved CC HTTP and SOCKS5 proxy support across the cpp-httplib upgrade.
+* Removed the CC server's request-wide global lock so status traffic and
+  configuration file operations no longer serialize each other.
+* Replaced the daemon's shell-based launcher with direct process creation,
+  process-group signal forwarding, valid restart exit codes, and crash-loop
+  throttling.
+* Bounded and batched asynchronous file logging.
+* Pinned dependency archive checksums and forced static zlib builds to link the
+  requested dependency instead of a cached system library.
+* Updated the optional LibreSSL builder to 4.3.3 and retired its OpenSSL 1.1.1
+  compatibility builder in favor of OpenSSL 4.
 * Zecnero direct RPC reads the node-owned local cookie file only. Removed cookie download options; automatic rereading after node cookie rotation is retained.
 
 # 3.4.9

@@ -83,7 +83,7 @@ CCServerConfig::CCServerConfig(cxxopts::ParseResult& parseResult)
     m_pushZeroHashrateMiners = getParseResult(parseResult, "push-miner-zero-hash-info", m_pushZeroHashrateMiners);
     m_pushPeriodicStatus = getParseResult(parseResult, "push-periodic-mining-status", m_pushPeriodicStatus);
   }
-  catch (const cxxopts::OptionException& e)
+  catch (const cxxopts::exceptions::exception& e)
   {
     LOG_WARN("Failed to parse params. Error: %s", e.what());
   }

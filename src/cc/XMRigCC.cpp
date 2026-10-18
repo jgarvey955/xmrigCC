@@ -73,7 +73,7 @@ int main(int argc, char** argv)
       ret = server.start();
     }
   }
-  catch (const cxxopts::OptionException& e)
+  catch (const cxxopts::exceptions::exception& e)
   {
     std::cout << "error parsing options: " << e.what() << std::endl;
     ret = EINVAL;

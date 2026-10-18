@@ -17,7 +17,7 @@
  */
 
 #include "crypto/common/LinuxMemory.h"
-#include "3rdparty/fmt/core.h"
+#include "3rdparty/fmt/format.h"
 #include "crypto/common/VirtualMemory.h"
 
 

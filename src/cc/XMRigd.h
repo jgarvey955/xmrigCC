@@ -19,7 +19,8 @@
 #define __XMRIGD_H__
 
 constexpr static int RC_OK = 0;
-constexpr static int RC_RESTART = 10000;
+// Process exit statuses are limited to 8 bits on POSIX.
+constexpr static int RC_RESTART = 75;
 
 constexpr static char BACKUP_EXTENSION[] = ".bak";
 constexpr static char UPDATE_EXTENSION[] = ".upd";

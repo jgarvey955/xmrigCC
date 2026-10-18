@@ -45,6 +45,8 @@ public:
     bool writeLine(const char *data, size_t size);
 
 private:
+    constexpr static size_t kMaxBufferedBytes = 4 * 1024 * 1024;
+
 #   ifdef XMRIG_OS_WIN
     const char m_endl[3]  = {'\r', '\n', 0};
 #   else
@@ -56,10 +58,12 @@ private:
 
     uv_mutex_t m_buffersLock;
     std::vector<uv_buf_t> m_buffers;
+    size_t m_bufferedBytes = 0;
 
     uv_async_t m_flushAsync;
 
     void init();
+    bool enqueue(uv_buf_t buf);
 
     static void on_flush(uv_async_t* async) { reinterpret_cast<FileLogWriter*>(async->data)->flush(); }
     void flush();

@@ -459,7 +459,7 @@ std::shared_ptr<httplib::ClientImpl> xmrig::CCClient::getClient()
     if (config.useTLS())
     {
       auto secureClient = std::make_shared<httplib::SSLClient>(config.host(), config.port());
-      tls::loadSystemTrust(secureClient->ssl_context());
+      tls::loadSystemTrust(static_cast<SSL_CTX *>(secureClient->tls_context()));
       secureClient->enable_server_certificate_verification(!tls::allowUntrusted());
       cli = secureClient;
     }
@@ -515,7 +515,7 @@ std::shared_ptr<httplib::Response> xmrig::CCClient::performRequest(const std::st
     req.path = requestUrl;
     req.set_header("Host", hostHeader.str());
     req.set_header("Accept", "*//*");
-    req.set_header("User-Agent", Platform::userAgent());
+    req.set_header("User-Agent", Platform::userAgent().data());
     req.set_header("Accept", "application/json");
     req.set_header("Content-Type", "application/json");
 

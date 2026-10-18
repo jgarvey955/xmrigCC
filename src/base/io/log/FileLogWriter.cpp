@@ -102,14 +102,7 @@ bool xmrig::FileLogWriter::write(const char *data, size_t size)
     uv_buf_t buf = uv_buf_init(new char[size], static_cast<unsigned int>(size));
     memcpy(buf.base, data, size);
 
-    uv_mutex_lock(&m_buffersLock);
-
-    m_buffers.emplace_back(buf);
-    uv_async_send(&m_flushAsync);
-
-    uv_mutex_unlock(&m_buffersLock);
-
-    return true;
+    return enqueue(buf);
 }
 
 
@@ -125,11 +118,22 @@ bool xmrig::FileLogWriter::writeLine(const char *data, size_t size)
     memcpy(buf.base, data, size);
     memcpy(buf.base + size, m_endl, N);
 
+    return enqueue(buf);
+}
+
+
+bool xmrig::FileLogWriter::enqueue(uv_buf_t buf)
+{
     uv_mutex_lock(&m_buffersLock);
+    if (buf.len > kMaxBufferedBytes || m_bufferedBytes > kMaxBufferedBytes - buf.len) {
+        uv_mutex_unlock(&m_buffersLock);
+        delete [] buf.base;
+        return false;
+    }
 
     m_buffers.emplace_back(buf);
+    m_bufferedBytes += buf.len;
     uv_async_send(&m_flushAsync);
-
     uv_mutex_unlock(&m_buffersLock);
 
     return true;
@@ -137,16 +141,40 @@ bool xmrig::FileLogWriter::writeLine(const char *data, size_t size)
 
 void xmrig::FileLogWriter::flush()
 {
+    std::vector<uv_buf_t> buffers;
     uv_mutex_lock(&m_buffersLock);
-
-    for (uv_buf_t buf : m_buffers) {
-        uv_fs_t* req = new uv_fs_t;
-        req->data = buf.base;
-
-        uv_fs_write(uv_default_loop(), req, m_file, &buf, 1, m_pos, fsWriteCallback);
-        m_pos += buf.len;
-    }
-    m_buffers.clear();
-
+    buffers.swap(m_buffers);
+    m_bufferedBytes = 0;
     uv_mutex_unlock(&m_buffersLock);
+
+    if (buffers.empty()) {
+        return;
+    }
+
+    size_t size = 0;
+    for (const auto &buf : buffers) {
+        size += buf.len;
+    }
+
+    char *data = new char[size];
+    size_t offset = 0;
+    for (const auto &buf : buffers) {
+        memcpy(data + offset, buf.base, buf.len);
+        offset += buf.len;
+        delete [] buf.base;
+    }
+
+    uv_buf_t output = uv_buf_init(data, static_cast<unsigned int>(size));
+    uv_fs_t *req = new uv_fs_t;
+    req->data = data;
+
+    const int rc = uv_fs_write(uv_default_loop(), req, m_file, &output, 1, m_pos, fsWriteCallback);
+    if (rc < 0) {
+        delete [] data;
+        uv_fs_req_cleanup(req);
+        delete req;
+        return;
+    }
+
+    m_pos += size;
 }

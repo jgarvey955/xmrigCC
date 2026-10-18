@@ -18,7 +18,7 @@
  */
 
 #include "base/tools/String.h"
-#include "3rdparty/fmt/core.h"
+#include "3rdparty/fmt/format.h"
 
 #include <cstdio>
 #include <cstring>

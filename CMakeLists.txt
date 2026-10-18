@@ -1,5 +1,10 @@
 cmake_minimum_required(VERSION 3.12)
-project(xmrigcc)
+include("${CMAKE_CURRENT_LIST_DIR}/cmake/version.cmake")
+xmrig_read_version(
+    "${CMAKE_CURRENT_LIST_DIR}/src/version.h"
+    "${CMAKE_CURRENT_LIST_DIR}/CHANGELOG.md"
+    XMRIGCC_VERSION)
+project(xmrigcc VERSION "${XMRIGCC_VERSION}")
 
 set(CMAKE_BUILD_TYPE "Release")
 

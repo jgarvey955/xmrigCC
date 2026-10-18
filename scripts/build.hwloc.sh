@@ -5,6 +5,12 @@ HWLOC_VERSION_MINOR="15"
 HWLOC_VERSION_PATCH="0"
 
 HWLOC_VERSION="${HWLOC_VERSION_MAJOR}.${HWLOC_VERSION_MINOR}.${HWLOC_VERSION_PATCH}"
+HWLOC_SHA256="f54bbdfc9f8015308c2e7bbab3e7789e47436a4a016689e5749a0c35d6877619"
+
+verify_sha256() {
+    actual=$(sha256sum "$1" | awk '{print $1}')
+    [ "$actual" = "$2" ] || { printf 'SHA-256 mismatch for %s\n' "$1" >&2; exit 1; }
+}
 
 mkdir -p deps
 mkdir -p deps/include
@@ -12,7 +18,9 @@ mkdir -p deps/lib
 
 mkdir -p build && cd build
 
-wget -4 https://download.open-mpi.org/release/hwloc/v${HWLOC_VERSION_MAJOR}.${HWLOC_VERSION_MINOR}/hwloc-${HWLOC_VERSION}.tar.gz -O hwloc-${HWLOC_VERSION}.tar.gz
+wget -4 --tries=3 https://download.open-mpi.org/release/hwloc/v${HWLOC_VERSION_MAJOR}.${HWLOC_VERSION_MINOR}/hwloc-${HWLOC_VERSION}.tar.gz -O hwloc-${HWLOC_VERSION}.tar.gz
+verify_sha256 "hwloc-${HWLOC_VERSION}.tar.gz" "$HWLOC_SHA256"
+rm -rf -- "hwloc-${HWLOC_VERSION}"
 tar -xzf hwloc-${HWLOC_VERSION}.tar.gz
 
 cd hwloc-${HWLOC_VERSION}

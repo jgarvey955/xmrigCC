@@ -127,11 +127,10 @@ void Service::stop()
 
 int Service::handleGET(const httplib::Request& req, httplib::Response& res)
 {
-  std::lock_guard<std::mutex> lock(m_mutex);
   int resultCode = HTTP_NOT_FOUND;
 
   const auto clientId = req.get_param_value("clientId");
-  const auto removeAddr = req.get_header_value("REMOTE_ADDR");
+  const auto& removeAddr = req.remote_addr;
 
   if (req.path == "/")
   {
@@ -139,6 +138,7 @@ int Service::handleGET(const httplib::Request& req, httplib::Response& res)
   }
   else if (req.path.rfind("/admin/getClientStatusList", 0) == 0)
   {
+    std::lock_guard<std::mutex> lock(m_mutex);
     resultCode = getClientStatusList(res);
   }
   else if (req.path.rfind("/admin/getClientConfigTemplates", 0) == 0)
@@ -147,6 +147,7 @@ int Service::handleGET(const httplib::Request& req, httplib::Response& res)
   }
   else if (req.path.rfind("/admin/getClientStatistics", 0) == 0)
   {
+    std::lock_guard<std::mutex> lock(m_mutex);
     resultCode = getClientStatistics(res);
   }
   else
@@ -159,10 +160,12 @@ int Service::handleGET(const httplib::Request& req, httplib::Response& res)
       }
       else if (req.path.rfind("/admin/getClientCommand", 0) == 0)
       {
+        std::lock_guard<std::mutex> lock(m_mutex);
         resultCode = getClientCommand(clientId, res);
       }
       else if (req.path.rfind("/admin/getClientLog", 0) == 0)
       {
+        std::lock_guard<std::mutex> lock(m_mutex);
         resultCode = getClientLog(clientId, res);
       }
       else
@@ -183,17 +186,16 @@ int Service::handleGET(const httplib::Request& req, httplib::Response& res)
 
 int Service::handlePOST(const httplib::Request& req, httplib::Response& res)
 {
-  std::lock_guard<std::mutex> lock(m_mutex);
-
   int resultCode = HTTP_NOT_FOUND;
 
   const auto clientId = req.get_param_value("clientId");
-  const auto remoteAddr = req.get_header_value("REMOTE_ADDR");
+  const auto& remoteAddr = req.remote_addr;
 
   if (!clientId.empty())
   {
     if (req.path.rfind("/client/setClientStatus", 0) == 0)
     {
+      std::lock_guard<std::mutex> lock(m_mutex);
       resultCode = setClientStatus(req, clientId, res);
     }
     else if (req.path.rfind("/admin/setClientConfig", 0) == 0 || req.path.rfind("/client/setClientConfig", 0) == 0)
@@ -202,6 +204,7 @@ int Service::handlePOST(const httplib::Request& req, httplib::Response& res)
     }
     else if (req.path.rfind("/admin/setClientCommand", 0) == 0)
     {
+      std::lock_guard<std::mutex> lock(m_mutex);
       resultCode = setClientCommand(req, clientId, res);
     }
     else if (req.path.rfind("/admin/deleteClientConfig", 0) == 0)
@@ -210,6 +213,7 @@ int Service::handlePOST(const httplib::Request& req, httplib::Response& res)
     }
     else if (req.path.rfind("/admin/removeClientStatus", 0) == 0)
     {
+      std::lock_guard<std::mutex> lock(m_mutex);
       resultCode = removeClientStatus(clientId);
     }
     else
@@ -222,6 +226,7 @@ int Service::handlePOST(const httplib::Request& req, httplib::Response& res)
   {
     if (req.path.rfind("/admin/resetClientStatusList", 0) == 0)
     {
+      std::lock_guard<std::mutex> lock(m_mutex);
       resultCode = resetClientStatusList();
     }
     else
@@ -343,7 +348,7 @@ int Service::setClientStatus(const httplib::Request& req, const std::string& cli
 {
   int resultCode = HTTP_BAD_REQUEST;
 
-  const auto remoteAddr = req.get_header_value("REMOTE_ADDR");
+  const auto& remoteAddr = req.remote_addr;
 
   rapidjson::Document respDocument;
   if (!respDocument.Parse(req.body.c_str()).HasParseError())
@@ -490,6 +495,7 @@ int Service::getClientConfigTemplates(httplib::Response& res)
 
 int Service::getClientConfig(const std::string& clientId, httplib::Response& res)
 {
+  std::lock_guard<std::mutex> lock(m_configMutex);
   int resultCode = HTTP_INTERNAL_ERROR;
 
   std::string clientConfigFileName = getClientConfigFileName(clientId);
@@ -572,9 +578,10 @@ int Service::getClientLog(const std::string& clientId, httplib::Response& res)
 
 int Service::setClientConfig(const httplib::Request& req, const std::string& clientId, httplib::Response& res)
 {
+  std::lock_guard<std::mutex> lock(m_configMutex);
   int resultCode = HTTP_BAD_REQUEST;
 
-  std::string remoteAddr = req.get_header_value("REMOTE_ADDR");
+  const auto& remoteAddr = req.remote_addr;
 
   rapidjson::Document respDocument;
   if (!respDocument.Parse(req.body.c_str()).HasParseError())
@@ -640,6 +647,7 @@ int Service::setClientCommand(const httplib::Request& req, const std::string& cl
 
 int Service::deleteClientConfig(const std::string& clientId)
 {
+  std::lock_guard<std::mutex> lock(m_configMutex);
   int resultCode = HTTP_BAD_REQUEST;
 
 
@@ -709,9 +717,9 @@ void Service::sendMinerOfflinePush(uint64_t now)
       if (std::find(m_offlineNotified.begin(), m_offlineNotified.end(), clientStatus.first) == m_offlineNotified.end())
       {
         std::stringstream message;
-        message << "Miner: " << httplib::detail::encode_url(clientStatus.first) << " just went offline!";
+        message << "Miner: " << httplib::encode_uri_component(clientStatus.first) << " just went offline!";
 
-        LOG_WARN("Send miner %s went offline push", httplib::detail::encode_url(clientStatus.first).c_str());
+        LOG_WARN("Send miner %s went offline push", httplib::encode_uri_component(clientStatus.first).c_str());
         triggerPush(APP_NAME " Onlinestatus Monitor", message.str());
 
         m_offlineNotified.push_back(clientStatus.first);
@@ -722,9 +730,9 @@ void Service::sendMinerOfflinePush(uint64_t now)
       if (std::find(m_offlineNotified.begin(), m_offlineNotified.end(), clientStatus.first) != m_offlineNotified.end())
       {
         std::stringstream message;
-        message << "Miner: " << httplib::detail::encode_url(clientStatus.first) << " is back online!";
+        message << "Miner: " << httplib::encode_uri_component(clientStatus.first) << " is back online!";
 
-        LOG_WARN("Send miner %s back online push", httplib::detail::encode_url(clientStatus.first).c_str());
+        LOG_WARN("Send miner %s back online push", httplib::encode_uri_component(clientStatus.first).c_str());
         triggerPush(APP_NAME " Onlinestatus Monitor", message.str());
 
         m_offlineNotified.remove(clientStatus.first);
@@ -758,10 +766,10 @@ void Service::sendMinerZeroHashratePush(uint64_t now)
           if (m_zeroHashNotified[clientStatus.first] > 0 && m_zeroHashNotified[clientStatus.first] < now)
           {
             std::stringstream message;
-            message << "Miner: " << httplib::detail::encode_url(clientStatus.first)
+            message << "Miner: " << httplib::encode_uri_component(clientStatus.first)
                     << " reported 0 h/s for over a minute!";
 
-            LOG_WARN("Send miner %s 0 hashrate push", httplib::detail::encode_url(clientStatus.first).c_str());
+            LOG_WARN("Send miner %s 0 hashrate push", httplib::encode_uri_component(clientStatus.first).c_str());
             triggerPush(APP_NAME " Hashrate Monitor", message.str());
 
             m_zeroHashNotified[clientStatus.first] = 0;
@@ -775,11 +783,11 @@ void Service::sendMinerZeroHashratePush(uint64_t now)
           if (m_zeroHashNotified[clientStatus.first] == 0)
           {
             std::stringstream message;
-            message << "Miner: " << httplib::detail::encode_url(clientStatus.first) << " hashrate recovered. Reported "
+            message << "Miner: " << httplib::encode_uri_component(clientStatus.first) << " hashrate recovered. Reported "
                     << clientStatus.second.getHashrateMedium()
                     << " h/s within the last minute!";
 
-            LOG_WARN("Send miner %s hashrate recovered push", httplib::detail::encode_url(clientStatus.first).c_str());
+            LOG_WARN("Send miner %s hashrate recovered push", httplib::encode_uri_component(clientStatus.first).c_str());
             triggerPush(APP_NAME " Hashrate Monitor", message.str());
           }
 
@@ -867,7 +875,7 @@ void Service::triggerPush(const std::string& title, const std::string& message)
 void Service::sendViaPushover(const std::string& title, const std::string& message)
 {
   auto cli = std::make_shared<httplib::SSLClient>("api.pushover.net", 443);
-  xmrig::tls::loadSystemTrust(cli->ssl_context());
+  xmrig::tls::loadSystemTrust(static_cast<SSL_CTX *>(cli->tls_context()));
   cli->enable_server_certificate_verification(!xmrig::tls::allowUntrusted());
 
   httplib::Params params;
@@ -890,7 +898,7 @@ void Service::sendViaPushover(const std::string& title, const std::string& messa
 void Service::sendViaTelegram(const std::string& title, const std::string& message)
 {
   auto cli = std::make_shared<httplib::SSLClient>("api.telegram.org", 443);
-  xmrig::tls::loadSystemTrust(cli->ssl_context());
+  xmrig::tls::loadSystemTrust(static_cast<SSL_CTX *>(cli->tls_context()));
   cli->enable_server_certificate_verification(!xmrig::tls::allowUntrusted());
 
   std::string text = "<b>" + title + "</b>\n\n" + message;
@@ -920,7 +928,7 @@ void Service::sendViaDiscord(const std::string& title, const std::string& messag
   if (std::regex_match(webHookUrl, matcher, std::regex(R"((?:(https?):)?(?://(discord.com:\[([\d:]+)\]|([^:/?#]+))(?::(\d+))?)?([^?#]*(?:\?[^#]*)?)(?:#.*)?)")))
   {
     auto cli = std::make_shared<httplib::SSLClient>("discord.com", 443);
-    xmrig::tls::loadSystemTrust(cli->ssl_context());
+    xmrig::tls::loadSystemTrust(static_cast<SSL_CTX *>(cli->tls_context()));
     cli->enable_server_certificate_verification(!xmrig::tls::allowUntrusted());
 
     auto description = std::regex_replace(message, std::regex("\n"), "\\n");

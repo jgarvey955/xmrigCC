@@ -18,7 +18,7 @@
 
 
 #include "hw/msr/Msr.h"
-#include "3rdparty/fmt/core.h"
+#include "3rdparty/fmt/format.h"
 #include "backend/cpu/Cpu.h"
 #include "base/io/log/Log.h"
 

@@ -22,7 +22,7 @@
 
 
 #include "base/kernel/Process.h"
-#include "3rdparty/fmt/core.h"
+#include "3rdparty/fmt/format.h"
 #include "base/tools/Chrono.h"
 #include "version.h"
 

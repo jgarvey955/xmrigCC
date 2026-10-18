@@ -89,6 +89,26 @@ int Httpd::start()
 
   m_srv->set_payload_max_length(8 * 1024 * 1024);
 
+  m_srv->set_exception_handler([](const httplib::Request& req, httplib::Response& res, std::exception_ptr error) {
+    try
+    {
+      if (error)
+      {
+        std::rethrow_exception(error);
+      }
+    }
+    catch (const std::exception& exception)
+    {
+      LOG_ERR("HTTP request %s %s failed: %s", req.method.c_str(), req.path.c_str(), exception.what());
+    }
+    catch (...)
+    {
+      LOG_ERR("HTTP request %s %s failed with an unknown exception", req.method.c_str(), req.path.c_str());
+    }
+
+    res.status = httplib::StatusCode::InternalServerError_500;
+  });
+
   m_srv->Get(R"(/.*)", [this](const httplib::Request& req, httplib::Response& res)
   {
     res.status = this->m_service->handleGET(req, res);;
@@ -128,7 +148,7 @@ int Httpd::start()
     else
     {
       const auto clientId = req.get_param_value("clientId");
-      const auto remoteAddr = req.get_header_value("REMOTE_ADDR");
+      const auto& remoteAddr = req.remote_addr;
 
       LOG_INFO("[%s] %s %s%s%s", remoteAddr.c_str(), req.method.c_str(), req.path.c_str(),
                clientId.empty() ? "" : "/?clientId=", clientId.c_str());
@@ -151,7 +171,7 @@ void Httpd::stop()
 int Httpd::basicAuth(const httplib::Request& req, httplib::Response& res)
 {
   auto result = HTTP_UNAUTHORIZED;
-  auto remoteAddr = req.get_header_value("REMOTE_ADDR");
+  const auto& remoteAddr = req.remote_addr;
 
   if (m_config->adminUser().empty() || m_config->adminPass().empty())
   {
@@ -193,7 +213,7 @@ int Httpd::basicAuth(const httplib::Request& req, httplib::Response& res)
 int Httpd::bearerAuth(const httplib::Request& req, httplib::Response& res)
 {
   auto result = HTTP_UNAUTHORIZED;
-  auto remoteAddr = req.get_header_value("REMOTE_ADDR");
+  const auto& remoteAddr = req.remote_addr;
 
   if (m_config->token().empty())
   {

@@ -17,7 +17,7 @@
  */
 
 #include "base/net/stratum/BaseClient.h"
-#include "3rdparty/fmt/core.h"
+#include "3rdparty/fmt/format.h"
 #include "3rdparty/rapidjson/document.h"
 #include "base/io/Env.h"
 #include "base/io/log/Log.h"

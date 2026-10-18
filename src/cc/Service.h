@@ -110,6 +110,7 @@ private:
   std::map<std::string, uint64_t> m_zeroHashNotified;
 
   std::mutex m_mutex;
+  std::mutex m_configMutex;
 };
 
 #endif /* __SERVICE_H__ */

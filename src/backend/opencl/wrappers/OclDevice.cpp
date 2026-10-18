@@ -18,7 +18,7 @@
  */
 
 #include "backend/opencl/wrappers/OclDevice.h"
-#include "3rdparty/fmt/core.h"
+#include "3rdparty/fmt/format.h"
 #include "3rdparty/rapidjson/document.h"
 #include "backend/opencl/OclGenerator.h"
 #include "backend/opencl/OclThreads.h"
