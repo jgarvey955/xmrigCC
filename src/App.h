@@ -39,6 +39,8 @@
 #endif
 
 #include <memory>
+#include <atomic>
+#include <thread>
 
 
 namespace xmrig {
@@ -73,6 +75,7 @@ private:
 #   ifdef XMRIG_FEATURE_CC_CLIENT
     void reboot();
     void execute(const std::string& command);
+    void joinExecuteThread();
 #   endif
 
     int m_rc {RC_OK};
@@ -80,6 +83,10 @@ private:
     std::shared_ptr<Console> m_console;
     std::shared_ptr<Controller> m_controller;
     std::shared_ptr<Signals> m_signals;
+#   ifdef XMRIG_FEATURE_CC_CLIENT
+    std::atomic<bool> m_executeRunning{false};
+    std::thread m_executeThread;
+#   endif
 };
 
 

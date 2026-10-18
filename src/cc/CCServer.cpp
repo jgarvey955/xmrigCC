@@ -66,6 +66,11 @@ CCServer::CCServer(cxxopts::ParseResult& parseResult)
 
 CCServer::~CCServer()
 {
+  if (m_uvThread.joinable())
+  {
+    stop();
+    joinUvLoopThread();
+  }
   m_signals.reset();
   m_console.reset();
   m_httpd.reset();
@@ -106,9 +111,8 @@ int CCServer::start()
 
   Summary::print(m_config);
 
-  startUvLoopThread();
-
   m_httpd = std::make_shared<Httpd>(m_config);
+  startUvLoopThread();
   int retVal = m_httpd->start();
   if (retVal > 0)
   {
@@ -125,16 +129,27 @@ int CCServer::start()
     LOG_INFO("Server stopped. Exit.");
   }
 
+  uv_stop(uv_default_loop());
+  joinUvLoopThread();
+
   return retVal;
 }
 
-void CCServer::startUvLoopThread() const
+void CCServer::startUvLoopThread()
 {
-  std::thread([]()
-              {
-                uv_run(uv_default_loop(), UV_RUN_DEFAULT);
-                uv_loop_close(uv_default_loop());
-              }).detach();
+  m_uvThread = std::thread([]()
+                           {
+                             uv_run(uv_default_loop(), UV_RUN_DEFAULT);
+                             uv_loop_close(uv_default_loop());
+                           });
+}
+
+void CCServer::joinUvLoopThread()
+{
+  if (m_uvThread.joinable() && m_uvThread.get_id() != std::this_thread::get_id())
+  {
+    m_uvThread.join();
+  }
 }
 
 void CCServer::onConsoleCommand(char command)
@@ -158,7 +173,10 @@ void CCServer::onConsoleCommand(char command)
 
 void CCServer::stop()
 {
-  m_httpd->stop();
+  if (m_httpd)
+  {
+    m_httpd->stop();
+  }
 
   uv_stop(uv_default_loop());
 }

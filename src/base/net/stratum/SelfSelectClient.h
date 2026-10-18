@@ -45,7 +45,7 @@ public:
 
 protected:
     // IClient
-    inline bool disconnect() override                                               { return m_client->disconnect(); }
+    bool disconnect() override;
     inline bool hasExtension(Extension extension) const noexcept override           { return m_client->hasExtension(extension); }
     inline bool isEnabled() const override                                          { return m_client->isEnabled(); }
     inline bool isTLS() const override                                              { return m_client->isTLS(); }
@@ -75,7 +75,7 @@ protected:
     void tick(uint64_t now) override;
 
     // IClientListener
-    inline void onClose(IClient *, int failures) override                                           { m_listener->onClose(this, failures); setState(IdleState); m_active = false; }
+    void onClose(IClient *, int failures) override;
     inline void onLoginSuccess(IClient *) override                                                  { m_listener->onLoginSuccess(this); setState(IdleState); m_active = true; }
     inline void onResultAccepted(IClient *, const SubmitResult &result, const char *error) override { m_listener->onResultAccepted(this, result, error); }
     inline void onVerifyAlgorithm(const IClient *, const Algorithm &algorithm, bool *ok) override   { m_listener->onVerifyAlgorithm(this, algorithm, ok); }
@@ -93,9 +93,16 @@ private:
         RetryState
     };
 
+    enum HttpRequestType {
+        TemplateRequest,
+        OriginSubmitRequest,
+    };
+
     inline bool isQuiet() const { return m_quiet || m_failures >= m_retries; }
 
-    bool parseResponse(int64_t id, rapidjson::Value &result, const rapidjson::Value &error);
+    bool parseTemplateResponse(int64_t id, rapidjson::Value &result, const rapidjson::Value &error);
+    bool completeOriginSubmit(int64_t id, const char *error, bool outcomeUnknown = false);
+    void failOriginSubmissions(const char *error);
     void getBlockTemplate();
     void retry();
     void setState(State state);
@@ -110,6 +117,7 @@ private:
     int m_retries                   = 5;
     int64_t m_failures              = 0;
     int64_t m_sequence              = 1;
+    int64_t m_templateRequest       = 0;
     Job m_job;
     State m_state                   = IdleState;
     std::map<int64_t, SubmitResult> m_results;

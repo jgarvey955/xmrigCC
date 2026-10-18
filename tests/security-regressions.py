@@ -60,6 +60,7 @@ def run(binary, kind, empty_token=False):
             config = {'bind-ip': '127.0.0.1', 'port': port, 'user': 'security-test',
                       'pass': 'security-test', 'access-token': '' if empty_token else 'security-test',
                       'use-tls': False, 'background': False, 'colors': False,
+                      'client-log-lines-history': 0,
                       'client-config-folder': str(root / 'configs'), 'client-update-folder': str(root / 'updates')}
         else:
             config = {'autosave': False, 'watch': False, 'background': False, 'colors': False,
@@ -104,6 +105,11 @@ def run(binary, kind, empty_token=False):
                     return
                 assert request(port, '/admin/getClientStatusList', auth=None)[0] == 401
                 assert request(port, status_path, valid)[0] == 200, 'valid status must remain supported'
+                with_log = {'client_status': {'client_id': 'security-test', 'hashrate_short': 42.5,
+                                              'current_status': 'RUNNING', 'current_algo_name': 'rx/zecnero',
+                                              'log': 'line one\nline two\n'}}
+                assert request(port, status_path, with_log)[0] == 200, 'zero log history must safely discard client logs'
+                assert proc.poll() is None, 'server must survive client logs when history is disabled'
                 invalid = [[], {}, {'client_status': []}, {'client_status': {'current_status': 0}},
                            {'client_status': {'hashrate_short': 'invalid'}}, {'client_status': {'cpu_threads': []}},
                            {'client_status': {'nonce_prefix': -1}}, {'client_status': {'gpu_info_list': {}}},

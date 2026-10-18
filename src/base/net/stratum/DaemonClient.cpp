@@ -112,6 +112,8 @@ void xmrig::DaemonClient::deleteLater()
 
 bool xmrig::DaemonClient::disconnect()
 {
+    failPendingSubmissions("daemon RPC disconnected; block acceptance unknown");
+
     if (m_state != UnconnectedState) {
         setState(UnconnectedState);
     }
@@ -256,6 +258,11 @@ void xmrig::DaemonClient::setPool(const Pool &pool)
 void xmrig::DaemonClient::onHttpData(const HttpData &data)
 {
     const bool isSubmit = data.userType == SubmitRequest;
+    const int64_t requestId = static_cast<int64_t>(data.rpcId);
+
+    if (isSubmit && m_results.count(requestId) == 0) {
+        return;
+    }
 
     if (!isSubmit) {
         m_httpActive = false;
@@ -265,7 +272,7 @@ void xmrig::DaemonClient::onHttpData(const HttpData &data)
     if (data.status != 200) {
         if (isSubmit) {
             const std::string message = "daemon RPC HTTP " + std::to_string(data.status);
-            handleSubmitResponse(static_cast<int64_t>(data.rpcId), message.c_str());
+            handleSubmitResponse(requestId, message.c_str(), true);
         }
 
         return retry();
@@ -279,11 +286,14 @@ void xmrig::DaemonClient::onHttpData(const HttpData &data)
 #   endif
 
     rapidjson::Document doc;
-    if (doc.Parse(data.body.c_str()).HasParseError()) {
+    if (doc.Parse(data.body.c_str()).HasParseError() || !doc.IsObject()) {
         if (!isQuiet()) {
             LOG_ERR("%s " RED("JSON decode failed: ") RED_BOLD("\"%s\""), tag(), rapidjson::GetParseError_En(doc.GetParseError()));
         }
 
+        if (isSubmit) {
+            handleSubmitResponse(requestId, "invalid daemon RPC response; block acceptance unknown", true);
+        }
         return retry();
     }
 
@@ -324,7 +334,15 @@ void xmrig::DaemonClient::onHttpData(const HttpData &data)
         return;
     }
 
-    if (!parseResponse(Json::getInt64(doc, "id", -1), Json::getObject(doc, "result"), Json::getObject(doc, "error"))) {
+    const int64_t responseId = Json::getInt64(doc, "id", -1);
+    if (responseId != requestId) {
+        if (isSubmit) {
+            handleSubmitResponse(requestId, "mismatched daemon RPC response id; block acceptance unknown", true);
+        }
+        return retry();
+    }
+
+    if (!parseResponse(responseId, Json::getValue(doc, "result"), Json::getValue(doc, "error"), isSubmit)) {
         retry();
     }
 }
@@ -525,23 +543,32 @@ bool xmrig::DaemonClient::parseJob(const rapidjson::Value &params, int *code)
 }
 
 
-bool xmrig::DaemonClient::parseResponse(int64_t id, const rapidjson::Value &result, const rapidjson::Value &error)
+bool xmrig::DaemonClient::parseResponse(int64_t id, const rapidjson::Value &result, const rapidjson::Value &error, bool submit)
 {
     if (id == -1) {
         return false;
     }
 
     if (error.IsObject()) {
-        const char *message = error["message"].GetString();
+        const char *message = Json::getString(error, "message", "daemon RPC error");
 
-        if (!handleSubmitResponse(id, message) && !isQuiet()) {
-            LOG_ERR("[%s:%d] error: " RED_BOLD("\"%s\"") RED_S ", code: %d", m_pool.host().data(), m_pool.port(), message, error["code"].GetInt());
+        if (submit) {
+            handleSubmitResponse(id, message);
+            getBlockTemplate();
+            return true;
+        }
+
+        if (!isQuiet()) {
+            LOG_ERR("[%s:%d] error: " RED_BOLD("\"%s\"") RED_S ", code: %d", m_pool.host().data(), m_pool.port(), message, Json::getInt(error, "code"));
         }
 
         return false;
     }
 
     if (!result.IsObject()) {
+        if (submit) {
+            handleSubmitResponse(id, "invalid daemon submit result; block acceptance unknown", true);
+        }
         return false;
     }
 
@@ -557,10 +584,19 @@ bool xmrig::DaemonClient::parseResponse(int64_t id, const rapidjson::Value &resu
         return true;
     }
 
-    const char* error_msg = nullptr;
+    if (submit) {
+        const char *status = Json::getString(result, "status");
+        const char *errorMessage = (status && strcmp(status, "OK") != 0) ? status : nullptr;
+        if (handleSubmitResponse(id, errorMessage)) {
+            if (m_pool.zmq_port() < 0) {
+                getBlockTemplate();
+            }
+            return true;
+        }
+    }
 
-    if (handleSubmitResponse(id, error_msg)) {
-        if (error_msg || (m_pool.zmq_port() < 0)) {
+    if (handleSubmitResponse(id)) {
+        if (m_pool.zmq_port() < 0) {
             getBlockTemplate();
         }
         return true;
@@ -615,6 +651,7 @@ int64_t xmrig::DaemonClient::rpcSend(const rapidjson::Document &doc, const std::
 
 void xmrig::DaemonClient::retry()
 {
+    failPendingSubmissions("daemon RPC connection reset; block acceptance unknown");
     m_httpActive = false;
     m_httpStarted = 0;
     m_failures++;

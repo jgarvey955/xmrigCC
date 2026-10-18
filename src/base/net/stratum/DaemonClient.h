@@ -85,7 +85,7 @@ private:
     uint64_t httpTimeout() const;
     bool isOutdated(uint64_t height, const char *hash) const;
     bool parseJob(const rapidjson::Value &params, int *code);
-    bool parseResponse(int64_t id, const rapidjson::Value &result, const rapidjson::Value &error);
+    bool parseResponse(int64_t id, const rapidjson::Value &result, const rapidjson::Value &error, bool submit);
     int64_t getBlockTemplate();
     int64_t rpcSend(const rapidjson::Document &doc, const std::map<std::string, std::string> &headers = {}, bool submit = false);
     void retry();

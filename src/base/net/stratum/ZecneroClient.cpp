@@ -126,10 +126,13 @@ bool xmrig::ZecneroClient::authorization(std::string &value, std::string &error)
     return true;
 }
 
-bool xmrig::ZecneroClient::sendRpc(int64_t id, const char *method, rapidjson::Value &params, rapidjson::Document &doc)
+bool xmrig::ZecneroClient::sendRpc(int64_t id, const char *method, rapidjson::Value &params, rapidjson::Document &doc, std::string *errorOut)
 {
     std::string auth, error;
-    if (!authorization(auth, error)) { fail(error.c_str()); return false; }
+    if (!authorization(auth, error)) {
+        if (errorOut) { *errorOut = std::move(error); }
+        return false;
+    }
     auto &allocator = doc.GetAllocator();
     doc.AddMember("jsonrpc", "2.0", allocator);
     doc.AddMember("id", id, allocator);
@@ -154,7 +157,11 @@ void xmrig::ZecneroClient::getBlockTemplate()
     }
     params.PushBack(request, doc.GetAllocator());
     m_templateRequest = m_sequence++;
-    sendRpc(m_templateRequest, "getblocktemplate", params, doc);
+    std::string error;
+    if (!sendRpc(m_templateRequest, "getblocktemplate", params, doc, &error)) {
+        m_templateRequest = 0;
+        fail(error.c_str());
+    }
 }
 
 void xmrig::ZecneroClient::onTimer(const Timer *)
@@ -178,9 +185,14 @@ int64_t xmrig::ZecneroClient::submit(const JobResult &result)
     rapidjson::Document doc(rapidjson::kObjectType);
     rapidjson::Value params(rapidjson::kArrayType);
     params.PushBack(Cvt::toHex(work->block.block(static_cast<uint32_t>(result.nonce))).toJSON(doc), doc.GetAllocator());
-    m_results.emplace(id, SubmitResult(id, result.diff, result.actualDiff(), 0, result.backend, result.algorithm, m_pool.coin()));
     // A poll in flight never blocks a discovered block from being submitted.
-    return sendRpc(id, "submitblock", params, doc) ? id : -1;
+    std::string error;
+    if (!sendRpc(id, "submitblock", params, doc, &error)) {
+        if (!isQuiet()) { LOG_ERR("%s Zecnero submit failed before send: %s", tag(), error.c_str()); }
+        return -1;
+    }
+    m_results.emplace(id, SubmitResult(id, result.diff, result.actualDiff(), 0, result.backend, result.algorithm, m_pool.coin()));
+    return id;
 }
 
 void xmrig::ZecneroClient::onHttpData(const HttpData &data)

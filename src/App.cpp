@@ -24,6 +24,7 @@
  */
 
 #include <cstdlib>
+#include <algorithm>
 #include <uv.h>
 
 
@@ -46,7 +47,6 @@
 #ifdef _WIN32
 #define popen _popen
 #define pclose _pclose
-#define WEXITSTATUS
 #else
 #include <sys/wait.h>
 #endif
@@ -59,6 +59,9 @@ xmrig::App::App(Process *process)
 
 xmrig::App::~App()
 {
+#   ifdef XMRIG_FEATURE_CC_CLIENT
+    joinExecuteThread();
+#   endif
     Cpu::release();
 }
 
@@ -183,6 +186,9 @@ void xmrig::App::close(int rc)
     m_signals.reset();
     m_console.reset();
 
+#   ifdef XMRIG_FEATURE_CC_CLIENT
+    joinExecuteThread();
+#   endif
     Log::destroy();
 
     uv_stop(uv_default_loop());
@@ -210,7 +216,16 @@ void xmrig::App::execute(const std::string& command)
 {
 #   ifdef XMRIG_FEATURE_CC_CLIENT_SHELL_EXECUTE
   if (!command.empty()) {
-    std::thread([command]()
+    if (m_executeThread.joinable()) {
+      if (m_executeRunning.load(std::memory_order_acquire)) {
+        LOG_WARN("%sAn execute command is already running; refusing overlapping command.", Tags::cc());
+        return;
+      }
+      m_executeThread.join();
+    }
+
+    m_executeRunning.store(true, std::memory_order_release);
+    m_executeThread = std::thread([this, command]()
     {
       int rc{0};
       std::array<char, 8192> buffer{};
@@ -225,7 +240,9 @@ void xmrig::App::execute(const std::string& command)
       const std::string extension(".bat");
 #endif
 
-      std::string tmpFile = std::string(Process::location(Process::CwdLocation, (std::to_string(currentTimeEpoch) + extension).c_str()));
+      const std::string fileName = "xmrigcc-execute-" + std::to_string(static_cast<uint64_t>(uv_os_getpid())) +
+                                   "-" + std::to_string(currentTimeEpoch) + extension;
+      std::string tmpFile = std::string(Process::location(Process::CwdLocation, fileName.c_str()));
 
       LOG_NOTICE("%sCreating temp script: %s...", Tags::cc(), tmpFile.c_str());
 
@@ -239,19 +256,22 @@ void xmrig::App::execute(const std::string& command)
           chmod(tmpFile.c_str(), S_IRWXU);
 #endif
 
-          FILE *pipe = popen((tmpFile + " 2>&1").c_str(), "r");
+          const std::string quotedFile = "\"" + tmpFile + "\"";
+          FILE *pipe = popen((quotedFile + " 2>&1").c_str(), "r");
           if (pipe != nullptr) {
-              try {
-                  std::size_t bytesread;
-                  while ((bytesread = std::fread(buffer.data(), sizeof(buffer.at(0)), sizeof(buffer), pipe)) != 0) {
+              std::size_t bytesread;
+              while ((bytesread = std::fread(buffer.data(), sizeof(buffer.at(0)), sizeof(buffer), pipe)) != 0) {
+                  if (result.size() < 1024 * 1024) {
+                      const size_t remaining = 1024 * 1024 - result.size();
+                      bytesread = std::min(bytesread, remaining);
                       result += std::string(buffer.data(), bytesread);
                   }
-              } catch (...) {
-                  pclose(pipe);
               }
 
               rc = pclose(pipe);
-              rc = WEXITSTATUS(rc);
+#if !defined(_WIN32) && !defined(WIN32)
+              rc = (rc >= 0 && WIFEXITED(rc)) ? WEXITSTATUS(rc) : -1;
+#endif
 
               if (rc == 0) {
                   LOG_NOTICE("%sProcessing...\n" WHITE_BOLD("###START EXECUTE###\nScript:\n%s\n\nOutput:\n%s###END EXECUTE###"), Tags::cc(), command.c_str(), result.c_str());
@@ -267,10 +287,19 @@ void xmrig::App::execute(const std::string& command)
 
           LOG_NOTICE("%sRemoving temp script: %s...", Tags::cc(), tmpFile.c_str());
       }
-    }).detach();
+      m_executeRunning.store(false, std::memory_order_release);
+    });
   }
 #   else
   LOG_EMERG("Shell execute disabled. Skipping %s", command.c_str());
 #   endif
+}
+
+void xmrig::App::joinExecuteThread()
+{
+  if (m_executeThread.joinable() && m_executeThread.get_id() != std::this_thread::get_id()) {
+    m_executeThread.join();
+  }
+  m_executeRunning.store(false, std::memory_order_release);
 }
 #   endif

@@ -31,6 +31,7 @@
 #include "base/net/stratum/Client.h"
 #include "net/JobResult.h"
 #include "base/tools/Cvt.h"
+#include <cstring>
 
 
 namespace xmrig {
@@ -72,7 +73,7 @@ int64_t xmrig::SelfSelectClient::submit(const JobResult &result)
         submitOriginDaemon(result);
     }
 
-    uint64_t submit_result = m_client->submit(result);
+    const int64_t submit_result = m_client->submit(result);
 
     if (m_submitToOrigin) {
         // Ensure that the latest block template is available after block submission
@@ -80,6 +81,24 @@ int64_t xmrig::SelfSelectClient::submit(const JobResult &result)
     }
 
     return submit_result;
+}
+
+
+bool xmrig::SelfSelectClient::disconnect()
+{
+    m_templateRequest = 0;
+    failOriginSubmissions("origin daemon disconnected; block acceptance unknown");
+    return m_client->disconnect();
+}
+
+
+void xmrig::SelfSelectClient::onClose(IClient *, int failures)
+{
+    m_templateRequest = 0;
+    failOriginSubmissions("pool connection lost; origin block acceptance unknown");
+    m_listener->onClose(this, failures);
+    setState(IdleState);
+    m_active = false;
 }
 
 
@@ -113,7 +132,7 @@ void xmrig::SelfSelectClient::onLogin(IClient *, rapidjson::Document &doc, rapid
 }
 
 
-bool xmrig::SelfSelectClient::parseResponse(int64_t id, rapidjson::Value &result, const rapidjson::Value &error)
+bool xmrig::SelfSelectClient::parseTemplateResponse(int64_t id, rapidjson::Value &result, const rapidjson::Value &error)
 {
     if (id == -1) {
         return false;
@@ -135,6 +154,20 @@ bool xmrig::SelfSelectClient::parseResponse(int64_t id, rapidjson::Value &result
 
             return false;
         }
+    }
+
+    if (!Json::getValue(result, kBlocktemplateBlob).IsString() ||
+        !Json::getValue(result, kBlockhashingBlob).IsString() ||
+        !Json::getValue(result, kPrevHash).IsString() ||
+        !Json::getValue(result, kHeight).IsUint64() ||
+        !Json::getValue(result, kDifficulty).IsUint64()) {
+        LOG_ERR("[%s] invalid block template field types", pool().daemon().url().data());
+        return false;
+    }
+
+    if (m_job.algorithm().family() == Algorithm::RANDOM_X && !Json::getValue(result, kSeedHash).IsString()) {
+        LOG_ERR("[%s] RandomX block template is missing a valid seed hash", pool().daemon().url().data());
+        return false;
     }
 
     const char *blobData = Json::getString(result, kBlockhashingBlob);
@@ -161,6 +194,10 @@ bool xmrig::SelfSelectClient::parseResponse(int64_t id, rapidjson::Value &result
 
 void xmrig::SelfSelectClient::getBlockTemplate()
 {
+    if (m_templateRequest != 0) {
+        return;
+    }
+
     setState(WaitState);
 
     using namespace rapidjson;
@@ -171,11 +208,14 @@ void xmrig::SelfSelectClient::getBlockTemplate()
     params.AddMember("wallet_address",  m_job.poolWallet().toJSON(), allocator);
     params.AddMember("extra_nonce",     m_job.extraNonce().toJSON(), allocator);
 
-    JsonRequest::create(doc, m_sequence++, "getblocktemplate", params);
+    const int64_t id = m_sequence++;
+    JsonRequest::create(doc, id, "getblocktemplate", params);
 
     FetchRequest req(HTTP_POST, pool().daemon().host(), pool().daemon().port(), "/json_rpc", doc, pool().daemon().isTLS(), isQuiet());
     req.fingerprint = pool().fingerprint();
-    fetch(tag(), std::move(req), m_httpListener);
+    req.timeout = 10000;
+    m_templateRequest = id;
+    fetch(tag(), std::move(req), m_httpListener, TemplateRequest, static_cast<uint64_t>(id));
 }
 
 
@@ -228,12 +268,23 @@ void xmrig::SelfSelectClient::submitBlockTemplate(rapidjson::Value &result)
     Value params(kObjectType);
     params.AddMember(StringRef(kId),            m_job.clientId().toJSON(), allocator);
     params.AddMember(StringRef(kJobId),         m_job.id().toJSON(), allocator);
-    params.AddMember(StringRef(kBlob),          result[kBlocktemplateBlob], allocator);
+    Value blob;
+    blob.CopyFrom(Json::getValue(result, kBlocktemplateBlob), allocator);
+    Value difficulty;
+    difficulty.CopyFrom(Json::getValue(result, kDifficulty), allocator);
+    Value prevHash;
+    prevHash.CopyFrom(Json::getValue(result, kPrevHash), allocator);
+    Value seedHash;
+    seedHash.CopyFrom(Json::getValue(result, kSeedHash), allocator);
+    Value nextSeedHash;
+    nextSeedHash.CopyFrom(Json::getValue(result, kNextSeedHash), allocator);
+
+    params.AddMember(StringRef(kBlob),          blob, allocator);
     params.AddMember(StringRef(kHeight),        m_job.height(), allocator);
-    params.AddMember(StringRef(kDifficulty),    result[kDifficulty], allocator);
-    params.AddMember(StringRef(kPrevHash),      result[kPrevHash], allocator);
-    params.AddMember(StringRef(kSeedHash),      result[kSeedHash], allocator);
-    params.AddMember(StringRef(kNextSeedHash),  result[kNextSeedHash], allocator);
+    params.AddMember(StringRef(kDifficulty),    difficulty, allocator);
+    params.AddMember(StringRef(kPrevHash),      prevHash, allocator);
+    params.AddMember(StringRef(kSeedHash),      seedHash, allocator);
+    params.AddMember(StringRef(kNextSeedHash),  nextSeedHash, allocator);
 
     JsonRequest::create(doc, sequence(), "block_template", params);
 
@@ -283,12 +334,14 @@ void xmrig::SelfSelectClient::submitOriginDaemon(const JobResult& result)
     Value params(kArrayType);
     params.PushBack(m_blocktemplate.toJSON(), doc.GetAllocator());
 
-    JsonRequest::create(doc, m_sequence, "submitblock", params);
-    m_results[m_sequence] = SubmitResult(m_sequence, result.diff, result.actualDiff(), 0, result.backend, result.algorithm, pool().coin());
+    const int64_t id = m_sequence++;
+    JsonRequest::create(doc, id, "submitblock", params);
+    m_results[id] = SubmitResult(id, result.diff, result.actualDiff(), 0, result.backend, result.algorithm, pool().coin());
 
     FetchRequest req(HTTP_POST, pool().daemon().host(), pool().daemon().port(), "/json_rpc", doc, pool().daemon().isTLS(), isQuiet());
     req.fingerprint = pool().fingerprint();
-    fetch(tag(), std::move(req), m_httpListener);
+    req.timeout = 10000;
+    fetch(tag(), std::move(req), m_httpListener, OriginSubmitRequest, static_cast<uint64_t>(id));
 
     m_originSubmitted++;
     LOG_INFO("%s " GREEN_BOLD("submitted to origin daemon") " (%" PRId64 "/%" PRId64 ") "
@@ -298,25 +351,102 @@ void xmrig::SelfSelectClient::submitOriginDaemon(const JobResult& result)
 
 void xmrig::SelfSelectClient::onHttpData(const HttpData &data)
 {
+    const bool originSubmit = data.userType == OriginSubmitRequest;
+    const int64_t requestId = static_cast<int64_t>(data.rpcId);
+
+    if (originSubmit && m_results.count(requestId) == 0) {
+        return;
+    }
+
+    if (!originSubmit && requestId != m_templateRequest) {
+        return;
+    }
+
+    if (!originSubmit) {
+        m_templateRequest = 0;
+    }
+
     if (data.status != 200) {
+        if (originSubmit) {
+            const std::string message = "origin daemon HTTP " + std::to_string(data.status) + "; block acceptance unknown";
+            completeOriginSubmit(requestId, message.c_str(), true);
+            return;
+        }
         return retry();
     }
 
     rapidjson::Document doc;
-    if (doc.Parse(data.body.c_str()).HasParseError()) {
+    if (doc.Parse(data.body.c_str()).HasParseError() || !doc.IsObject()) {
         if (!isQuiet()) {
             LOG_ERR("[%s] JSON decode failed: \"%s\"",  pool().daemon().url().data(), rapidjson::GetParseError_En(doc.GetParseError()));
         }
 
+        if (originSubmit) {
+            completeOriginSubmit(requestId, "invalid origin daemon response; block acceptance unknown", true);
+            return;
+        }
         return retry();
     }
 
     const int64_t id = Json::getInt64(doc, "id", -1);
-    if (id > 0 && m_sequence - id != 1) {
+    if (id != requestId) {
+        if (originSubmit) {
+            completeOriginSubmit(requestId, "mismatched origin daemon response id; block acceptance unknown", true);
+        }
+        else {
+            retry();
+        }
         return;
     }
 
-    if (!parseResponse(id, doc["result"], Json::getObject(doc, "error"))) {
+    auto &result = const_cast<rapidjson::Value &>(Json::getValue(doc, "result"));
+    const auto &error = Json::getValue(doc, "error");
+    if (originSubmit) {
+        if (error.IsObject()) {
+            completeOriginSubmit(id, Json::getString(error, "message", "origin daemon rejected block"));
+        }
+        else if (!result.IsObject()) {
+            completeOriginSubmit(id, "invalid origin daemon submit result; block acceptance unknown", true);
+        }
+        else {
+            const char *status = Json::getString(result, "status");
+            completeOriginSubmit(id, status && strcmp(status, "OK") != 0 ? status : nullptr);
+        }
+        return;
+    }
+
+    if (!parseTemplateResponse(id, result, error)) {
         retry();
+    }
+}
+
+
+bool xmrig::SelfSelectClient::completeOriginSubmit(int64_t id, const char *error, bool outcomeUnknown)
+{
+    auto it = m_results.find(id);
+    if (it == m_results.end()) {
+        return false;
+    }
+
+    SubmitResult result = it->second;
+    m_results.erase(it);
+    result.done();
+    result.setOutcomeUnknown(outcomeUnknown);
+    if (error) {
+        LOG_WARN("%s %s after %" PRIu64 " ms: %s", Tags::origin(),
+                 outcomeUnknown ? "submission outcome unknown" : "block rejected",
+                 result.elapsed, error);
+    }
+    else {
+        LOG_NOTICE("%s block accepted after %" PRIu64 " ms", Tags::origin(), result.elapsed);
+    }
+    return true;
+}
+
+
+void xmrig::SelfSelectClient::failOriginSubmissions(const char *error)
+{
+    while (!m_results.empty()) {
+        completeOriginSubmit(m_results.begin()->first, error, true);
     }
 }

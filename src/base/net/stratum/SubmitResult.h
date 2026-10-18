@@ -51,6 +51,8 @@ public:
     {}
 
     inline void done() { elapsed = Chrono::steadyMSecs() - m_start; }
+    inline bool isOutcomeUnknown() const { return outcomeUnknown; }
+    inline void setOutcomeUnknown(bool value = true) { outcomeUnknown = value; }
 
     // Keep the submitted work's identity even if a new job arrives before the reply.
     Algorithm algorithm;
@@ -61,6 +63,7 @@ public:
     uint64_t actualDiff     = 0;
     uint64_t diff           = 0;
     uint64_t elapsed        = 0;
+    bool outcomeUnknown     = false;
 
 private:
     uint64_t m_start        = 0;

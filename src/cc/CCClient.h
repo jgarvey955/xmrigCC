@@ -19,6 +19,7 @@
 #define __CC_CLIENT_H__
 
 #include <uv.h>
+#include <atomic>
 #include <chrono>
 #include <ctime>
 #include "3rdparty/cpp-httplib/httplib.h"
@@ -64,8 +65,17 @@ protected:
   void onTimer(const Timer* timer) override;
 
 private:
-  void publishThread();
+  struct PublishResult
+  {
+    bool completed = false;
+    bool transportOk = false;
+    int status = 0;
+    std::string body;
+  };
+
+  void publishThread(bool publishConfigOnStart);
   void publishClientStatusReport();
+  void processPublishResult(PublishResult result);
 
   void updateClientInfo();
   void updateUptime();
@@ -91,7 +101,9 @@ private:
   int m_failedRequests;
 
   Timer* m_timer;
+  std::atomic<bool> m_threadRunning{false};
   std::thread m_thread;
+  PublishResult m_publishResult;
   std::vector<ICommandListener*> m_Commandlisteners;
   std::vector<IClientStatusListener*> m_ClientStatuslisteners;
 

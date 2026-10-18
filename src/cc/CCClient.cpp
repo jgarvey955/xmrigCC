@@ -77,6 +77,7 @@ xmrig::CCClient::CCClient(Base* base)
 xmrig::CCClient::~CCClient()
 {
   LOG_DEBUG("CCClient::~CCCLient()");
+  stop();
   delete m_timer;
 }
 
@@ -143,6 +144,8 @@ void xmrig::CCClient::stop()
   {
     m_thread.join();
   }
+
+  m_threadRunning.store(false, std::memory_order_release);
 }
 
 void xmrig::CCClient::updateStatistics()
@@ -163,10 +166,23 @@ void xmrig::CCClient::publishClientStatusReport()
   std::string requestUrl = "/client/setClientStatus?clientId=" + m_clientStatus.getClientId();
   std::string requestBuffer = m_clientStatus.toJsonString();
 
+  auto res = performRequest(requestUrl, requestBuffer, "POST");
+  m_publishResult = PublishResult{};
+  m_publishResult.completed = true;
+  if (res)
+  {
+    m_publishResult.transportOk = true;
+    m_publishResult.status = res->status;
+    m_publishResult.body = std::move(res->body);
+  }
+}
+
+void xmrig::CCClient::processPublishResult(PublishResult result)
+{
+  std::string requestUrl = "/client/setClientStatus?clientId=" + m_clientStatus.getClientId();
   auto& config = m_base->config()->ccClient();
 
-  auto res = performRequest(requestUrl, requestBuffer, "POST");
-  if (!res)
+  if (!result.transportOk)
   {
     LOG_ERR(CLEAR "%s" RED("error:unable to performRequest POST [http%s://%s:%d%s]"), Tags::cc(),
             config.useTLS() ? "s" : "", config.host(), config.port(), requestUrl.c_str());
@@ -178,9 +194,9 @@ void xmrig::CCClient::publishClientStatusReport()
       LOG_WARN(CLEAR "%s" YELLOW("Failover -> Switching CC Server"), Tags::cc());
     }
   }
-  else if (res->status != HTTP_OK)
+  else if (result.status != HTTP_OK)
   {
-    LOG_ERR(CLEAR "%s" RED("error:\"%d\" [http%s://%s:%d%s]"), Tags::cc(), res->status,
+    LOG_ERR(CLEAR "%s" RED("error:\"%d\" [http%s://%s:%d%s]"), Tags::cc(), result.status,
             config.useTLS() ? "s" : "", config.host(), config.port(), requestUrl.c_str());
 
     if (config.hasFailover() && ++m_failedRequests >= config.retriesToFailover())
@@ -192,10 +208,11 @@ void xmrig::CCClient::publishClientStatusReport()
   }
   else
   {
-    LOG_DEBUG("CCClient::publishClientStatusReport received: '%s'", res->body.c_str());
+    m_failedRequests = 0;
+    LOG_DEBUG("CCClient::publishClientStatusReport received: '%s'", result.body.c_str());
 
     ControlCommand controlCommand;
-    if (controlCommand.parseFromJsonString(res->body))
+    if (controlCommand.parseFromJsonString(result.body))
     {
       if (controlCommand.getCommand() == ControlCommand::START)
       {
@@ -464,6 +481,11 @@ std::shared_ptr<httplib::ClientImpl> xmrig::CCClient::getClient()
         cli->set_proxy(config.proxyHost(), config.proxyPort());
         cli->set_proxy_type(config.isSocksProxy() ? httplib::ProxyType::SOCKS5 : httplib::ProxyType::HTTP);
     }
+
+    // Bound shutdown/reload latency even when a CC server stops responding.
+    cli->set_connection_timeout(10, 0);
+    cli->set_read_timeout(15, 0);
+    cli->set_write_timeout(15, 0);
   }
 
   return cli;
@@ -546,25 +568,44 @@ void xmrig::CCClient::onConfigChanged(Config* config, Config* previousConfig)
 void xmrig::CCClient::onTimer(const xmrig::Timer* timer)
 {
   LOG_DEBUG("CCClient::onTimer");
+
+  if (m_thread.joinable() && !m_threadRunning.load(std::memory_order_acquire))
+  {
+    m_thread.join();
+    PublishResult result = std::move(m_publishResult);
+    m_publishResult = PublishResult{};
+
+    // Command listeners may stop and destroy the client. Keep this as the
+    // final operation in the timer callback.
+    if (result.completed)
+    {
+      processPublishResult(std::move(result));
+    }
+    return;
+  }
+
   if (!m_thread.joinable())
   {
-    m_thread = std::thread(&CCClient::publishThread, this);
-    m_thread.detach();
+    updateUptime();
+    updateLog();
+    updateStatistics();
+
+    const bool publishConfigOnStart = !m_configPublishedOnStart &&
+                                      m_base->config()->ccClient().uploadConfigOnStartup();
+    m_configPublishedOnStart = m_configPublishedOnStart || publishConfigOnStart;
+    m_threadRunning.store(true, std::memory_order_release);
+    m_thread = std::thread(&CCClient::publishThread, this, publishConfigOnStart);
   }
 }
 
-void xmrig::CCClient::publishThread()
+void xmrig::CCClient::publishThread(bool publishConfigOnStart)
 {
   LOG_DEBUG("CCClient::publishThread()");
-  if (!m_configPublishedOnStart && m_base->config()->ccClient().uploadConfigOnStartup())
+  if (publishConfigOnStart)
   {
-    m_configPublishedOnStart = true;
     publishConfig();
   }
 
-  updateUptime();
-  updateLog();
-  updateStatistics();
-
   publishClientStatusReport();
+  m_threadRunning.store(false, std::memory_order_release);
 }

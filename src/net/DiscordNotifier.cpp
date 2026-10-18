@@ -273,8 +273,8 @@ std::string xmrig::DiscordNotifier::acceptedMessage(IClient *client, const Submi
     }
 
     if (config.includeTotals && m_state) {
-        snprintf(line, sizeof(line) - 1, "\nTotals: accepted %" PRIu64 ", rejected %" PRIu64,
-                 m_state->accepted(), m_state->rejected());
+        snprintf(line, sizeof(line) - 1, "\nTotals: accepted %" PRIu64 ", rejected %" PRIu64 ", outcome unknown %" PRIu64,
+                 m_state->accepted(), m_state->rejected(), m_state->unknown());
         out += line;
     }
 
@@ -285,7 +285,8 @@ std::string xmrig::DiscordNotifier::acceptedMessage(IClient *client, const Submi
 std::string xmrig::DiscordNotifier::rejectedMessage(IClient *client, const SubmitResult &result, const char *error) const
 {
     char line[512] = { 0 };
-    snprintf(line, sizeof(line) - 1, "Rejected block/share: diff %" PRIu64 ", elapsed %" PRIu64 " ms, error: %s",
+    snprintf(line, sizeof(line) - 1, "%s block/share: diff %" PRIu64 ", elapsed %" PRIu64 " ms, error: %s",
+             result.isOutcomeUnknown() ? "Submission outcome unknown for" : "Rejected",
              result.diff, result.elapsed, error ? error : "unknown");
 
     std::string out = line;
@@ -318,8 +319,8 @@ std::string xmrig::DiscordNotifier::summaryMessage(IClient *client, const Submit
     }
 
     if (config.includeTotals && m_state) {
-        snprintf(line, sizeof(line) - 1, "\nTotals: accepted %" PRIu64 ", rejected %" PRIu64,
-                 m_state->accepted(), m_state->rejected());
+        snprintf(line, sizeof(line) - 1, "\nTotals: accepted %" PRIu64 ", rejected %" PRIu64 ", outcome unknown %" PRIu64,
+                 m_state->accepted(), m_state->rejected(), m_state->unknown());
         out += line;
     }
 

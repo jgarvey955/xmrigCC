@@ -179,12 +179,18 @@ void xmrig::Network::onJob(IStrategy *strategy, IClient *client, const Job &job,
 
 void xmrig::Network::onJobResult(const JobResult &result)
 {
+    int64_t submitResult = -1;
+
     if (result.index == 1 && m_donate) {
-        m_donate->submit(result);
-        return;
+        submitResult = m_donate->submit(result);
+    }
+    else {
+        submitResult = m_strategy->submit(result);
     }
 
-    m_strategy->submit(result);
+    if (submitResult < 0) {
+        LOG_WARN("%s " YELLOW("share was not submitted (code %" PRId64 ")"), Tags::network(), submitResult);
+    }
 }
 
 
@@ -238,8 +244,14 @@ void xmrig::Network::onResultAccepted(IStrategy *strategy, IClient *client, cons
     const char *scale = NetworkState::scaleDiff(diff);
 
     if (error) {
-        LOG_INFO("%s " RED_BOLD("rejected") " (%" PRId64 "/%" PRId64 ") diff " WHITE_BOLD("%" PRIu64 "%s") " " RED("\"%s\"") " " BLACK_BOLD("(%" PRIu64 " ms)"),
-                 backend_tag(result.backend), m_state->accepted(), m_state->rejected(), diff, scale, error, result.elapsed);
+        if (result.isOutcomeUnknown()) {
+            LOG_INFO("%s " YELLOW_BOLD("outcome unknown") " (%" PRId64 "/%" PRId64 "?%" PRId64 ") diff " WHITE_BOLD("%" PRIu64 "%s") " " YELLOW("\"%s\"") " " BLACK_BOLD("(%" PRIu64 " ms)"),
+                     backend_tag(result.backend), m_state->accepted(), m_state->rejected(), m_state->unknown(), diff, scale, error, result.elapsed);
+        }
+        else {
+            LOG_INFO("%s " RED_BOLD("rejected") " (%" PRId64 "/%" PRId64 ") diff " WHITE_BOLD("%" PRIu64 "%s") " " RED("\"%s\"") " " BLACK_BOLD("(%" PRIu64 " ms)"),
+                     backend_tag(result.backend), m_state->accepted(), m_state->rejected(), diff, scale, error, result.elapsed);
+        }
     }
     else {
         LOG_INFO("%s " GREEN_BOLD("accepted") " (%" PRId64 "/%" PRId64 ") diff " WHITE_BOLD("%" PRIu64 "%s") " " BLACK_BOLD("(%" PRIu64 " ms)"),

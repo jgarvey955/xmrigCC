@@ -16,6 +16,7 @@
  *   along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <algorithm>
 #include <cinttypes>
 #include <iomanip>
 #include <sstream>
@@ -137,13 +138,19 @@ int64_t xmrig::EthStratumClient::submit(const JobResult& result)
     m_results[m_sequence] = SubmitResult(m_sequence, result.diff, actual_diff, 0, result.backend, result.algorithm, m_pool.coin());
 #   endif
 
-    return send(doc);
+    const int64_t id = m_sequence;
+    const int64_t rc = send(doc);
+    if (rc < 0) {
+        m_results.erase(id);
+    }
+    return rc;
 }
 
 
 void xmrig::EthStratumClient::login()
 {
-    m_results.clear();
+    failPendingSubmissions("upstream reconnected; share acceptance unknown");
+    m_callbacks.clear();
 
     subscribe();
     authorize();
@@ -198,7 +205,14 @@ void xmrig::EthStratumClient::parseNotification(const char *method, const rapidj
             return;
         }
 
-        setExtraNonce(arr[0]);
+        try {
+            setExtraNonce(arr[0]);
+        }
+        catch (const std::exception &ex) {
+            LOG_ERR("%s " RED("%s"), tag(), ex.what());
+            close();
+        }
+        return;
     }
 
 #   if defined(XMRIG_ALGO_GHOSTRIDER) || defined(XMRIG_ALGO_RANDOMX)
@@ -289,16 +303,20 @@ void xmrig::EthStratumClient::parseNotification(const char *method, const rapidj
             uint8_t merkle_root[64];
 
             Buffer buf = Cvt::fromHex(blob.c_str(), blob.length());
+            if (buf.size() < 37) {
+                LOG_ERR("%s " RED("invalid mining.notify notification: coinbase is too short"), tag());
+                return;
+            }
 
             // Get height from coinbase
             {
                 uint8_t* p = buf.data() + 32;
-                uint8_t* m = p + 128;
+                uint8_t* m = buf.data() + std::min<size_t>(buf.size(), 160);
 
                 while ((p < m) && (*p != 0xff)) ++p;
                 while ((p < m) && (*p == 0xff)) ++p;
 
-                if ((p < m) && (*(p - 1) == 0xff) && (*(p - 2) == 0xff)) {
+                if ((p + 5 <= m) && (*(p - 1) == 0xff) && (*(p - 2) == 0xff)) {
                     uint32_t height = *reinterpret_cast<uint16_t*>(p + 2);
                     switch (*(p + 1)) {
                     case 4:
@@ -385,6 +403,11 @@ void xmrig::EthStratumClient::parseNotification(const char *method, const rapidj
         else
 #       endif
         {
+            if (!arr[1].IsString() || !arr[3].IsString() || !arr[5].IsUint64()) {
+                LOG_ERR("%s " RED("invalid mining.notify notification: invalid Ethereum parameter types"), tag());
+                return;
+            }
+
             // header hash (32 bytes)
             s << arr[1].GetString();
 

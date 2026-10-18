@@ -16,6 +16,7 @@
  */
 
 #include <rapidjson/document.h>
+#include <algorithm>
 
 #include "base/io/json/JsonChain.h"
 #include "base/io/log/Log.h"
@@ -67,6 +68,7 @@ CCServerConfig::CCServerConfig(cxxopts::ParseResult& parseResult)
     m_syslog = getParseResult(parseResult, "syslog", m_syslog);
 
     m_clientLogHistory = getParseResult(parseResult, "client-log-lines-history", m_clientLogHistory);
+    m_clientLogHistory = std::max(0, m_clientLogHistory);
     m_customDashboard = getParseResult(parseResult, "custom-dashboard", m_customDashboard);
     m_clientConfigFolder = getParseResult(parseResult, "client-config-folder", m_clientConfigFolder);
     m_clientUpdateFolder = getParseResult(parseResult, "client-update-folder", m_clientUpdateFolder);
@@ -109,6 +111,7 @@ bool CCServerConfig::read(const xmrig::IJsonReader& reader)
   m_syslog = reader.getBool("syslog", m_syslog);
 
   m_clientLogHistory = reader.getInt("client-log-lines-history", m_clientLogHistory);
+  m_clientLogHistory = std::max(0, m_clientLogHistory);
   m_customDashboard = reader.getString("custom-dashboard", m_customDashboard.c_str());
   m_clientConfigFolder = reader.getString("client-config-folder", m_clientConfigFolder.c_str());
   m_clientUpdateFolder = reader.getString("client-update-folder", m_clientUpdateFolder.c_str());

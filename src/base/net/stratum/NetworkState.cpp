@@ -37,7 +37,7 @@
 namespace xmrig {
 
 
-inline static void printCount(uint64_t accepted, uint64_t rejected)
+inline static void printCount(uint64_t accepted, uint64_t rejected, uint64_t unknown)
 {
     float percent   = 100.0;
     int color       = 2;
@@ -55,6 +55,10 @@ inline static void printCount(uint64_t accepted, uint64_t rejected)
 
     if (rejected) {
         Log::print(GREEN_BOLD(" * ") WHITE_BOLD("%-17s") RED_BOLD("%" PRIu64), "rejected", rejected);
+    }
+
+    if (unknown) {
+        Log::print(GREEN_BOLD(" * ") WHITE_BOLD("%-17s") YELLOW_BOLD("%" PRIu64), "outcome unknown", unknown);
     }
 }
 
@@ -133,6 +137,7 @@ rapidjson::Value xmrig::NetworkState::getConnection(rapidjson::Document &doc, in
     connection.AddMember("diff",            m_diff, allocator);
     connection.AddMember("accepted",        m_accepted, allocator);
     connection.AddMember("rejected",        m_rejected, allocator);
+    connection.AddMember("unknown",         m_unknown, allocator);
     connection.AddMember("avg_time",        avgTime() / 1000, allocator);
     connection.AddMember("avg_time_ms",     avgTime(), allocator);
     connection.AddMember("hashes_total",    m_hashes, allocator);
@@ -155,6 +160,7 @@ rapidjson::Value xmrig::NetworkState::getResults(rapidjson::Document &doc, int v
     results.AddMember("diff_current",  m_diff, allocator);
     results.AddMember("shares_good",   m_accepted, allocator);
     results.AddMember("shares_total",  m_accepted + m_rejected, allocator);
+    results.AddMember("shares_unknown", m_unknown, allocator);
     results.AddMember("avg_time",      avgTime() / 1000, allocator);
     results.AddMember("avg_time_ms",   avgTime(), allocator);
     results.AddMember("hashes_total",  m_hashes, allocator);
@@ -206,7 +212,7 @@ void xmrig::NetworkState::printResults() const
 
     Log::print(MAGENTA_BOLD_S " - RESULTS");
 
-    printCount(m_accepted, m_rejected);
+    printCount(m_accepted, m_rejected, m_unknown);
     printHashes(m_accepted, m_hashes);
     printDiff(m_diff);
 
@@ -332,7 +338,12 @@ uint64_t xmrig::NetworkState::connectionTime() const
 void xmrig::NetworkState::add(const SubmitResult &result, const char *error)
 {
     if (error) {
-        m_rejected++;
+        if (result.isOutcomeUnknown()) {
+            m_unknown++;
+        }
+        else {
+            m_rejected++;
+        }
         return;
     }
 

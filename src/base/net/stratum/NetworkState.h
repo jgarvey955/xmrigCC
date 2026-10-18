@@ -41,6 +41,7 @@ public:
     inline const Algorithm &algorithm() const   { return m_algorithm; }
     inline uint64_t accepted() const            { return m_accepted; }
     inline uint64_t rejected() const            { return m_rejected; }
+    inline uint64_t unknown() const             { return m_unknown; }
 
 #   ifdef XMRIG_FEATURE_API
     rapidjson::Value getConnection(rapidjson::Document &doc, int version) const;
@@ -88,6 +89,7 @@ private:
     uint64_t m_failures         = 0;
     uint64_t m_hashes           = 0;
     uint64_t m_rejected         = 0;
+    uint64_t m_unknown          = 0;
 };
 
 

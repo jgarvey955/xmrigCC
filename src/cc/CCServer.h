@@ -50,7 +50,9 @@ private:
   std::shared_ptr<CCServerConfig> m_config;
   std::shared_ptr<Httpd> m_httpd;
 
-  void startUvLoopThread() const;
+  void startUvLoopThread();
+  void joinUvLoopThread();
+  std::thread m_uvThread;
 };
 
 

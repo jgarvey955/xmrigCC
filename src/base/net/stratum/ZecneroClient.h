@@ -39,7 +39,7 @@ protected:
 private:
     struct Work { Job job; ZecneroBlockTemplate block; };
     void getBlockTemplate();
-    bool sendRpc(int64_t id, const char *method, rapidjson::Value &params, rapidjson::Document &doc);
+    bool sendRpc(int64_t id, const char *method, rapidjson::Value &params, rapidjson::Document &doc, std::string *error = nullptr);
     bool authorization(std::string &value, std::string &error) const;
     void fail(const char *message);
     void clearRequests(const char *reason);

@@ -82,16 +82,26 @@ bool xmrig::BaseClient::handleResponse(int64_t id, const rapidjson::Value &resul
 }
 
 
-bool xmrig::BaseClient::handleSubmitResponse(int64_t id, const char *error)
+bool xmrig::BaseClient::handleSubmitResponse(int64_t id, const char *error, bool outcomeUnknown)
 {
     auto it = m_results.find(id);
     if (it != m_results.end()) {
-        it->second.done();
-        m_listener->onResultAccepted(this, it->second, error);
+        SubmitResult result = it->second;
         m_results.erase(it);
+        result.done();
+        result.setOutcomeUnknown(outcomeUnknown);
+        m_listener->onResultAccepted(this, result, error);
 
         return true;
     }
 
     return false;
+}
+
+
+void xmrig::BaseClient::failPendingSubmissions(const char *error)
+{
+    while (!m_results.empty()) {
+        handleSubmitResponse(m_results.begin()->first, error, true);
+    }
 }

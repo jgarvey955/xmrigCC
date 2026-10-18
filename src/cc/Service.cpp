@@ -376,23 +376,24 @@ int Service::setClientStatus(const httplib::Request& req, const std::string& cli
 
 void Service::setClientLog(size_t maxRows, const std::string& clientId, const std::string& log)
 {
-  if (m_clientLog.find(clientId) == m_clientLog.end())
+  if (maxRows == 0)
   {
-    m_clientLog[clientId] = std::list<std::string>();
+    m_clientLog.erase(clientId);
+    return;
   }
 
-  auto* clientLog = &m_clientLog[clientId];
+  auto& clientLog = m_clientLog[clientId];
   std::istringstream logStream(log);
 
   std::string logLine;
   while (std::getline(logStream, logLine))
   {
-    if (clientLog->size() == maxRows)
+    while (clientLog.size() >= maxRows)
     {
-      clientLog->pop_front();
+      clientLog.pop_front();
     }
 
-    clientLog->push_back(logLine);
+    clientLog.push_back(logLine);
   }
 }
 
