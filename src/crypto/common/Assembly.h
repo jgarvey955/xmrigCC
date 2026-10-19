@@ -23,6 +23,11 @@
 #include "3rdparty/rapidjson/fwd.h"
 
 
+#ifdef INTEL
+#   undef INTEL
+#endif
+
+
 namespace xmrig {
 
 

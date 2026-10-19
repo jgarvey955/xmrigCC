@@ -204,7 +204,8 @@ elseif (XMRIG_OS_APPLE)
 
     find_library(IOKIT_LIBRARY IOKit)
     find_library(CORESERVICES_LIBRARY CoreServices)
-    set(EXTRA_LIBS ${IOKIT_LIBRARY} ${CORESERVICES_LIBRARY})
+    find_library(SECURITY_LIBRARY Security)
+    set(EXTRA_LIBS ${IOKIT_LIBRARY} ${CORESERVICES_LIBRARY} ${SECURITY_LIBRARY})
 else()
     list(APPEND SOURCES_OS
         src/App_unix.cpp

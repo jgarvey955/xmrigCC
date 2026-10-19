@@ -407,7 +407,7 @@ String cpu_name_arm()
 {
     lscpu_desc desc;
     if (read_basicinfo(&desc) && arm_cpu_decode(&desc)) {
-        return fmt::format("{} {}", desc.vendor, desc.model).c_str();
+        return fmt::format("{} {}", desc.vendor.data(), desc.model.data()).c_str();
     }
 
     return {};
