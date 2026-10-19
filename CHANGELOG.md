@@ -1,3 +1,11 @@
+# 3.6.4
+* Fixed daemon startup freezing when terminal console initialization suspended
+  the miner in a separate process group.
+* Resume stopped miners when forwarding shutdown signals, while preserving
+  process-group shutdown for headless runs.
+* Added regression checks for terminal startup, Ctrl+C, headless process-group
+  shutdown, and stopped-miner shutdown.
+
 # 3.6.1
 * Restored the configured CC status reporting cadence by signaling request
   completion directly to the event loop instead of consuming the next timer

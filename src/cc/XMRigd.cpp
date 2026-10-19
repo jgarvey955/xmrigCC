@@ -47,19 +47,25 @@
 #if !defined(_WIN32) && !defined(WIN32)
 namespace
 {
-volatile sig_atomic_t childProcessGroup = -1;
+volatile sig_atomic_t childSignalTarget = 0;
 
 void forwardSignal(int signal)
 {
-  const auto group = childProcessGroup;
-  if (group > 0)
+  const int savedErrno = errno;
+  const auto target = childSignalTarget;
+  if (target != 0)
   {
-    kill(-group, signal);
+    kill(target, signal);
+    // A stopped miner must resume before it can handle a shutdown signal.
+    kill(target, SIGCONT);
   }
+  errno = savedErrno;
 }
 
 int runMiner(const std::string& path, int argc, char** argv)
 {
+  // Console access stops a miner outside the terminal's foreground group.
+  const bool separateProcessGroup = !isatty(STDIN_FILENO);
   const pid_t child = fork();
   if (child < 0)
   {
@@ -68,7 +74,10 @@ int runMiner(const std::string& path, int argc, char** argv)
 
   if (child == 0)
   {
-    setpgid(0, 0);
+    if (separateProcessGroup)
+    {
+      setpgid(0, 0);
+    }
 
     std::vector<char*> args;
     args.reserve(static_cast<size_t>(argc) + 2);
@@ -85,8 +94,11 @@ int runMiner(const std::string& path, int argc, char** argv)
     _exit(errno == ENOENT ? 127 : 126);
   }
 
-  setpgid(child, child);
-  childProcessGroup = child;
+  if (separateProcessGroup)
+  {
+    setpgid(child, child);
+  }
+  childSignalTarget = separateProcessGroup ? -child : child;
 
   struct sigaction action{};
   action.sa_handler = forwardSignal;
@@ -100,12 +112,12 @@ int runMiner(const std::string& path, int argc, char** argv)
   {
     if (errno != EINTR)
     {
-      childProcessGroup = -1;
+      childSignalTarget = 0;
       return errno == 0 ? EXIT_FAILURE : errno;
     }
   }
 
-  childProcessGroup = -1;
+  childSignalTarget = 0;
   if (WIFEXITED(status))
   {
     return WEXITSTATUS(status);

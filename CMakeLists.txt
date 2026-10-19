@@ -343,6 +343,11 @@ if (WITH_CC_CLIENT)
     add_executable(xmrigDaemon src/cc/XMRigd.cpp res/app.rc)
     target_compile_definitions(xmrigDaemon PRIVATE XMRIG_DAEMON_PROJECT)
     set_target_properties(xmrigDaemon PROPERTIES OUTPUT_NAME ${DAEMON_EXECUTABLE_NAME})
+
+    if (WITH_ZECNERO_TESTS AND Python3_Interpreter_FOUND AND NOT XMRIG_OS_WIN)
+        add_test(NAME daemon-lifecycle COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/daemon-lifecycle.py --binary $<TARGET_FILE:xmrigDaemon>)
+        set_tests_properties(daemon-lifecycle PROPERTIES TIMEOUT 30)
+    endif()
 endif()
 
 if (WITH_CC_SERVER)
