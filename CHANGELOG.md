@@ -1,3 +1,8 @@
+# 3.6.1
+* Restored the configured CC status reporting cadence by signaling request
+  completion directly to the event loop instead of consuming the next timer
+  tick to reap the worker thread.
+
 # 3.6.0
 * Updated llhttp to 9.4.3, fmt to 12.2.0, cpp-httplib to 0.61.0,
   cxxopts to 3.3.1, and the OpenCL headers to 2026.05.29.

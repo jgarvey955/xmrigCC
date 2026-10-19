@@ -19,6 +19,7 @@
 #include <string>
 #include "3rdparty/rapidjson/prettywriter.h"
 #include <crypto/common/VirtualMemory.h>
+#include "base/io/Async.h"
 #include "base/io/Env.h"
 #include "base/io/log/Tags.h"
 
@@ -66,10 +67,12 @@ xmrig::CCClient::CCClient(Base* base)
     m_startTime(Chrono::currentMSecsSinceEpoch()),
     m_configPublishedOnStart(false),
     m_failedRequests(0),
+    m_async(nullptr),
     m_timer(nullptr)
 {
   base->addListener(this);
 
+  m_async = new Async(this);
   m_timer = new Timer(this);
 }
 
@@ -79,6 +82,7 @@ xmrig::CCClient::~CCClient()
   LOG_DEBUG("CCClient::~CCCLient()");
   stop();
   delete m_timer;
+  delete m_async;
 }
 
 void xmrig::CCClient::start()
@@ -569,32 +573,38 @@ void xmrig::CCClient::onTimer(const xmrig::Timer* timer)
 {
   LOG_DEBUG("CCClient::onTimer");
 
-  if (m_thread.joinable() && !m_threadRunning.load(std::memory_order_acquire))
+  if (m_thread.joinable())
   {
-    m_thread.join();
-    PublishResult result = std::move(m_publishResult);
-    m_publishResult = PublishResult{};
-
-    // Command listeners may stop and destroy the client. Keep this as the
-    // final operation in the timer callback.
-    if (result.completed)
-    {
-      processPublishResult(std::move(result));
-    }
     return;
   }
 
-  if (!m_thread.joinable())
-  {
-    updateUptime();
-    updateLog();
-    updateStatistics();
+  updateUptime();
+  updateLog();
+  updateStatistics();
 
-    const bool publishConfigOnStart = !m_configPublishedOnStart &&
-                                      m_base->config()->ccClient().uploadConfigOnStartup();
-    m_configPublishedOnStart = m_configPublishedOnStart || publishConfigOnStart;
-    m_threadRunning.store(true, std::memory_order_release);
-    m_thread = std::thread(&CCClient::publishThread, this, publishConfigOnStart);
+  const bool publishConfigOnStart = !m_configPublishedOnStart &&
+                                    m_base->config()->ccClient().uploadConfigOnStartup();
+  m_configPublishedOnStart = m_configPublishedOnStart || publishConfigOnStart;
+  m_threadRunning.store(true, std::memory_order_release);
+  m_thread = std::thread(&CCClient::publishThread, this, publishConfigOnStart);
+}
+
+void xmrig::CCClient::onAsync()
+{
+  if (!m_thread.joinable() || m_threadRunning.load(std::memory_order_acquire))
+  {
+    return;
+  }
+
+  m_thread.join();
+  PublishResult result = std::move(m_publishResult);
+  m_publishResult = PublishResult{};
+
+  // Command listeners may stop and destroy the client. Keep this as the
+  // final operation in the completion callback.
+  if (result.completed)
+  {
+    processPublishResult(std::move(result));
   }
 }
 
@@ -608,4 +618,5 @@ void xmrig::CCClient::publishThread(bool publishConfigOnStart)
 
   publishClientStatusReport();
   m_threadRunning.store(false, std::memory_order_release);
+  m_async->send();
 }

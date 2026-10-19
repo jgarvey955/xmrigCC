@@ -28,6 +28,7 @@
 #include "version.h"
 #include "ControlCommand.h"
 
+#include "base/kernel/interfaces/IAsyncListener.h"
 #include "base/kernel/interfaces/IBaseListener.h"
 #include "base/kernel/interfaces/ITimerListener.h"
 
@@ -37,10 +38,11 @@ namespace xmrig
 class Hashrate;
 class NetworkState;
 class Base;
+class Async;
 class IClientStatusListener;
 class ICommandListener;
 
-class CCClient : public IBaseListener, public ITimerListener
+class CCClient : public IBaseListener, public ITimerListener, public IAsyncListener
 {
 public:
   CCClient(Base* base);
@@ -60,6 +62,7 @@ public:
   void stop();
 
 protected:
+  void onAsync() override;
   void onConfigChanged(Config* config, Config* previousConfig) override;
 
   void onTimer(const Timer* timer) override;
@@ -100,6 +103,7 @@ private:
   bool m_configPublishedOnStart;
   int m_failedRequests;
 
+  Async* m_async;
   Timer* m_timer;
   std::atomic<bool> m_threadRunning{false};
   std::thread m_thread;
