@@ -48,10 +48,12 @@
 namespace
 {
 volatile sig_atomic_t childSignalTarget = 0;
+volatile sig_atomic_t shutdownSignal = 0;
 
 void forwardSignal(int signal)
 {
   const int savedErrno = errno;
+  shutdownSignal = signal;
   const auto target = childSignalTarget;
   if (target != 0)
   {
@@ -166,6 +168,13 @@ int main(int argc, char** argv)
   auto fullMinerBinaryPath = ownPath.substr(0, pos + 1) + minerBinaryName;
   while (true)
   {
+#if !defined(_WIN32) && !defined(WIN32)
+    if (shutdownSignal != 0)
+    {
+      return shutdownSignal == SIGTERM ? EXIT_SUCCESS : 128 + shutdownSignal;
+    }
+#endif
+
     auto status = EXIT_SUCCESS;
 
     // apply update if we have one
@@ -208,6 +217,14 @@ int main(int argc, char** argv)
       }
     }
 
+#if !defined(_WIN32) && !defined(WIN32)
+    // A signal received while no child was running is still a shutdown request.
+    if (shutdownSignal != 0)
+    {
+      return shutdownSignal == SIGTERM ? EXIT_SUCCESS : 128 + shutdownSignal;
+    }
+#endif
+
     // execute miner and wait for result
 #if defined(_WIN32) || defined(WIN32)
     status = system(("\"" + fullMinerBinaryPath + "\"" + params).c_str());
@@ -217,6 +234,12 @@ int main(int argc, char** argv)
     }
 #else
     status = runMiner(fullMinerBinaryPath, argc, argv);
+    // The daemon's own shutdown request is authoritative. The miner may report
+    // any exit code while handling the forwarded signal, including RC_RESTART.
+    if (shutdownSignal != 0)
+    {
+      return shutdownSignal == SIGTERM ? EXIT_SUCCESS : 128 + shutdownSignal;
+    }
     if (status == EXIT_SUCCESS || status == EINVAL || status == 128 + SIGHUP ||
         status == 128 + SIGINT || status == 128 + SIGTERM)
     {

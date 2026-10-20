@@ -31,6 +31,14 @@ if os.isatty(0):
     print("CONSOLE READY", flush=True)
     sys.exit(0 if sys.stdin.readline().strip() == "q" else 1)
 
+term_exit_code = Path("term-exit-code")
+if term_exit_code.exists():
+    exit_code = int(term_exit_code.read_text())
+    signal.signal(signal.SIGTERM, lambda *_: sys.exit(exit_code))
+    print("NONZERO TERM READY", flush=True)
+    while True:
+        time.sleep(1)
+
 signal.signal(signal.SIGTERM, lambda *_: sys.exit(0))
 if Path("stop-miner").exists():
     print("MINER STOPPING", flush=True)
@@ -149,12 +157,38 @@ def headless_test(root, stopped=False):
         proc.stdout.close()
 
 
+def nonzero_term_test(root, exit_code):
+    (root / "term-exit-code").write_text(str(exit_code))
+    proc = subprocess.Popen(
+        [str(root / "xmrigDaemon"), "argument with spaces"],
+        cwd=root,
+        stdin=subprocess.DEVNULL,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        start_new_session=True,
+    )
+    try:
+        read_until(proc.stdout.fileno(), b"NONZERO TERM READY", lambda: proc.poll() is None)
+        proc.terminate()
+        assert proc.wait(timeout=5) == 0, (
+            f"daemon respawned miner after shutdown exit {exit_code}"
+        )
+    finally:
+        kill_fixture(root)
+        if proc.poll() is None:
+            proc.kill()
+        proc.wait()
+        proc.stdout.close()
+
+
 def run(binary):
     for name, test in (
         ("terminal startup and quit", lambda root: console_test(root)),
         ("terminal Ctrl+C", lambda root: console_test(root, interrupt=True)),
         ("headless process group shutdown", lambda root: headless_test(root)),
         ("stopped miner shutdown", lambda root: headless_test(root, stopped=True)),
+        ("shutdown after miner exit 1", lambda root: nonzero_term_test(root, 1)),
+        ("shutdown after miner restart exit", lambda root: nonzero_term_test(root, 75)),
     ):
         with tempfile.TemporaryDirectory(prefix="xmrig-daemon-") as directory:
             root = Path(directory)

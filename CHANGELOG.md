@@ -1,3 +1,9 @@
+# 3.6.5
+* Fixed daemon shutdown incorrectly relaunching the miner when signal handling
+  produced a nonzero or explicit-restart exit status.
+* Added regression coverage proving daemon shutdown remains final for both
+  unexpected and explicit-restart child exit codes.
+
 # 3.6.4
 * Fixed daemon startup freezing when terminal console initialization suspended
   the miner in a separate process group.
