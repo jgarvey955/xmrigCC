@@ -5,6 +5,8 @@
 * Restored the stable RandomX hardware-AES dispatch used before 3.5.0 while
   retaining RandomX v2 and Zecnero support.
 * Added build-time regression coverage that rejects the experimental dispatcher.
+* Switched static zlib downloads to the official GitHub release asset after the
+  zlib.net endpoint returned HTML to ARM release runners.
 
 # 3.6.5
 * Fixed daemon shutdown incorrectly relaunching the miner when signal handling

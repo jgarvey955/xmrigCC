@@ -14,7 +14,7 @@ mkdir -p deps/lib
 
 mkdir -p build && cd build
 
-wget -4 --tries=3 https://zlib.net/fossils/zlib-${ZLIB_VERSION}.tar.gz -O zlib-${ZLIB_VERSION}.tar.gz
+wget -4 --tries=3 https://github.com/madler/zlib/releases/download/v${ZLIB_VERSION}/zlib-${ZLIB_VERSION}.tar.gz -O zlib-${ZLIB_VERSION}.tar.gz
 verify_sha256 "zlib-${ZLIB_VERSION}.tar.gz" "$ZLIB_SHA256"
 rm -rf -- "zlib-${ZLIB_VERSION}"
 tar -xzf zlib-${ZLIB_VERSION}.tar.gz
