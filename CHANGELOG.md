@@ -1,3 +1,11 @@
+# 3.6.6
+* Removed the experimental RandomX VAES-256/512 runtime selector that replaced
+  the established hardware-AES path on Zen 4 and caused host instability under
+  sustained all-core mining.
+* Restored the stable RandomX hardware-AES dispatch used before 3.5.0 while
+  retaining RandomX v2 and Zecnero support.
+* Added build-time regression coverage that rejects the experimental dispatcher.
+
 # 3.6.5
 * Fixed daemon shutdown incorrectly relaunching the miner when signal handling
   produced a nonzero or explicit-restart exit status.

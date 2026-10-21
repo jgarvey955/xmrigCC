@@ -176,18 +176,11 @@ static void fastVectors(const char *v1, const char *v2)
 
 static void aesImplementations()
 {
+#if defined(XMRIG_RANDOMX_VAES256) || defined(XMRIG_RANDOMX_VAES512)
+#error "The experimental RandomX wide-AES dispatcher must not be enabled"
+#endif
     if (!Cpu::info()->hasAES()) { return; }
     std::vector<std::pair<const char*, hashAndFillAes1Rx4_impl*>> implementations{{"AES", &hashAndFillAes1Rx4<0,2>}};
-#ifdef XMRIG_RANDOMX_VAES256
-    if (Cpu::info()->hasVAES() && Cpu::info()->hasAVX2()) {
-        implementations.emplace_back("VAES256", &hashAndFillAes1Rx4_VAES256);
-    }
-#endif
-#ifdef XMRIG_RANDOMX_VAES512
-    if (Cpu::info()->hasVAES() && Cpu::info()->has(xmrig::ICpuInfo::FLAG_AVX512F)) {
-        implementations.emplace_back("VAES512", &hashAndFillAes1Rx4_VAES512);
-    }
-#endif
     for (const auto &impl : implementations) {
         for (size_t size : {10240u, 262144u, 1048576u, 2097152u}) {
             std::vector<uint8_t> a(size + 128), b(size + 128);
@@ -203,14 +196,7 @@ static void aesImplementations()
         }
         std::cout << impl.first << " scratchpad/hash/state reference matches at four sizes\n";
     }
-    std::array<hashAndFillAes1Rx4_impl*, 8> selected{};
-    std::vector<std::thread> threads;
-    for (size_t i=0; i<selected.size(); ++i) { threads.emplace_back([&,i]() { selected[i]=GetHardAESImpl(); }); }
-    for (auto &thread : threads) { thread.join(); }
-    for (auto *impl : selected) { check(impl == selected[0], "hardware AES selector is stable across threads"); }
-    for (const auto &impl : implementations) {
-        if (impl.second == selected[0]) { std::cout << "Automatic hardware AES: " << impl.first << std::endl; }
-    }
+    std::cout << "Production hardware AES: established 128-bit path (wide auto-dispatch disabled)\n";
 }
 
 static void timerLifetime()
