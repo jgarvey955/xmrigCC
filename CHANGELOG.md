@@ -1,3 +1,13 @@
+# 3.7.1
+* Aligned `rx/zecnero2` directly with Zecnero's published
+  `v2x/rx-zecnero2` branch, including its RandomX v2 configuration,
+  full-dataset/JIT release gate, complete light/interpreter engine changes,
+  VM-pool bounds fix, and cross-path test hooks.
+* Made an unsupported v2 mode idle safely until the next job instead of
+  attempting to hash without a valid RandomX VM.
+* Changed the real-daemon Regtest check to exercise the upstream-supported
+  fast/JIT path by default.
+
 # 3.7.0
 * Added release-compatible `rx/zecnero2` mining using Zecnero's salted RandomX
   v2.0.1 configuration and the Monero `rx/2` commitment convention.

@@ -137,6 +137,10 @@ uses `cpu.rx/zecnero2` when present, then the general `cpu.rx` or `cpu.*`
 profile. To reuse the v1 thread list explicitly, set `"rx/zecnero2": "rx/zecnero"`
 inside `cpu`.
 `randomx.mode` selects `auto`, `fast` (full dataset), or `light` (cache only).
+The published `v2x/rx-zecnero2` release gate permits `rx/zecnero2` only with a
+full dataset and JIT, so use `auto` or `fast`. If the dataset or JIT is
+unavailable, the miner reports the reason and waits for new work instead of
+submitting from an unsupported path. This gate does not restrict v1.
 
 For `rx/zecnero2`, the value tested against the target and sent as `result` is
 Blake2b-256 of the 140-byte header followed by the RandomX v2 hash. The raw
@@ -207,7 +211,7 @@ acceptance. `WITH_ZECNERO_TESTS=ON` registers these Python checks with CTest;
 it does not add another executable.
 
 ```sh
-python3 tests/zecnero-regtest.py --node /path/to/zecnerod --miner build/xmrigMiner --mode light
+python3 tests/zecnero-regtest.py --node /path/to/zecnerod --miner build/xmrigMiner --mode fast
 ```
 
 These use isolated Regtest chains. The remote test covers TLS authentication,
@@ -220,16 +224,18 @@ a launch-compatible v2 fixture.
 
 ## Consensus implementation provenance
 
-The optimized v2 engine is ported from XMRig v6.26.0
-`b2ca72480c58d197e18c885d9fc1a0c8d517e60a`. Its light-mode JIT addressing and
-interpreter AES mixing are completed against the RandomX v2.0.1 reference.
-Zecnero v2 uses the same commitment construction and Stratum field convention
-as Monero `rx/2`. The reference vector generator uses native RandomX v2.0.1 at
-`aaafe71322df6602c21a5c72937ac284724ae561` with salt `5a65636e65726f525801`.
+The Zecnero integration is ported directly from `xmrig-zecnero` branch
+`v2x/rx-zecnero2` at `67bd807eebc67d16b7c8d0b2c69be0489cb07e2b`.
+It inherits the upstream RandomX v2 configuration and changes only the Argon2
+salt to `ZecneroRX\x01`; it also carries that branch's full-dataset/JIT release
+gate, light/interpreter completion, VM-pool bound fix, and test hooks. The old
+`rx2/zecnero` spelling is only a compatibility alias for `rx/zecnero2`.
 
-Runtime tests were run on Linux x86-64. RISC-V v2 uses the portable interpreter;
-its pre-existing v1 JIT remains available. ARM v2 light mode also uses the
-interpreter. Other architectures need platform testing.
+Vectors are from `randomx-vectors` branch `v2f/v2-vectors` at
+`12fa94a9ada546da2aac9febbb6f699bc1b5f4dc`. Zecnero v2 uses the same commitment
+construction and Stratum field convention as Monero `rx/2`. Release workers
+intentionally use only the upstream-supported fast/JIT path; the completed
+light/interpreter code remains present for upstream validation builds.
 Original licenses and attribution, external algorithm names, and existing binary
 and control-protocol identifiers are preserved.
 

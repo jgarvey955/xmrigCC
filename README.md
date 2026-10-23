@@ -346,6 +346,8 @@ This XMRigCC build also supports `rx/zecnero` and `rx/zecnero2` (aliases
 local cookie-file authentication. The miner follows the daemon's PoW version automatically.
 Opted-in Regtest switches at block 2. The v2 plus Orchard-only Testnet activation is
 expected around November 2, 2026 at 16:00 UTC; the exact height ships with the October 30 release.
+Release builds follow the upstream `v2x/rx-zecnero2` safety gate and mine v2 only
+with a full RandomX dataset and JIT; use `randomx.mode: "auto"` or `"fast"`.
 
 See [Zecnero setup and configuration](doc/ZECNERO.md) and the
 [Testnet example config](config-zecnero-testnet.example.json).

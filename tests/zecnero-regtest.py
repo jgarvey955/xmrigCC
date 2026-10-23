@@ -38,7 +38,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--node', required=True, type=pathlib.Path)
     parser.add_argument('--miner', required=True, type=pathlib.Path)
-    parser.add_argument('--mode', default='light', choices=['light', 'fast'])
+    parser.add_argument('--mode', default='fast', choices=['light', 'fast'])
     args = parser.parse_args()
     root = pathlib.Path(tempfile.mkdtemp(prefix='zecnero-xmrig-regtest-'))
     rpc_port = port()

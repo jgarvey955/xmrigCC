@@ -99,7 +99,8 @@ def run_case(binary, root, algo):
                     'donate-level': 0, 'dmi': False, 'http': {'enabled': False},
                     'discord': {'enabled': False}, 'opencl': False, 'cuda': False,
                     'cpu': {'enabled': True, 'huge-pages': False, 'rx': [-1]},
-                    'randomx': {'mode': 'light', 'init': 1, 'rdmsr': False, 'wrmsr': False, 'numa': False},
+                    'randomx': {'mode': 'fast' if algo == 'rx/zecnero2' else 'light',
+                                'init': 1, 'rdmsr': False, 'wrmsr': False, 'numa': False},
                     'pools': [{'url': f'127.0.0.1:{pool_port}', 'user': worker, 'pass': 'x', 'algo': algo}],
                     'cc-client': {'enabled': True, 'url': f'127.0.0.1:{cc_port}', 'worker-id': worker,
                                   'access-token': 'local-test', 'use-tls': False, 'update-interval-s': 1,
@@ -110,7 +111,7 @@ def run_case(binary, root, algo):
                     processes.append(subprocess.Popen([str(binary), '-c', str(path), '--daemonized'],
                         cwd=root, stdin=subprocess.DEVNULL, stdout=log, stderr=subprocess.STDOUT))
             pending = set(prefixes)
-            deadline = time.monotonic() + 30
+            deadline = time.monotonic() + (120 if algo == 'rx/zecnero2' else 30)
             while pending and time.monotonic() < deadline:
                 assert errors.empty(), errors.get()
                 assert all(proc.poll() is None for proc in processes), f'Miner exited; see {root}'
@@ -130,7 +131,7 @@ def run_case(binary, root, algo):
                 pending.discard(worker)
             assert not pending, f'Missing CC reports from {pending}; see {root}'
             submitted = set()
-            deadline = time.monotonic() + 30
+            deadline = time.monotonic() + (120 if algo == 'rx/zecnero2' else 30)
             while submitted != set(prefixes) and time.monotonic() < deadline:
                 assert errors.empty(), errors.get()
                 try:
