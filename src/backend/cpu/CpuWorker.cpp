@@ -23,6 +23,8 @@
 
 #include "backend/cpu/Cpu.h"
 #include "backend/cpu/CpuWorker.h"
+#include "base/io/log/Log.h"
+#include "base/io/log/Tags.h"
 #include "base/tools/Alignment.h"
 #include "base/tools/Chrono.h"
 #include "core/config/Config.h"
@@ -127,7 +129,7 @@ xmrig::CpuWorker<N>::~CpuWorker()
 
 #ifdef XMRIG_ALGO_RANDOMX
 template<size_t N>
-void xmrig::CpuWorker<N>::allocateRandomX_VM()
+bool xmrig::CpuWorker<N>::allocateRandomX_VM()
 {
     RxDataset *dataset = Rx::dataset(m_job.currentJob(), node());
 
@@ -135,7 +137,7 @@ void xmrig::CpuWorker<N>::allocateRandomX_VM()
         std::this_thread::sleep_for(std::chrono::milliseconds(20));
 
         if (Nonce::sequence(Nonce::CPU) == 0) {
-            return;
+            return false;
         }
 
         dataset = Rx::dataset(m_job.currentJob(), node());
@@ -154,12 +156,29 @@ void xmrig::CpuWorker<N>::allocateRandomX_VM()
         // Try to allocate scratchpad from dataset's 1 GB huge pages, if normal huge pages are not available
         uint8_t* scratchpad = m_memory->isHugePages() ? m_memory->scratchpad() : dataset->tryAllocateScrathpad();
         m_vm = RxVm::create(dataset, scratchpad ? scratchpad : m_memory->scratchpad(), !m_hwAES, m_assembly, node());
+        if (!m_vm) {
+            // m_seed is left unchanged; creation is retried when the next job arrives.
+            LOG_ERR("%s " RED("CPU thread #%zu has no RandomX VM, it will not hash until the next job"), Tags::cpu(), id());
+
+            return false;
+        }
     }
     else if (!dataset->get() && (m_job.currentJob().seed() != m_seed)) {
         // Update RandomX light VM with the new seed
         randomx_vm_set_cache(m_vm, dataset->cache()->get());
     }
     m_seed = m_job.currentJob().seed();
+
+    return true;
+}
+
+
+template<size_t N>
+void xmrig::CpuWorker<N>::waitForNextJob()
+{
+    while (!Nonce::isOutdated(Nonce::CPU, m_job.sequence()) && !Nonce::isPaused() && Nonce::sequence(Nonce::CPU) > 0) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    }
 }
 #endif
 
@@ -300,6 +319,13 @@ void xmrig::CpuWorker<N>::start()
 #           ifdef XMRIG_ALGO_RANDOMX
             uint8_t* miner_signature_ptr = m_job.blob() + m_job.nonceOffset() + m_job.nonceSize();
             if (job.algorithm().family() == Algorithm::RANDOM_X) {
+                if (!m_vm) {
+                    // No VM for this job (creation failed or the upstream Zecnero v2
+                    // policy rejected this mode): idle until the job changes.
+                    waitForNextJob();
+                    break;
+                }
+
                 if (first) {
                     first = false;
                     if (job.hasMinerSignature()) {

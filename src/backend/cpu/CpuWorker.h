@@ -74,7 +74,8 @@ private:
     inline cn_hash_fun fn(const Algorithm &algorithm) const { return CnHash::fn(algorithm, m_av, m_assembly); }
 
 #   ifdef XMRIG_ALGO_RANDOMX
-    void allocateRandomX_VM();
+    bool allocateRandomX_VM();
+    void waitForNextJob();
 #   endif
 
     bool nextRound();
