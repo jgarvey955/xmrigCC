@@ -67,7 +67,7 @@ static inline const std::string &usage()
     u += "      --daemon-poll-interval=N  daemon poll interval in milliseconds (default: 1000)\n";
     u += "      --daemon-job-timeout=N    daemon job timeout in milliseconds (default: 15000)\n";
     u += "\nZecnero direct RPC solo mining (--daemon):\n";
-    u += "  -a, --algo=rx/zecnero         RandomX v1; rx/zecnero2 or rx2/zecnero for experimental v2\n";
+    u += "  -a, --algo=rx/zecnero         RandomX v1; rx/zecnero2, rx/zmr2 or rx2/zecnero for v2\n";
     u += "                               node templates select the version automatically\n";
     u += "  -o, --url=HOST:PORT           node RPC (Testnet: 127.0.0.1:18732)\n";
     u += "  -u, --user=ADDRESS           payout wallet; omit, empty or x uses daemon wallet\n";

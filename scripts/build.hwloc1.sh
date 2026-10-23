@@ -1,6 +1,15 @@
 #!/bin/sh -e
 
 HWLOC_VERSION="1.11.13"
+SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+DEPS_DIR="$SCRIPT_DIR/deps"
+. "$SCRIPT_DIR/dependency-cache.sh"
+
+if dependency_is_current hwloc "$HWLOC_VERSION" "$DEPS_DIR/include/hwloc.h" "$DEPS_DIR/lib/libhwloc.a"; then
+    exit 0
+fi
+
+cd "$SCRIPT_DIR"
 
 mkdir -p deps
 mkdir -p deps/include
@@ -16,4 +25,5 @@ cd hwloc-${HWLOC_VERSION}
 make -j$(nproc || sysctl -n hw.ncpu || sysctl -n hw.logicalcpu)
 cp -fr include ../../deps
 cp src/.libs/libhwloc.a ../../deps/lib
+dependency_mark_current hwloc "$HWLOC_VERSION"
 cd ..

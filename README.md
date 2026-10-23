@@ -335,14 +335,17 @@ Run the local notification checks with
 
 
 ## Donations
-This build fixes donation at 5% to the Monero HeroMiners TLS pool. Config and command-line values do not override it.
+This build fixes donation at 5% to `us2.monero.herominers.com:1111`, with
+`us.monero.herominers.com:1111` as failover. Config and command-line values do
+not override it.
 
 ## Zecnero direct solo mining
 
-This XMRigCC build also supports `rx/zecnero` and `rx/zecnero2` (alias
-`rx2/zecnero`), direct node RPC, miner-config payout addresses, and authenticated
-local cookie-file authentication. The miner follows the daemon's PoW version automatically:
-opted-in Regtest switches at block 2, and Testnet switches at block 1,000,000.
+This XMRigCC build also supports `rx/zecnero` and `rx/zecnero2` (aliases
+`rx/zmr2` and `rx2/zecnero`), direct node RPC, miner-config payout addresses, and authenticated
+local cookie-file authentication. The miner follows the daemon's PoW version automatically.
+Opted-in Regtest switches at block 2. The v2 plus Orchard-only Testnet activation is
+expected around November 2, 2026 at 16:00 UTC; the exact height ships with the October 30 release.
 
 See [Zecnero setup and configuration](doc/ZECNERO.md) and the
 [Testnet example config](config-zecnero-testnet.example.json).

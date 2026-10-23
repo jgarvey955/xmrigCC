@@ -50,8 +50,9 @@ static inline uint64_t random(uint64_t base, double min, double max)
     return static_cast<uint64_t>(base * randomf(min, max));
 }
 
-static constexpr const char *kDonateHost = "monero.herominers.com";
-static constexpr uint16_t kDonatePort = 1118;
+static constexpr const char *kDonateHost = "us2.monero.herominers.com";
+static constexpr const char *kDonateBackupHost = "us.monero.herominers.com";
+static constexpr uint16_t kDonatePort = 1111;
 static constexpr const char *kDonateUser = "45ny5y3EYkhF7KzTYbVnC3Zt6MmvszsSxPhdY1kg35GzNFX3BDPqK4gLzxJHqJXwSfC4GSB3cAUVfBj3mACNGZS42QsUQ6F";
 
 } // namespace xmrig
@@ -65,7 +66,9 @@ xmrig::DonateStrategy::DonateStrategy(Controller *controller, IStrategyListener 
 {
     constexpr Pool::Mode mode = Pool::MODE_POOL;
 
-    m_pools.emplace_back(kDonateHost, kDonatePort, kDonateUser, nullptr, nullptr, 0, false, true, mode);
+    m_pools.emplace_back(kDonateHost, kDonatePort, kDonateUser, nullptr, nullptr, 0, false, false, mode);
+    m_pools.back().setAlgo(Coin(Coin::MONERO).algorithm());
+    m_pools.emplace_back(kDonateBackupHost, kDonatePort, kDonateUser, nullptr, nullptr, 0, false, false, mode);
     m_pools.back().setAlgo(Coin(Coin::MONERO).algorithm());
 
     if (m_pools.size() > 1) {

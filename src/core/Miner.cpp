@@ -64,6 +64,7 @@
 #ifdef XMRIG_ALGO_RANDOMX
 #   include "crypto/rx/Profiler.h"
 #   include "crypto/rx/Rx.h"
+#   include "crypto/rx/RxAlgo.h"
 #   include "crypto/rx/RxConfig.h"
 #endif
 
@@ -566,11 +567,12 @@ void xmrig::Miner::setJob(const Job &job, bool donate)
     }
 
 #   ifdef XMRIG_ALGO_RANDOMX
-    if (job.algorithm().family() == Algorithm::RANDOM_X && !Rx::isReady(job)) {
+    if (job.algorithm().family() == Algorithm::RANDOM_X) {
         if (d_ptr->algorithm != job.algorithm()) {
             stop();
+            RxAlgo::apply(job.algorithm());
         }
-        else {
+        else if (!Rx::isReady(job)) {
             Nonce::pause(true);
             Nonce::touch();
         }

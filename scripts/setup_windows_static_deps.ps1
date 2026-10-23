@@ -12,7 +12,7 @@ $ErrorActionPreference = "Stop"
 $FallbackVersions = @{
     libuv   = "1.53.0"
     hwloc   = "2.15.0"
-    openssl = "4.0.3"
+    openssl = "4.1.0"
     zlib    = "1.3.2"
 }
 
@@ -305,6 +305,38 @@ function Ensure-LibraryAlias {
     }
 }
 
+function Test-DependencyCurrent {
+    param(
+        [string]$Name,
+        [string]$Version,
+        [string[]]$Artifacts
+    )
+
+    $stamp = Join-Path $script:VersionsDir "$Name.txt"
+    if (-not (Test-Path $stamp) -or (Get-Content $stamp -Raw).Trim() -ne $Version) {
+        return $false
+    }
+
+    foreach ($artifact in $Artifacts) {
+        if (-not (Test-Path (Join-Path $Prefix $artifact))) {
+            return $false
+        }
+    }
+
+    Write-Host "$Name $Version is already built; skipping."
+    return $true
+}
+
+function Set-DependencyCurrent {
+    param(
+        [string]$Name,
+        [string]$Version
+    )
+
+    New-Item -ItemType Directory -Force $script:VersionsDir | Out-Null
+    Set-Content -Path (Join-Path $script:VersionsDir "$Name.txt") -Value $Version -Encoding ASCII
+}
+
 function Copy-HwlocInstall {
     param(
         [string]$SourceDir,
@@ -348,6 +380,7 @@ $script:DownloadsDir = Join-Path $Prefix "downloads"
 $script:SrcDir = Join-Path $Prefix "src"
 $script:BuildDir = Join-Path $Prefix "build"
 $script:LogsDir = Join-Path $Prefix "logs"
+$script:VersionsDir = Join-Path $Prefix ".versions"
 
 Write-Step "Creating dependency prefix at $Prefix"
 New-Item -ItemType Directory -Force `
@@ -358,7 +391,8 @@ New-Item -ItemType Directory -Force `
     $script:DownloadsDir,
     $script:SrcDir,
     $script:BuildDir,
-    $script:LogsDir | Out-Null
+    $script:LogsDir,
+    $script:VersionsDir | Out-Null
 
 Write-Step "Resolving latest dependency versions"
 $ResolvedLibuv = Resolve-LibuvVersion
@@ -371,6 +405,10 @@ Write-Host "hwloc:   $ResolvedHwloc"
 Write-Host "OpenSSL: $ResolvedOpenSSL"
 Write-Host "zlib:    $ResolvedZlib"
 
+if (Test-DependencyCurrent "libuv" $ResolvedLibuv @("include\uv.h", "lib\uv.lib")) {
+    Write-Step "Using cached libuv $ResolvedLibuv"
+}
+else {
 Write-Step "Building libuv $ResolvedLibuv"
 $libuvArchive = Join-Path $script:DownloadsDir "libuv-v$ResolvedLibuv.tar.gz"
 $libuvSource = Join-Path $script:SrcDir "libuv-v$ResolvedLibuv"
@@ -398,7 +436,13 @@ else {
     Ensure-LibraryAlias @("uv_a.lib") "uv.lib"
 }
 Remove-Item -LiteralPath (Join-Path $script:BinDir "uv.dll") -Force -ErrorAction SilentlyContinue
+Set-DependencyCurrent "libuv" $ResolvedLibuv
+}
 
+if (Test-DependencyCurrent "hwloc" $ResolvedHwloc @("include\hwloc.h", "lib\hwloc.lib")) {
+    Write-Step "Using cached hwloc $ResolvedHwloc"
+}
+else {
 Write-Step "Building hwloc $ResolvedHwloc"
 $hwlocMajorMinor = ([version]$ResolvedHwloc).Major.ToString() + "." + ([version]$ResolvedHwloc).Minor.ToString()
 $hwlocArchive = Join-Path $script:DownloadsDir "hwloc-$ResolvedHwloc.tar.gz"
@@ -432,7 +476,13 @@ catch {
     Copy-HwlocInstall $hwlocSource $hwlocBuild
 }
 Ensure-LibraryAlias @("libhwloc.lib") "hwloc.lib"
+Set-DependencyCurrent "hwloc" $ResolvedHwloc
+}
 
+if (Test-DependencyCurrent "tls" "openssl-$ResolvedOpenSSL" @("include\openssl\ssl.h", "lib\libssl.lib", "lib\libcrypto.lib")) {
+    Write-Step "Using cached OpenSSL $ResolvedOpenSSL"
+}
+else {
 Write-Step "Building OpenSSL $ResolvedOpenSSL with static TLS libraries"
 $opensslArchive = Join-Path $script:DownloadsDir "openssl-$ResolvedOpenSSL.tar.gz"
 $opensslSource = Join-Path $script:SrcDir "openssl-$ResolvedOpenSSL"
@@ -460,7 +510,13 @@ Invoke-Logged "openssl-configure" $opensslSource "perl.exe" @(
 )
 Invoke-Logged "openssl-build" $opensslSource "nmake.exe" @("build_libs")
 Invoke-Logged "openssl-install" $opensslSource "nmake.exe" @("install_dev")
+Set-DependencyCurrent "tls" "openssl-$ResolvedOpenSSL"
+}
 
+if (Test-DependencyCurrent "zlib" $ResolvedZlib @("include\zlib.h", "lib\zlib.lib")) {
+    Write-Step "Using cached zlib $ResolvedZlib"
+}
+else {
 Write-Step "Building zlib $ResolvedZlib"
 $zlibArchive = Join-Path $script:DownloadsDir "zlib-$ResolvedZlib.tar.gz"
 $zlibSource = Join-Path $script:SrcDir "zlib-$ResolvedZlib"
@@ -483,6 +539,8 @@ Invoke-Logged "zlib-install" $Prefix "cmake.exe" @("--install", $zlibBuild, "--c
 Ensure-LibraryAlias @("zs.lib", "zlibstatic.lib") "zlib.lib"
 Remove-Item -LiteralPath (Join-Path $script:BinDir "z.dll") -Force -ErrorAction SilentlyContinue
 Remove-Item -LiteralPath (Join-Path $script:LibDir "z.lib") -Force -ErrorAction SilentlyContinue
+Set-DependencyCurrent "zlib" $ResolvedZlib
+}
 
 Write-Step "Writing manifest and environment helper"
 $manifest = [ordered]@{

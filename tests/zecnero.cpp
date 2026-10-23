@@ -12,6 +12,7 @@
 #include "crypto/rx/RxAlgo.h"
 #include "crypto/rx/RxCache.h"
 #include "crypto/rx/RxDataset.h"
+#include "net/JobResult.h"
 #include "backend/cpu/Cpu.h"
 #include "crypto/argon2/Impl.h"
 #include "crypto/randomx/aes_hash.hpp"
@@ -55,7 +56,21 @@ static rapidjson::Document sample()
 static void protocol()
 {
     check(Algorithm("rx/zecnero") == Algorithm::RX_ZECNERO, "algorithm name registration");
-    check(Algorithm("rx/zecnero2") == Algorithm::RX_ZECNERO2 && Algorithm("rx2/zecnero") == Algorithm::RX_ZECNERO2, "v2 aliases");
+    check(Algorithm("rx/zecnero2") == Algorithm::RX_ZECNERO2 &&
+          Algorithm("rx2/zecnero") == Algorithm::RX_ZECNERO2 &&
+          Algorithm("rx/zmr2") == Algorithm::RX_ZECNERO2, "v2 aliases");
+    RxAlgo::apply(Algorithm::RX_ZECNERO2);
+    check(RandomX_CurrentConfig.ProgramSize == 384 &&
+          RandomX_CurrentConfig.Tweak_V2_CFROUND && RandomX_CurrentConfig.Tweak_V2_AES &&
+          RandomX_CurrentConfig.Tweak_V2_PREFETCH && RandomX_CurrentConfig.Tweak_V2_COMMITMENT,
+          "v2 configuration and commitment");
+    uint8_t proof[32]{ 0x11 }, randomxHash[64]{ 0x22 };
+    Job resultJob(false, Algorithm::RX_ZECNERO2, String());
+    JobResult result(resultJob, 0, proof, nullptr, nullptr, randomxHash);
+    check(result.commitment() && result.commitment()[0] == 0x22 && !result.minerSignature(),
+          "v2 result carries RandomX hash");
+    RxAlgo::apply(Algorithm::RX_ZECNERO);
+    check(!RandomX_CurrentConfig.Tweak_V2_COMMITMENT, "v1 has no commitment");
     std::string error;
     ZecneroBlockTemplate b;
     auto d = sample();
@@ -124,7 +139,8 @@ static void vectors(const char *path)
     const std::string text((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
     rapidjson::Document d; d.Parse(text.c_str()); check(!d.HasParseError(), "vector JSON");
     VirtualMemory::init(0, 2048);
-    RxAlgo::apply(d["randomx"]["program_version"].GetUint() == 2 ? Algorithm::RX_ZECNERO2 : Algorithm::RX_ZECNERO);
+    const bool v2 = d["randomx"]["program_version"].GetUint() == 2;
+    RxAlgo::apply(v2 ? Algorithm::RX_ZECNERO2 : Algorithm::RX_ZECNERO);
     VirtualMemory scratch(2*1024*1024, false, false, false);
     RxCache cache(false, 0); check(cache.get()!=nullptr, "cache allocation");
     for (const auto flags : {RANDOMX_FLAG_DEFAULT, RANDOMX_FLAG_JIT}) {
@@ -135,6 +151,12 @@ static void vectors(const char *path)
             cache.init(key); randomx_vm_set_cache(vm,cache.get());
             uint8_t hash[32]; randomx_calculate_hash(vm,input.data(),input.size(),hash);
             if (Cvt::toHex(hash,32)!=v["hash"].GetString()) { throw std::runtime_error(std::string("vector mismatch: ")+v["name"].GetString()); }
+            if (v2) {
+                check(v.HasMember("commitment") && v["commitment"].IsString(), "v2 vector commitment");
+                uint8_t commitment[32];
+                randomx_calculate_commitment(input.data(), input.size(), hash, commitment);
+                if (Cvt::toHex(commitment, 32) != v["commitment"].GetString()) { throw std::runtime_error(std::string("commitment mismatch: ") + v["name"].GetString()); }
+            }
         }
         randomx_destroy_vm(vm);
         std::cout << d["cases"].Size() << " Zecnero vectors passed (" << (flags==RANDOMX_FLAG_JIT ? "JIT" : "interpreted") << ")\n";
@@ -164,9 +186,19 @@ static void fastVectors(const char *v1, const char *v2)
                 auto input = Cvt::fromHex(v["input"].GetString(), v["input"].GetStringLength());
                 uint8_t hash[32]; randomx_calculate_hash(vm, input.data(), input.size(), hash);
                 check(Cvt::toHex(hash, 32) == v["hash"].GetString(), "full-memory known answer");
+                if (v.HasMember("commitment")) {
+                    uint8_t commitment[32];
+                    randomx_calculate_commitment(input.data(), input.size(), hash, commitment);
+                    check(Cvt::toHex(commitment, 32) == v["commitment"].GetString(), "full-memory commitment");
+                }
                 uint64_t temp[8]; randomx_calculate_hash_first(vm, temp, input.data(), input.size());
                 randomx_calculate_hash_next(vm, temp, input.data(), input.size(), hash);
                 check(Cvt::toHex(hash, 32) == v["hash"].GetString(), "pipelined full-memory known answer");
+                if (v.HasMember("commitment")) {
+                    uint8_t commitment[32];
+                    randomx_calculate_commitment(input.data(), input.size(), hash, commitment);
+                    check(Cvt::toHex(commitment, 32) == v["commitment"].GetString(), "pipelined full-memory commitment");
+                }
             }
             randomx_destroy_vm(vm);
         }

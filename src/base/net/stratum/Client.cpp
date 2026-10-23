@@ -205,12 +205,17 @@ int64_t xmrig::Client::submit(const JobResult &result)
     char *nonce = m_tempBuf.data();
     char *data  = m_tempBuf.data() + 16;
     char *signature = m_tempBuf.data() + 88;
+    char *commitment = m_tempBuf.data() + 224;
 
     Cvt::toHex(nonce, sizeof(uint32_t) * 2 + 1, reinterpret_cast<const uint8_t *>(&result.nonce), sizeof(uint32_t));
     Cvt::toHex(data, 65, result.result(), 32);
 
     if (result.minerSignature()) {
         Cvt::toHex(signature, 129, result.minerSignature(), 64);
+    }
+
+    if (result.commitment()) {
+        Cvt::toHex(commitment, 65, result.commitment(), 32);
     }
 #   endif
 
@@ -226,6 +231,10 @@ int64_t xmrig::Client::submit(const JobResult &result)
 #   ifndef XMRIG_PROXY_PROJECT
     if (result.minerSignature()) {
         params.AddMember("sig", StringRef(signature), allocator);
+    }
+
+    if (result.commitment()) {
+        params.AddMember("commitment", StringRef(commitment), allocator);
     }
 #   else
     if (result.sig) {

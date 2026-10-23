@@ -1,7 +1,16 @@
 #!/bin/sh -e
 
-OPENSSL_VERSION="4.0.3"
-OPENSSL_SHA256="325b5c806167c13b40b1ffeadfe0248197c00eccc4cf123ec1e28d2d2fd216d9"
+OPENSSL_VERSION="4.1.0"
+OPENSSL_SHA256="50c17baf54cb008f6ce42d50deb4b28050a1aad711636cabd4b241c7e90cc2fd"
+SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+DEPS_DIR="$SCRIPT_DIR/deps"
+. "$SCRIPT_DIR/dependency-cache.sh"
+
+if dependency_is_current tls "openssl-$OPENSSL_VERSION" "$DEPS_DIR/include/openssl/ssl.h" "$DEPS_DIR/lib/libssl.a" "$DEPS_DIR/lib/libcrypto.a"; then
+    exit 0
+fi
+
+cd "$SCRIPT_DIR"
 
 verify_sha256() {
     actual=$(sha256sum "$1" | awk '{print $1}')
@@ -25,4 +34,5 @@ make -j"${JOBS:-$(nproc || sysctl -n hw.ncpu || sysctl -n hw.logicalcpu)}" build
 cp -fr include ../../deps
 cp libcrypto.a ../../deps/lib
 cp libssl.a ../../deps/lib
+dependency_mark_current tls "openssl-$OPENSSL_VERSION"
 cd ..

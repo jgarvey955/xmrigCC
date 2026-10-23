@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Check real miners' CC nonce reports against local Stratum assignments."""
 import http.server
+import hashlib
 import json
 from pathlib import Path
 import queue
@@ -29,6 +30,8 @@ def serve(server_type, handler):
 
 def run_case(binary, root, algo):
     reports = queue.Queue()
+    submissions = queue.Queue()
+    errors = queue.Queue()
     prefixes = {'worker-a': 0x00, 'worker-b': 0xfe}
 
     class CC(http.server.BaseHTTPRequestHandler):
@@ -48,6 +51,8 @@ def run_case(binary, root, algo):
 
     class Pool(socketserver.StreamRequestHandler):
         def handle(self):
+            worker = None
+            job_blob = None
             try:
                 for line in self.rfile:
                     request = json.loads(line)
@@ -58,16 +63,31 @@ def run_case(binary, root, algo):
                         # Reproduce a shared header byte that is not Zecnero's nonce.
                         blob[42] = 0x08
                         blob[111 if algo.startswith('rx/zecnero') else 42] = prefixes[worker]
+                        job_blob = bytes(blob)
                         result = {'id': worker, 'extensions': ['nicehash', 'algo'], 'job': {
                             'job_id': worker, 'algo': algo, 'blob': blob.hex(),
                             'target': 'ffffffff', 'seed_hash': '00' * 32,
                             'height': 100, 'proxy_mapper_id': 0, 'nonce_prefix': prefixes[worker]}}
-                    else:
+                    elif request['method'] == 'submit':
+                        params = request['params']
+                        if algo == 'rx/zecnero2':
+                            randomx_hash = bytes.fromhex(params['commitment'])
+                            proof_input = bytearray(job_blob)
+                            proof_input[108:112] = bytes.fromhex(params['nonce'])
+                            expected = hashlib.blake2b(proof_input + randomx_hash, digest_size=32).hexdigest()
+                            assert params['result'] == expected, 'v2 result is not Blake2b-256(blob || RandomX hash)'
+                        else:
+                            assert 'commitment' not in params, 'v1 submission carried a v2 RandomX hash'
+                        submissions.put(worker)
                         result = {'status': 'OK'}
+                    else:
+                        result = {'status': 'KEEPALIVED'}
                     self.wfile.write(json.dumps({'id': request['id'], 'result': result, 'error': None}).encode() + b'\n')
                     self.wfile.flush()
             except (BrokenPipeError, ConnectionResetError):
                 pass
+            except Exception as exc:
+                errors.put(exc)
 
     with serve(http.server.ThreadingHTTPServer, CC) as cc_port, \
             serve(socketserver.ThreadingTCPServer, Pool) as pool_port:
@@ -92,6 +112,7 @@ def run_case(binary, root, algo):
             pending = set(prefixes)
             deadline = time.monotonic() + 30
             while pending and time.monotonic() < deadline:
+                assert errors.empty(), errors.get()
                 assert all(proc.poll() is None for proc in processes), f'Miner exited; see {root}'
                 try:
                     status = reports.get(timeout=0.2)
@@ -108,6 +129,15 @@ def run_case(binary, root, algo):
                 assert status['nonce_end'] == (prefix << 24) | 0xffffff, status
                 pending.discard(worker)
             assert not pending, f'Missing CC reports from {pending}; see {root}'
+            submitted = set()
+            deadline = time.monotonic() + 30
+            while submitted != set(prefixes) and time.monotonic() < deadline:
+                assert errors.empty(), errors.get()
+                try:
+                    submitted.add(submissions.get(timeout=0.2))
+                except queue.Empty:
+                    assert all(proc.poll() is None for proc in processes), f'Miner exited; see {root}'
+            assert submitted == set(prefixes), f'Missing {algo} submissions from {set(prefixes) - submitted}; see {root}'
         finally:
             for proc in processes:
                 proc.terminate()

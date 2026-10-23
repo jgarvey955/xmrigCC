@@ -1,9 +1,11 @@
 # Zecnero mining with XMRigCC
 
 This fork supports Zecnero RandomX v1 (`rx/zecnero`) and v2 (`rx/zecnero2`, also
-`rx2/zecnero`). The direct RPC client reads `powversion` from each block template
-and switches automatically. Public Testnet uses v1 through block 999,999 and v2 from block 1,000,000.
-V2 is experimental: the daemon must explicitly enable it on Regtest with
+`rx/zmr2` and the compatibility alias `rx2/zecnero`). The direct RPC client reads
+`powversion` from each block template and switches automatically. The v2 plus
+Orchard-only Testnet release is scheduled for October 30, 2026, with activation
+around November 2 at 16:00 UTC; use the exact activation height published with
+the node release. A daemon can enable the transition early on Regtest with
 `[network.testnet_parameters] experimental_randomx_v2 = true`. That test chain
 uses v1 for genesis and block 1, then v2 from block 2 onward. The miner follows this
 transition without a restart, including when the seed stays unchanged.
@@ -22,11 +24,11 @@ and the local Stratum bridge. XMRigCC supports both, as well as direct node RPC.
 | Local bridge | `127.0.0.1:3333`, `daemon: false`, `tls: false` | The documented bridge uses the node's `mining.miner_address`; miner `user` is only a label |
 | Direct node RPC | `127.0.0.1:18732`, `daemon: true` | Miner `user` overrides the node's address; empty/default `user` uses the node fallback |
 
-Use `algo: "rx/zecnero"` for the current public pool. Pool jobs choose the
+Use `algo: "rx/zecnero"` as the pool fallback. Pool jobs choose the
 algorithm; this miner also recognizes `rx/zecnero2` and `rx2/zecnero` jobs when
-the server supports v2. The current official bridge release is verified here
-for v1; a future v2 deployment needs a bridge/pool that advertises and validates
-v2. The miner cannot make an older bridge understand a consensus upgrade.
+the server supports v2. A v2 bridge/pool must advertise the algorithm and verify
+both the RandomX hash and its commitment. The miner cannot make an older bridge
+understand a consensus upgrade.
 
 From the repository root, copy the selected example, set your payout address
 for a pool, and run it:
@@ -136,6 +138,10 @@ profile. To reuse the v1 thread list explicitly, set `"rx/zecnero2": "rx/zecnero
 inside `cpu`.
 `randomx.mode` selects `auto`, `fast` (full dataset), or `light` (cache only).
 
+For `rx/zecnero2`, the value tested against the target and sent as `result` is
+Blake2b-256 of the 140-byte header followed by the RandomX v2 hash. The raw
+RandomX hash is sent in the Stratum `commitment` field, matching `rx/2`.
+
 ## Wallet and authentication for direct RPC
 
 Direct RPC cookie authentication reads the daemon-owned local file specified by
@@ -208,17 +214,17 @@ These use isolated Regtest chains. The remote test covers TLS authentication,
 multiple logins, failed pins/passwords, cookie creation/deletion/rotation, daemon
 restarts, concurrent wallet requests, daemon-address fallback, wallet-only mining,
 and fast-mode mining across v1 at block 1 to v2 from block 2 onward on opted-in
-Regtest. The split node review branches assign no v2 activation height. The earlier
-Regtest transition test requires the preserved experimental node, not the
-local-cookie hardening branch.
+Regtest. It requires a release node implementing the v2 commitment rule. The
+older experimental node in `zectesting` compares the raw RandomX hash and is not
+a launch-compatible v2 fixture.
 
 ## Consensus implementation provenance
 
 The optimized v2 engine is ported from XMRig v6.26.0
 `b2ca72480c58d197e18c885d9fc1a0c8d517e60a`. Its light-mode JIT addressing and
 interpreter AES mixing are completed against the RandomX v2.0.1 reference.
-Zecnero uses the reference hash directly; the extra Monero Stratum commitment
-is not included. The reference vector generator uses native RandomX v2.0.1 at
+Zecnero v2 uses the same commitment construction and Stratum field convention
+as Monero `rx/2`. The reference vector generator uses native RandomX v2.0.1 at
 `aaafe71322df6602c21a5c72937ac284724ae561` with salt `5a65636e65726f525801`.
 
 Runtime tests were run on Linux x86-64. RISC-V v2 uses the portable interpreter;
@@ -236,8 +242,8 @@ systems, callable reciprocal code remains in `.text`, and ELF assembly sources
 mark the stack non-executable. The upstream x86 dataset-size fix is already
 covered here by `emit()`, which advances by the selected template's actual size.
 Upstream CMake changes belong to the daemon's reference library, not this miner's
-separate CMake build. Monero PR #10038's extra commitment and block-blob changes
-are not part of Zecnero's 140-byte header protocol.
+separate CMake build. The commitment does not change Zecnero's 140-byte header;
+it changes the v2 proof value and adds the underlying hash to Stratum submit.
 
 Sources: [RandomX post-tag fixes](https://github.com/tevador/RandomX/compare/v2.0.1...7607fb2faed24d5a679e139a9828d194bbc644a4),
 [Monero v2 integration](https://github.com/monero-project/monero/pull/10038).

@@ -2,6 +2,15 @@
 
 UV_VERSION="1.53.0"
 UV_SHA256="cb0d6dd2128d5a95bd242c6cc982a24fe608fa93da57b6b4ec763b0018c53e64"
+SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+DEPS_DIR="$SCRIPT_DIR/deps"
+. "$SCRIPT_DIR/dependency-cache.sh"
+
+if dependency_is_current libuv "$UV_VERSION" "$DEPS_DIR/include/uv.h" "$DEPS_DIR/lib/libuv.a"; then
+    exit 0
+fi
+
+cd "$SCRIPT_DIR"
 
 verify_sha256() {
     actual=$(sha256sum "$1" | awk '{print $1}')
@@ -24,4 +33,5 @@ cmake -S "libuv-v${UV_VERSION}" -B "libuv-v${UV_VERSION}/cmake-build" \
 cmake --build "libuv-v${UV_VERSION}/cmake-build" --parallel "${JOBS:-$(nproc || sysctl -n hw.ncpu || sysctl -n hw.logicalcpu)}"
 cp -R "libuv-v${UV_VERSION}/include/." ../deps/include/
 cp "libuv-v${UV_VERSION}/cmake-build/libuv.a" ../deps/lib/
+dependency_mark_current libuv "$UV_VERSION"
 printf '[libuv 100%%] Build complete\n'

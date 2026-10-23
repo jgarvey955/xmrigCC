@@ -55,10 +55,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 RandomX_ConfigurationZecnero2::RandomX_ConfigurationZecnero2()
 {
     ProgramSize = 384;
-    Tweak_V2_CFROUND = Tweak_V2_AES = Tweak_V2_PREFETCH = 1;
-    // Zecnero compares the reference RandomX hash directly with the block target.
-    // The separate Monero Stratum commitment is not part of the Zecnero header.
-    Tweak_V2_COMMITMENT = 0;
+    Tweak_V2_CFROUND = Tweak_V2_AES = Tweak_V2_PREFETCH = Tweak_V2_COMMITMENT = 1;
 }
 
 RandomX_ConfigurationMoneroV2::RandomX_ConfigurationMoneroV2()

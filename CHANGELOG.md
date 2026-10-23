@@ -1,3 +1,19 @@
+# 3.7.0
+* Added release-compatible `rx/zecnero2` mining using Zecnero's salted RandomX
+  v2.0.1 configuration and the Monero `rx/2` commitment convention.
+* Added the official `rx/zmr2` alias while retaining `rx2/zecnero` compatibility.
+* Reused the RandomX dataset across Zecnero v1/v2 transitions while applying the
+  correct version-specific configuration to every job.
+* Added the published Zecnero v2 vectors and end-to-end commitment validation
+  for interpreted, JIT, light, full-memory, pipelined, and submitted shares.
+* Updated OpenSSL to 4.1.0, LibreSSL to 4.4.0, and cpp-httplib to 0.63.0;
+  verified the remaining pinned dependencies against their current releases.
+* Updated the release workflow to the current official GitHub Actions majors.
+* Added exact-version dependency stamps so completed dependency builds are
+  reused only when their required headers and static libraries are present.
+* Routed the fixed donation wallet through HeroMiners US2 on port 1111, with
+  the US hostname as automatic failover.
+
 # 3.6.6
 * Removed the experimental RandomX VAES-256/512 runtime selector that replaced
   the established hardware-AES path on Zen 4 and caused host instability under

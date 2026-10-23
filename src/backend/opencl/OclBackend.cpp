@@ -309,6 +309,10 @@ bool xmrig::OclBackend::isEnabled() const
 
 bool xmrig::OclBackend::isEnabled(const Algorithm &algorithm) const
 {
+    if (algorithm.isZecnero()) {
+        return false;
+    }
+
     return !d_ptr->controller->config()->cl().threads().get(algorithm).isEmpty();
 }
 
