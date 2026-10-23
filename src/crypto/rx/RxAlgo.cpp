@@ -57,7 +57,7 @@ const RandomX_ConfigurationBase *xmrig::RxAlgo::base(Algorithm::Id algorithm)
         return &RandomX_VirelConfig;
 
     case Algorithm::RX_ZECNERO2:
-        return &RandomX_Zecnero2Config;
+        return &RandomX_ZecneroConfigV2;
 
     case Algorithm::RX_ZECNERO:
         return &RandomX_ZecneroConfig;

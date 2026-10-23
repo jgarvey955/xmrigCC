@@ -147,13 +147,10 @@ struct RandomX_ConfigurationBase
 #	endif
 };
 
-struct RandomX_ConfigurationZecnero : public RandomX_ConfigurationBase { RandomX_ConfigurationZecnero(); };
-extern RandomX_ConfigurationZecnero RandomX_ZecneroConfig;
-struct RandomX_ConfigurationZecnero2 : public RandomX_ConfigurationZecnero { RandomX_ConfigurationZecnero2(); };
-extern RandomX_ConfigurationZecnero2 RandomX_Zecnero2Config;
-
 struct RandomX_ConfigurationMonero : public RandomX_ConfigurationBase {};
 struct RandomX_ConfigurationMoneroV2 : public RandomX_ConfigurationBase { RandomX_ConfigurationMoneroV2(); };
+struct RandomX_ConfigurationZecnero : public RandomX_ConfigurationBase { RandomX_ConfigurationZecnero(); };
+struct RandomX_ConfigurationZecneroV2 : public RandomX_ConfigurationMoneroV2 { RandomX_ConfigurationZecneroV2(); };
 struct RandomX_ConfigurationWownero : public RandomX_ConfigurationBase { RandomX_ConfigurationWownero(); };
 struct RandomX_ConfigurationArqma : public RandomX_ConfigurationBase { RandomX_ConfigurationArqma(); };
 struct RandomX_ConfigurationGraft : public RandomX_ConfigurationBase { RandomX_ConfigurationGraft(); };
@@ -166,6 +163,8 @@ struct RandomX_ConfigurationScash : public RandomX_ConfigurationBase { RandomX_C
 
 extern RandomX_ConfigurationMonero RandomX_MoneroConfig;
 extern RandomX_ConfigurationMoneroV2 RandomX_MoneroConfigV2;
+extern RandomX_ConfigurationZecnero RandomX_ZecneroConfig;
+extern RandomX_ConfigurationZecneroV2 RandomX_ZecneroConfigV2;
 extern RandomX_ConfigurationWownero RandomX_WowneroConfig;
 extern RandomX_ConfigurationArqma RandomX_ArqmaConfig;
 extern RandomX_ConfigurationGraft RandomX_GraftConfig;

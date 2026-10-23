@@ -53,12 +53,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "crypto/rx/Profiler.h"
 #include "base/net/stratum/Job.h"
 
-RandomX_ConfigurationZecnero2::RandomX_ConfigurationZecnero2()
-{
-    ProgramSize = 384;
-    Tweak_V2_CFROUND = Tweak_V2_AES = Tweak_V2_PREFETCH = Tweak_V2_COMMITMENT = 1;
-}
-
 RandomX_ConfigurationMoneroV2::RandomX_ConfigurationMoneroV2()
 {
 	ProgramSize = 384;
@@ -159,6 +153,15 @@ RandomX_ConfigurationScash::RandomX_ConfigurationScash()
 }
 
 RandomX_ConfigurationZecnero::RandomX_ConfigurationZecnero()
+{
+    ArgonSalt = "ZecneroRX\x01";
+}
+
+// Zecnero: rx/zecnero2, the proof of work from NU2. RandomX v2 as XMRig's rx/2
+// configures it (program size 384 and the CFROUND, AES, PREFETCH and COMMITMENT
+// tweaks), with the Argon2 salt of rx/zecnero, so the cache and the dataset are
+// the same as rx/zecnero's for a given key.
+RandomX_ConfigurationZecneroV2::RandomX_ConfigurationZecneroV2()
 {
     ArgonSalt = "ZecneroRX\x01";
 }
@@ -423,7 +426,7 @@ typedef void(randomx::JitCompilerX86::* InstructionGeneratorX86_2)(const randomx
 
 RandomX_ConfigurationMonero RandomX_MoneroConfig;
 RandomX_ConfigurationZecnero RandomX_ZecneroConfig;
-RandomX_ConfigurationZecnero2 RandomX_Zecnero2Config;
+RandomX_ConfigurationZecneroV2 RandomX_ZecneroConfigV2;
 RandomX_ConfigurationMoneroV2 RandomX_MoneroConfigV2;
 RandomX_ConfigurationWownero RandomX_WowneroConfig;
 RandomX_ConfigurationArqma RandomX_ArqmaConfig;
