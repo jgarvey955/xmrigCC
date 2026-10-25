@@ -20490,6 +20490,13 @@ inline void free_cert(cert_t cert) {
   if (cert) { X509_free(static_cast<X509 *>(cert)); }
 }
 
+#if !defined(OPENSSL_IS_BORINGSSL) && !defined(LIBRESSL_VERSION_NUMBER) &&     \
+    OPENSSL_VERSION_NUMBER >= 0x40100000L &&                                  \
+    (defined(__GNUC__) || defined(__clang__))
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#define CPPHTTPLIB_OPENSSL_4_1_HOST_CHECK_DEPRECATED
+#endif
 inline bool verify_hostname(cert_t cert, const char *hostname) {
   if (!cert || !hostname) return false;
 
@@ -20500,6 +20507,19 @@ inline bool verify_hostname(cert_t cert, const char *hostname) {
     return X509_check_ip_asc(x509, hostname, 0) == 1;
   }
   return X509_check_host(x509, hostname, strlen(hostname), 0, nullptr) == 1;
+}
+#ifdef CPPHTTPLIB_OPENSSL_4_1_HOST_CHECK_DEPRECATED
+#pragma GCC diagnostic pop
+#undef CPPHTTPLIB_OPENSSL_4_1_HOST_CHECK_DEPRECATED
+#endif
+
+inline size_t asn1_string_length(const ASN1_STRING *value) {
+#if !defined(OPENSSL_IS_BORINGSSL) && !defined(LIBRESSL_VERSION_NUMBER) &&     \
+    OPENSSL_VERSION_NUMBER >= 0x40100000L
+  return ASN1_STRING_get_length(value);
+#else
+  return static_cast<size_t>(ASN1_STRING_length(value));
+#endif
 }
 
 inline uint64_t hostname_mismatch_code() {
@@ -20529,7 +20549,7 @@ inline std::string get_cert_subject_cn(cert_t cert) {
 
   return std::string(
       reinterpret_cast<const char *>(ASN1_STRING_get0_data(data)),
-      static_cast<size_t>(ASN1_STRING_length(data)));
+      asn1_string_length(data));
 }
 
 inline std::string get_cert_issuer_name(cert_t cert) {
@@ -20565,14 +20585,14 @@ inline bool get_cert_sans(cert_t cert, std::vector<SanEntry> &sans) {
         entry.value = std::string(
             reinterpret_cast<const char *>(
                 ASN1_STRING_get0_data(gen->d.dNSName)),
-            static_cast<size_t>(ASN1_STRING_length(gen->d.dNSName)));
+            asn1_string_length(gen->d.dNSName));
       }
       break;
     case GEN_IPADD:
       entry.type = SanType::IP;
       if (gen->d.iPAddress) {
         auto data = ASN1_STRING_get0_data(gen->d.iPAddress);
-        auto len = ASN1_STRING_length(gen->d.iPAddress);
+        auto len = asn1_string_length(gen->d.iPAddress);
         if (len == 4) {
           // IPv4
           char buf[INET_ADDRSTRLEN];
@@ -20592,7 +20612,7 @@ inline bool get_cert_sans(cert_t cert, std::vector<SanEntry> &sans) {
         entry.value = std::string(
             reinterpret_cast<const char *>(
                 ASN1_STRING_get0_data(gen->d.rfc822Name)),
-            static_cast<size_t>(ASN1_STRING_length(gen->d.rfc822Name)));
+            asn1_string_length(gen->d.rfc822Name));
       }
       break;
     case GEN_URI:
@@ -20601,8 +20621,7 @@ inline bool get_cert_sans(cert_t cert, std::vector<SanEntry> &sans) {
         entry.value = std::string(
             reinterpret_cast<const char *>(
                 ASN1_STRING_get0_data(gen->d.uniformResourceIdentifier)),
-            static_cast<size_t>(
-                ASN1_STRING_length(gen->d.uniformResourceIdentifier)));
+            asn1_string_length(gen->d.uniformResourceIdentifier));
       }
       break;
     default: entry.type = SanType::OTHER; break;

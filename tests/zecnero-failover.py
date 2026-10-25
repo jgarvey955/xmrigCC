@@ -28,6 +28,7 @@ def main():
             + bytes(32)).hex()
     cookie = root / '.cookie'
     cookie.write_text('__cookie__:failover-test\n')
+    cookie.chmod(0o600)
     state = {'ready': False, 'polls': 0, 'node_submits': 0,
              'pool_logins': 0, 'pool_submits': 0, 'errors': []}
     lock = threading.Lock()

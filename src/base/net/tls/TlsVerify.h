@@ -21,9 +21,9 @@ inline void setAllowUntrusted(bool value) { untrustedSetting().store(value, std:
 inline bool allowUntrusted() { return untrustedSetting().load(std::memory_order_relaxed); }
 
 
-inline void loadSystemTrust(SSL_CTX *ctx)
+inline void loadSystemTrust(SSL_CTX *ctx, bool required = false)
 {
-    if (!ctx || allowUntrusted()) { return; }
+    if (!ctx || (allowUntrusted() && !required)) { return; }
     ERR_clear_error();
     SSL_CTX_set_default_verify_paths(ctx);
 #ifndef _WIN32
@@ -54,15 +54,15 @@ inline bool setServerName(SSL *ssl, const char *host)
     return !host || !*host || isIpAddress(host) || SSL_set_tlsext_host_name(ssl, host) == 1;
 }
 
-inline bool verifyPeer(SSL *ssl, const char *host, bool pinned)
+inline bool verifyPeer(SSL *ssl, const char *host, bool pinned, bool requireVerified = false)
 {
     if (!ssl || !host || !*host) { return false; }
     // An explicit SHA-256 pin authenticates self-signed pool/node certificates.
     // In strict mode without a pin, authenticate the chain and requested host.
-    const bool untrustedAllowed = allowUntrusted();
+    const bool untrustedAllowed = allowUntrusted() && !requireVerified;
     SSL_set_verify(ssl, (pinned || untrustedAllowed) ? SSL_VERIFY_NONE : SSL_VERIFY_PEER, nullptr);
     if (pinned || untrustedAllowed) { return true; }
-    loadSystemTrust(SSL_get_SSL_CTX(ssl));
+    loadSystemTrust(SSL_get_SSL_CTX(ssl), requireVerified);
     auto *param = SSL_get0_param(ssl);
     if (isIpAddress(host)) {
         return X509_VERIFY_PARAM_set1_ip_asc(param, host) == 1;

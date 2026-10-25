@@ -51,6 +51,7 @@ public:
 
     bool quiet              = false;
     bool tls                = false;
+    bool requireVerifiedTls = false;
     llhttp_method method    = HTTP_GET;
     std::map<const std::string, const std::string> headers;
     std::string body;

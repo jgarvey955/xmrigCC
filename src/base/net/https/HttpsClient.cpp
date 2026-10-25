@@ -84,7 +84,7 @@ void xmrig::HttpsClient::handshake()
         return;
     }
 
-    if (!tls::verifyPeer(m_ssl, host(), !req().fingerprint.isNull())) { return close(UV_EPROTO); }
+    if (!tls::verifyPeer(m_ssl, host(), !req().fingerprint.isNull(), req().requireVerifiedTls)) { return close(UV_EPROTO); }
 
     SSL_set_connect_state(m_ssl);
     SSL_set_bio(m_ssl, m_read, m_write);

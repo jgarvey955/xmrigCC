@@ -114,7 +114,7 @@
             "enabled": true,
             "tls": false,
             "nicehash": false,
-            "daemon-rpc-user": null,
+            "rpc-login": null,
             "tls-fingerprint": null
         }
     ],

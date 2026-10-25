@@ -1,3 +1,12 @@
+# 3.8.0
+* Added secure remote mining against zecnerod's separate miner-only RPC.
+* Added per-client miner-cookie bootstrap over verified HTTPS, automatic renewal,
+  atomic owner-only cookie updates, and recovery after daemon-side rotation.
+* Required either normal CA/hostname verification or an explicit SHA-256
+  certificate pin for both cookie retrieval and authenticated miner RPC calls.
+* Kept local daemon-cookie authentication compatible with the private full RPC.
+* Added miner-cookie configuration and command-line round-trip coverage.
+
 # 3.7.1
 * Aligned `rx/zecnero2` directly with Zecnero's published
   `v2x/rx-zecnero2` branch, including its RandomX v2 configuration,

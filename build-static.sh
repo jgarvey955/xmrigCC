@@ -67,9 +67,11 @@ for name in xmrigMiner xmrigDaemon xmrigServer; do
     dynamic_section=$(readelf -dW "$binary")
     case "$program_headers" in
         *INTERP*) printf 'Static verification failed: %s has a dynamic interpreter.\n' "$name" >&2; exit 1 ;;
+        *' RWE '*) printf 'Static verification failed: %s has a writable executable segment.\n' "$name" >&2; exit 1 ;;
     esac
     case "$dynamic_section" in
         *'(NEEDED)'*) printf 'Static verification failed: %s requires shared libraries.\n' "$name" >&2; exit 1 ;;
+        *TEXTREL*) printf 'Static verification failed: %s contains text relocations.\n' "$name" >&2; exit 1 ;;
     esac
     printf 'Verified static binary: %s\n' "$binary"
 done

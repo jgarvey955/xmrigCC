@@ -12,6 +12,7 @@ build
 CMakeCache.txt
 cmake_install.cmake
 Makefile
+!/Makefile
 cmake-build-release/
 test/
 Testing/

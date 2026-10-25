@@ -19,6 +19,7 @@ def main():
     fixture['capabilities'] = ['mineraddress']
     source = root / 'node.cookie'
     source.write_text('__cookie__:sync-test\n')
+    source.chmod(0o600)
     cookie = source
     log = root / 'events.log'
     state = {'ready': False, 'polls': 0, 'submits': 0, 'errors': [],
@@ -99,10 +100,12 @@ def main():
         wait_for(lambda: 'cannot read cookie file' in logs())
         assert not cookie.exists(), 'miner created the node credential file'
         cookie.write_text('malformed-cookie\n')
+        cookie.chmod(0o600)
         wait_for(lambda: 'invalid username:password cookie file' in logs())
         assert cookie.read_text() == 'malformed-cookie\n', 'miner replaced invalid node cookie'
         assert state['polls'] == 0, 'miner sent RPC without valid file credentials'
         cookie.write_text(state['credential'] + '\n')
+        cookie.chmod(0o600)
         wait_for(lambda: state['polls'] >= 3)
         assert waiting in logs()
         assert 'init dataset' not in logs() and 'new job' not in logs()

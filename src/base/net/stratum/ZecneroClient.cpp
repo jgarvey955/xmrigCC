@@ -10,7 +10,14 @@
 #include "base/tools/Timer.h"
 #include "net/JobResult.h"
 #include <algorithm>
+#include <cstdlib>
 #include <fstream>
+#ifndef _WIN32
+#   include <cerrno>
+#   include <fcntl.h>
+#   include <sys/stat.h>
+#   include <unistd.h>
+#endif
 #include <uv.h>
 
 namespace {
@@ -33,6 +40,41 @@ std::string base64(const std::string &input)
 
 bool readCookie(const char *path, std::string &credentials, std::string &error)
 {
+#ifndef _WIN32
+    const int fd = open(path, O_RDONLY | O_CLOEXEC | O_NOFOLLOW);
+    if (fd < 0) {
+        error = std::string("cannot read cookie file '") + path + "' (check path and permissions)";
+        return false;
+    }
+    struct stat metadata {};
+    if (fstat(fd, &metadata) != 0) {
+        close(fd);
+        error = std::string("cannot read cookie file '") + path + "' (check path and permissions)";
+        return false;
+    }
+    if (!S_ISREG(metadata.st_mode) || (metadata.st_mode & 0077) != 0) {
+        close(fd);
+        error = std::string("cookie file '") + path + "' must be a private regular file (owner-only permissions)";
+        return false;
+    }
+    char buffer[4097];
+    size_t used = 0;
+    while (used < sizeof(buffer)) {
+        const ssize_t count = read(fd, buffer + used, sizeof(buffer) - used);
+        if (count > 0) { used += static_cast<size_t>(count); continue; }
+        if (count == 0) { break; }
+        if (errno == EINTR) { continue; }
+        close(fd);
+        error = std::string("cannot read cookie file '") + path + "' (check path and permissions)";
+        return false;
+    }
+    close(fd);
+    if (used == sizeof(buffer)) {
+        error = std::string("unreadable or oversized cookie file '") + path + "'";
+        return false;
+    }
+    credentials.assign(buffer, used);
+#else
     std::ifstream file(path, std::ios::binary);
     if (!file) {
         error = std::string("cannot read cookie file '") + path + "' (check path and permissions)";
@@ -45,6 +87,7 @@ bool readCookie(const char *path, std::string &credentials, std::string &error)
         return false;
     }
     credentials.assign(buffer, static_cast<size_t>(file.gcount()));
+#endif
     while (!credentials.empty() && (credentials.back() == '\n' || credentials.back() == '\r')) { credentials.pop_back(); }
     const auto colon = credentials.find(':');
     if (colon == std::string::npos || colon == 0 || colon + 1 == credentials.size() ||
@@ -53,6 +96,62 @@ bool readCookie(const char *path, std::string &credentials, std::string &error)
         return false;
     }
     return true;
+}
+
+bool writeCookie(const char *path, const std::string &credentials, std::string &error)
+{
+    // Write an owner-only temporary inode and atomically replace the destination.
+    uv_fs_t req;
+    const std::string pattern = std::string(path) + ".tmp-XXXXXX";
+    const int fd = uv_fs_mkstemp(nullptr, &req, pattern.c_str(), nullptr);
+    const std::string temporary = fd >= 0 ? req.path : "";
+    uv_fs_req_cleanup(&req);
+    int status = fd < 0 ? fd : 0;
+    if (fd >= 0) {
+        size_t offset = 0;
+        while (offset < credentials.size()) {
+            auto buffer = uv_buf_init(const_cast<char *>(credentials.data() + offset),
+                                      static_cast<unsigned int>(credentials.size() - offset));
+            const int written = uv_fs_write(nullptr, &req, fd, &buffer, 1, static_cast<int64_t>(offset), nullptr);
+            uv_fs_req_cleanup(&req);
+            if (written <= 0) { status = written < 0 ? written : UV_EIO; break; }
+            offset += static_cast<size_t>(written);
+        }
+        if (status == 0) {
+            const int synced = uv_fs_fsync(nullptr, &req, fd, nullptr);
+            uv_fs_req_cleanup(&req);
+            if (synced < 0) { status = synced; }
+        }
+        const int closed = uv_fs_close(nullptr, &req, fd, nullptr);
+        uv_fs_req_cleanup(&req);
+        if (status == 0 && closed < 0) { status = closed; }
+        if (status == 0) {
+            status = uv_fs_rename(nullptr, &req, temporary.c_str(), path, nullptr);
+            uv_fs_req_cleanup(&req);
+        }
+        if (status < 0) {
+            uv_fs_unlink(nullptr, &req, temporary.c_str(), nullptr);
+            uv_fs_req_cleanup(&req);
+        }
+    }
+    if (status < 0) {
+        error = std::string("cannot securely update cookie file '") + path + "': " + uv_strerror(status);
+        return false;
+    }
+    return true;
+}
+
+bool validFingerprint(const std::string &value)
+{
+    return value.size() == 64 && std::all_of(value.begin(), value.end(), [](char c) {
+        return (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F');
+    });
+}
+
+std::string lower(std::string value)
+{
+    for (char &c : value) { if (c >= 'A' && c <= 'Z') { c += 'a' - 'A'; } }
+    return value;
 }
 
 const rapidjson::Value &field(const rapidjson::Value &value, const char *name)
@@ -76,6 +175,7 @@ void xmrig::ZecneroClient::clearRequests(const char *reason)
 {
     m_httpListener.reset(); // outstanding HTTP requests keep only weak references
     m_templateRequest = 0;
+    m_cookieRequest = 0;
     m_work.clear();
     m_job.reset();
     while (!m_results.empty()) { handleSubmitResponse(m_results.begin()->first, reason); }
@@ -97,7 +197,88 @@ void xmrig::ZecneroClient::connect()
     clearRequests("RPC reconnected; block acceptance unknown");
     m_state = ConnectingState;
     m_httpListener = std::make_shared<HttpListener>(this);
-    getBlockTemplate();
+    if (remoteCookie()) { retrieveCookie(); }
+    else { getBlockTemplate(); }
+}
+
+bool xmrig::ZecneroClient::remoteCookie() const
+{
+    return !m_pool.daemonCookieSource().isEmpty();
+}
+
+void xmrig::ZecneroClient::retrieveCookie()
+{
+#ifndef XMRIG_FEATURE_TLS
+    fail("remote miner cookies require a TLS-enabled build");
+#else
+    if (m_cookieRequest != 0) { return; }
+    const std::string source = m_pool.daemonCookieSource().data();
+    if (source.compare(0, 8, "https://") != 0 || m_pool.daemonCookieFile().isEmpty() ||
+        m_pool.rpcLogin().isEmpty() || !m_pool.isTLS()) {
+        fail("remote miner cookies require HTTPS RPC, source, destination and rpc-login");
+        return;
+    }
+    if (source.find_first_of("@#\r\n\t ") != std::string::npos) {
+        fail("invalid miner cookie HTTPS URL");
+        return;
+    }
+
+    const auto slash = source.find('/', 8);
+    const std::string authority = source.substr(8, slash == std::string::npos ? slash : slash - 8);
+    std::string host;
+    std::string portText;
+    if (!authority.empty() && authority[0] == '[') {
+        const auto end = authority.find(']');
+        if (end == std::string::npos || (end + 1 < authority.size() && authority[end + 1] != ':')) {
+            fail("invalid miner cookie HTTPS host");
+            return;
+        }
+        host = authority.substr(1, end - 1);
+        if (end + 1 < authority.size()) { portText = authority.substr(end + 2); }
+    }
+    else {
+        const auto colon = authority.find(':');
+        host = authority.substr(0, colon);
+        if (colon != std::string::npos) { portText = authority.substr(colon + 1); }
+    }
+    unsigned port = 443;
+    if (!portText.empty()) {
+        if (portText.size() > 5 || !std::all_of(portText.begin(), portText.end(), [](char c) { return c >= '0' && c <= '9'; })) {
+            fail("invalid miner cookie HTTPS port");
+            return;
+        }
+        port = static_cast<unsigned>(std::strtoul(portText.c_str(), nullptr, 10));
+    }
+    const std::string path = slash == std::string::npos ? "/mining/cookie" : source.substr(slash);
+    if (host.empty() || port == 0 || port > 65535 || path != "/mining/cookie" ||
+        lower(host) != lower(m_pool.host().data()) || port != m_pool.port()) {
+        fail("miner cookie endpoint must be /mining/cookie on the configured HTTPS RPC origin");
+        return;
+    }
+
+    const std::string login = m_pool.rpcLogin().data();
+    const auto loginColon = login.find(':');
+    if (login.size() > 4096 || loginColon == std::string::npos || loginColon == 0 ||
+        loginColon + 1 == login.size() || login.find_first_of("\r\n") != std::string::npos) {
+        fail("invalid miner cookie bootstrap credentials");
+        return;
+    }
+    std::string fingerprint = m_pool.daemonCookieFingerprint().isEmpty()
+        ? std::string(m_pool.fingerprint().isEmpty() ? "" : m_pool.fingerprint().data())
+        : std::string(m_pool.daemonCookieFingerprint().data());
+    if (!fingerprint.empty() && !validFingerprint(fingerprint)) {
+        fail("miner cookie TLS fingerprint must contain 64 hexadecimal digits");
+        return;
+    }
+
+    FetchRequest request(HTTP_GET, host.c_str(), static_cast<uint16_t>(port), path.c_str(), true, isQuiet());
+    request.requireVerifiedTls = true;
+    if (!fingerprint.empty()) { request.fingerprint = fingerprint.c_str(); }
+    request.timeout = 10000;
+    request.headers.emplace("Authorization", "Basic " + base64(login));
+    m_cookieRequest = m_sequence++;
+    fetch(tag(), std::move(request), m_httpListener, 0, static_cast<uint64_t>(m_cookieRequest));
+#endif
 }
 
 void xmrig::ZecneroClient::fail(const char *message)
@@ -115,12 +296,16 @@ bool xmrig::ZecneroClient::authorization(std::string &value, std::string &error)
     std::string credentials;
     const auto &destination = m_pool.daemonCookieFile();
     if (!destination.isEmpty()) {
-        // Read the node-owned file for every RPC, including after rotation/reconnect.
-        // The miner never generates, copies, downloads or replaces node credentials.
+        // Read the configured cookie for every RPC, including after local node
+        // rotation or remote miner-cookie renewal.
         if (!readCookie(destination.data(), credentials, error)) { return false; }
     }
+    else if (!m_pool.rpcLogin().isEmpty()) {
+        credentials = m_pool.rpcLogin().data();
+    }
     else {
-        credentials = std::string(m_pool.daemonRpcUser().isEmpty() ? "" : m_pool.daemonRpcUser().data()) + ':' + m_password.data();
+        value.clear();
+        return true;
     }
     value = "Basic " + base64(credentials);
     return true;
@@ -139,9 +324,17 @@ bool xmrig::ZecneroClient::sendRpc(int64_t id, const char *method, rapidjson::Va
     doc.AddMember("method", rapidjson::Value(method, allocator), allocator);
     doc.AddMember("params", params, allocator);
     FetchRequest req(HTTP_POST, m_pool.host(), m_pool.port(), "/", doc, m_pool.isTLS(), isQuiet());
-    req.fingerprint = m_pool.fingerprint();
+    if (remoteCookie()) {
+        req.requireVerifiedTls = true;
+        req.fingerprint = m_pool.daemonCookieFingerprint().isEmpty()
+            ? m_pool.fingerprint()
+            : m_pool.daemonCookieFingerprint();
+    }
+    else {
+        req.fingerprint = m_pool.fingerprint();
+    }
     req.timeout = 10000;
-    req.headers.emplace("Authorization", std::move(auth));
+    if (!auth.empty()) { req.headers.emplace("Authorization", std::move(auth)); }
     fetch(tag(), std::move(req), m_httpListener, 0, static_cast<uint64_t>(id));
     return true;
 }
@@ -166,6 +359,10 @@ void xmrig::ZecneroClient::getBlockTemplate()
 
 void xmrig::ZecneroClient::onTimer(const Timer *)
 {
+    if (remoteCookie() && m_cookieRequest == 0 && m_cookieRefreshAt != 0 && Chrono::steadyMSecs() >= m_cookieRefreshAt) {
+        retrieveCookie();
+        return;
+    }
     if (m_state == ConnectingState && m_waitingForSync) { getBlockTemplate(); }
     else if (m_state == ConnectingState) { connect(); }
     else if (m_state == ConnectedState) { getBlockTemplate(); }
@@ -199,6 +396,41 @@ void xmrig::ZecneroClient::onHttpData(const HttpData &data)
 {
     if (m_state == UnconnectedState) { return; }
     const int64_t id = static_cast<int64_t>(data.rpcId);
+    if (id == m_cookieRequest && m_cookieRequest != 0) {
+        m_cookieRequest = 0;
+        if (data.status != 200) {
+            fail("miner cookie retrieval failed; check HTTPS trust and bootstrap credentials");
+            return;
+        }
+        std::string credentials = data.body;
+        while (!credentials.empty() && (credentials.back() == '\r' || credentials.back() == '\n')) { credentials.pop_back(); }
+        const auto colon = credentials.find(':');
+        if (credentials.size() > 4096 || colon == std::string::npos ||
+            credentials.substr(0, colon) != "__miner__" || colon + 1 == credentials.size() ||
+            credentials.find_first_of("\r\n") != std::string::npos || credentials.find('\0') != std::string::npos) {
+            fail("miner cookie endpoint returned invalid credentials");
+            return;
+        }
+        std::string existing;
+        std::string error;
+        if (!readCookie(m_pool.daemonCookieFile().data(), existing, error) || existing != credentials) {
+            if (!writeCookie(m_pool.daemonCookieFile().data(), credentials, error)) {
+                fail(error.c_str());
+                return;
+            }
+            LOG_NOTICE("%s securely refreshed client-specific miner cookie", tag());
+        }
+        uint64_t ttl = 43200;
+        const auto ttlHeader = data.headers.find("x-zecnero-cookie-ttl");
+        if (ttlHeader != data.headers.end() && !ttlHeader->second.empty() &&
+            std::all_of(ttlHeader->second.begin(), ttlHeader->second.end(), [](char c) { return c >= '0' && c <= '9'; })) {
+            const uint64_t advertised = std::strtoull(ttlHeader->second.c_str(), nullptr, 10);
+            if (advertised >= 300 && advertised <= 604800) { ttl = advertised; }
+        }
+        m_cookieRefreshAt = Chrono::steadyMSecs() + ttl * 800;
+        getBlockTemplate();
+        return;
+    }
     const bool isTemplate = id == m_templateRequest;
     if (!isTemplate && m_results.count(id) == 0) { return; } // superseded request
     if (isTemplate) { m_templateRequest = 0; }

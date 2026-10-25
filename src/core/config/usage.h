@@ -69,11 +69,13 @@ static inline const std::string &usage()
     u += "\nZecnero direct RPC solo mining (--daemon):\n";
     u += "  -a, --algo=rx/zecnero         RandomX v1; rx/zecnero2, rx/zmr2 or rx2/zecnero for v2\n";
     u += "                               node templates select the version automatically\n";
-    u += "  -o, --url=HOST:PORT           node RPC (Testnet: 127.0.0.1:18732)\n";
+    u += "  -o, --url=HOST:PORT           node RPC (full: 127.0.0.1:18732; miner-only: HOST:18734)\n";
     u += "  -u, --user=ADDRESS           payout wallet; omit, empty or x uses daemon wallet\n";
     u += "      --daemon-cookie-file=PATH read the node's local RPC cookie; reread on rotation\n";
-    u += "      --daemon-rpc-user=USER   Basic RPC login with --pass when not using cookies\n";
-    u += "                               --user remains the wallet; cookie login is separate\n";
+    u += "      --daemon-cookie-source=URL retrieve a client-specific cookie from HTTPS /mining/cookie\n";
+    u += "      --daemon-cookie-fingerprint=HEX pin the miner RPC certificate (otherwise public CA trust is required)\n";
+    u += "      --rpc-login=USER:PASS    Basic RPC login or TLS cookie-bootstrap credentials\n";
+    u += "                               --user remains the payout wallet; authentication is separate\n";
     u += "  Config: same daemon-* names under pools[]; unset cookie fields default to null.\n";
     u += "  Mining waits for node sync and dataset readiness; see doc/ZECNERO.md.\n\n";
     u += "      --self-select=URL         self-select block templates from URL\n";

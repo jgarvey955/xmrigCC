@@ -9,6 +9,15 @@ if ("${CMAKE_BUILD_TYPE}" STREQUAL "")
     set(CMAKE_BUILD_TYPE Release)
 endif()
 
+# GNU libc deliberately emits link-time warnings for a few APIs when producing
+# a fully static executable, even though the resulting ELF has no dynamic
+# loader or shared-library dependencies. Keep normal builds fully verbose; the
+# static build script performs explicit ELF safety checks after this link.
+if (BUILD_STATIC AND CMAKE_SYSTEM_NAME STREQUAL "Linux" AND
+    CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,--no-warnings")
+endif()
+
 if (CMAKE_BUILD_TYPE STREQUAL "Release")
     add_definitions(-DNDEBUG)
 endif()

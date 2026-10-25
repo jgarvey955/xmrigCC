@@ -19,6 +19,7 @@ def main():
     fixture = json.loads((pathlib.Path(__file__).parent / 'zecnero-template.json').read_text())
     cookie = root / '.cookie'
     cookie.write_text('__cookie__:mock-a\n')
+    cookie.chmod(0o600)
     state = {'templates': 0, 'submits': 0, 'accepted': 0, 'rotated': False, 'errors': []}
     lock = threading.Lock()
     delayed_poll = threading.Event()
