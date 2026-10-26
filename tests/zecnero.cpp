@@ -34,6 +34,15 @@ extern "C" {
 #include <unistd.h>
 #endif
 
+#if defined(__x86_64__) || defined(_M_AMD64)
+extern "C" {
+int xmrig_ar2_check_avx512f();
+int xmrig_ar2_check_avx2();
+int xmrig_ar2_check_ssse3();
+int xmrig_ar2_check_sse2();
+}
+#endif
+
 using namespace xmrig;
 static void check(bool ok, const char *what) { if (!ok) { throw std::runtime_error(what); } }
 
@@ -327,6 +336,13 @@ static void argonImplementations()
     for (auto &thread : threads) { thread.join(); }
     check(selections == 1, "automatic selector runs exactly once under concurrent calls");
     const std::string selected = argon2_get_impl_name();
+#if defined(__x86_64__) || defined(_M_AMD64)
+    const char *expectedAutomatic = xmrig_ar2_check_avx512f() ? "AVX-512F" :
+                                    xmrig_ar2_check_avx2() ? "AVX2" :
+                                    xmrig_ar2_check_ssse3() ? "SSSE3" :
+                                    xmrig_ar2_check_sse2() ? "SSE2" : "x86_64";
+    check(selected == expectedAutomatic, "automatic selector must use stable capability priority");
+#endif
     check(!argon2::Impl::select(String("SSE2")), "do not change implementation after initialization");
     check(selected == argon2_get_impl_name(), "selection remains stable while mining");
     std::cout << "Automatic implementation: " << selected << "; once-only concurrent selection passed\n";

@@ -1,3 +1,9 @@
+# 3.8.1
+* Restored deterministic Argon2 SIMD selection so automatic mode uses the
+  highest supported implementation instead of a variable startup benchmark.
+* Added regression coverage for the AVX-512F, AVX2, SSSE3, and SSE2 priority.
+* Standardized `make release-static` output in the normal `build` directory.
+
 # 3.8.0
 * Added secure remote mining against zecnerod's separate miner-only RPC.
 * Added per-client miner-cookie bootstrap over verified HTTPS, automatic renewal,

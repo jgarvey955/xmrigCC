@@ -286,7 +286,7 @@ void xmrig::CpuBackend::prepare(const Job &nextJob)
 #   ifdef XMRIG_ALGO_ARGON2
     const auto f = nextJob.algorithm().family();
     if ((f == Algorithm::ARGON2) || (f == Algorithm::RANDOM_X)) {
-        if (argon2::Impl::select(d_ptr->controller->config()->cpu().argon2Impl())) {
+        if (argon2::Impl::select(d_ptr->controller->config()->cpu().argon2Impl(), false)) {
             LOG_INFO("%s use " WHITE_BOLD("argon2") " implementation " CSI "1;%dm" "%s",
                      Tags::cpu(),
                      argon2::Impl::name() == "default" ? 33 : 32,

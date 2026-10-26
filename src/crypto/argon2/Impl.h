@@ -38,7 +38,9 @@ namespace argon2 {
 class Impl
 {
 public:
-    static bool select(const String &nameHint, bool benchmark = true);
+    // Normal automatic selection is capability-based and deterministic.
+    // Callers must explicitly opt in to the timing-based selector.
+    static bool select(const String &nameHint, bool benchmark = false);
     static const String &name();
 };
 
