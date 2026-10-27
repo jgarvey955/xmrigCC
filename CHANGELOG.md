@@ -1,3 +1,8 @@
+# 3.8.2
+* Synchronized the miner version with the proxy connection-liveness fix. The
+  miner's existing keepalive configuration and protocol behavior remain
+  compatible; no miner-side configuration change is required.
+
 # 3.8.1
 * Restored deterministic Argon2 SIMD selection so automatic mode uses the
   highest supported implementation instead of a variable startup benchmark.
