@@ -169,14 +169,14 @@ void xmrig::FailoverStrategy::onLoginSuccess(IClient *client)
 {
     int active = m_active;
 
-    if (client->id() == 0 || !isActive()) {
+    if (!isActive() || client->id() < active) {
         active = client->id();
     }
 
-    for (size_t i = 1; i < m_pools.size(); ++i) {
-        if (active != static_cast<int>(i)) {
-            m_pools[i]->disconnect();
-        }
+    // Keep every higher-priority client alive so each one can reclaim work
+    // after it recovers. Only lower-priority fallbacks are no longer needed.
+    for (size_t i = static_cast<size_t>(active + 1); i < m_pools.size(); ++i) {
+        m_pools[i]->disconnect();
     }
 
     if (active >= 0 && active != m_active) {

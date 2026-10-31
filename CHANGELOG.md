@@ -1,3 +1,11 @@
+# 3.8.3
+* Restored ordered failback across every configured upstream priority instead
+  of allowing only the first entry to reclaim work after recovery.
+* Kept higher-priority upstreams in their retry loops while a lower-priority
+  fallback is active and added three-level failover/failback coverage.
+* Updated cpp-httplib to 0.64.0 with its request-framing, proxy, static-file,
+  TLS, and connection-handling fixes while preserving CC SOCKS5 support.
+
 # 3.8.2
 * Synchronized the miner version with the proxy connection-liveness fix. The
   miner's existing keepalive configuration and protocol behavior remain
