@@ -11,6 +11,7 @@
   retaining independent block submissions and bounded RPC timeouts.
 * Included OpenSSL 4/deprecation compatibility and the Windows libuv 1.53
   synchronization-library fix. MSVC now uses external hwloc dependencies.
+* Fixed macOS native certificate-store linking and Apple header compatibility.
 * Removed Tuske and Virel algorithm support, following upstream.
 * Preserved Zecnero v1/v2, Salvium, CC monitoring, cookie authentication,
   stable AES dispatch, and the forks' existing donation configurations.

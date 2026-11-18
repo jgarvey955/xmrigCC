@@ -481,6 +481,10 @@ using socket_t = int;
 #ifdef CPPHTTPLIB_USE_CERTS_FROM_MACOSX_KEYCHAIN
 #if TARGET_OS_OSX
 #include <Security/Security.h>
+// Apple Security headers define INTEL, which collides with Assembly::INTEL.
+#ifdef INTEL
+#undef INTEL
+#endif
 #endif
 #endif
 
@@ -538,6 +542,10 @@ using socket_t = int;
 #ifdef CPPHTTPLIB_USE_CERTS_FROM_MACOSX_KEYCHAIN
 #if TARGET_OS_OSX
 #include <Security/Security.h>
+// Apple Security headers define INTEL, which collides with Assembly::INTEL.
+#ifdef INTEL
+#undef INTEL
+#endif
 #endif
 #endif
 
@@ -585,6 +593,10 @@ using socket_t = int;
 #ifdef CPPHTTPLIB_USE_CERTS_FROM_MACOSX_KEYCHAIN
 #if TARGET_OS_OSX
 #include <Security/Security.h>
+// Apple Security headers define INTEL, which collides with Assembly::INTEL.
+#ifdef INTEL
+#undef INTEL
+#endif
 #endif
 #endif
 #endif // CPPHTTPLIB_WOLFSSL_SUPPORT
