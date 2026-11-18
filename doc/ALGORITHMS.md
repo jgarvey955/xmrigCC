@@ -15,9 +15,10 @@ Option `coin` useful for pools without algorithm negotiation support or daemon t
 | `rx/zecnero2`       | 2 MB   | local fork | Zecnero RandomX v2 with `rx/2` commitment; aliases `rx/zmr2`, `rx2/zecnero`. | CPU only  |
 | `rx/zecnero`        | 2 MB   | this fork  | Zecnero RandomX v1, own Argon2 salt; direct RPC solo mining.                 | CPU only  |
 | `rx/scash`            | 2 MB   | 3.4.9       | RandomSCASH (satoshicash).                                                |
-| `rx/vrl`              | 2 MB   | 3.4.7       | RandomxVirel (VRL).                                                       | CPU only
+| `rx/2`                | 2 MB   | 3.5.0       | RandomX v2 (Monero).                                                      |
 | `rx/xeq`              | 2 MB   | 3.4.2       | RandomxEquilibria (XEQ).                                                  |
-| `rx/tuske`            | 2 MB   | 3.4.1       | RandomxTuske (TSK).                                                       | CPU only
+| `rx/vrl`              | 2 MB   | 3.4.7-3.4.9 | RandomVirel (VRL).                                                        | removed
+| `rx/tuske`            | 2 MB   | 3.4.1-3.4.9 | RandomTuske (TSK).                                                        | removed
 | `ghostrider/mike`     | 2 MB   | 3.3.1       | Ghostrider variant Mike (vkax).                                           | CPU only
 | `rx/xdag`             | 2 MB   | 3.2.1       | RandomXDAG (xdagger).                                                     | CPU only
 | `astroBWT/v2`         | -      | 3.2.0       | AstroBWT v2 (Dero HE).                                                    | removed

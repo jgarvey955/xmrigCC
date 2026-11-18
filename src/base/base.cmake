@@ -68,6 +68,7 @@ set(HEADERS_BASE
     src/base/net/tools/LineReader.h
     src/base/net/tools/MemPool.h
     src/base/net/tools/NetBuffer.h
+    src/base/net/tools/Socks5Handshake.h
     src/base/net/tools/Storage.h
     src/base/tools/Alignment.h
     src/base/tools/Arguments.h
@@ -133,6 +134,7 @@ set(SOURCES_BASE
     src/base/net/stratum/Url.cpp
     src/base/net/tools/LineReader.cpp
     src/base/net/tools/NetBuffer.cpp
+    src/base/net/tools/Socks5Handshake.cpp
     src/base/tools/Arguments.cpp
     src/base/tools/Chrono.cpp
     src/base/tools/cryptonote/BlockTemplate.cpp

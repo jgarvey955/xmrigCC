@@ -122,13 +122,6 @@ RandomX_ConfigurationYada::RandomX_ConfigurationYada()
 	ArgonIterations = 4;
 }
 
-RandomX_ConfigurationTuske::RandomX_ConfigurationTuske()
-{
-    ArgonSalt = "TuskeRandomX\x03";
-    ArgonIterations = 4;
-    ArgonLanes = 2;
-}
-
 RandomX_ConfigurationEquilibria::RandomX_ConfigurationEquilibria()
 {
     ArgonIterations = 1;
@@ -137,15 +130,6 @@ RandomX_ConfigurationEquilibria::RandomX_ConfigurationEquilibria()
     ProgramCount = 4;
     ScratchpadL2_Size = 131072;
     ScratchpadL3_Size = 262144;
-}
-
-RandomX_ConfigurationVirel::RandomX_ConfigurationVirel()
-{
-    ArgonIterations = 1;
-    ArgonSalt = "RandomVIREL\x03";
-    ProgramIterations = 1821;
-    ProgramCount = 4;
-    ScratchpadL3_Size = 1048576;
 }
 
 RandomX_ConfigurationScash::RandomX_ConfigurationScash()
@@ -373,7 +357,10 @@ typedef void(randomx::JitCompilerX86::* InstructionGeneratorX86_2)(const randomx
 	Log2_ScratchpadL2 = Log2(ScratchpadL2_Size);
 	Log2_ScratchpadL3 = Log2(ScratchpadL3_Size);
 
-#define JIT_HANDLE(x, prev) randomx::JitCompilerRV64::engine[k] = &randomx::JitCompilerRV64::v1_##x
+#define JIT_HANDLE(x, prev) do { \
+		randomx::JitCompilerRV64::engine[k] = &randomx::JitCompilerRV64::v1_##x; \
+		randomx::JitCompilerRV64::inst_map[k] = static_cast<uint8_t>(randomx::InstructionType::x); \
+	} while (0)
 
 #else
 #define JIT_HANDLE(x, prev)
@@ -463,9 +450,7 @@ RandomX_ConfigurationArqma RandomX_ArqmaConfig;
 RandomX_ConfigurationGraft RandomX_GraftConfig;
 RandomX_ConfigurationSafex RandomX_SafexConfig;
 RandomX_ConfigurationYada RandomX_YadaConfig;
-RandomX_ConfigurationTuske RandomX_TuskeConfig;
 RandomX_ConfigurationEquilibria RandomX_EquilibriaConfig;
-RandomX_ConfigurationVirel RandomX_VirelConfig;
 RandomX_ConfigurationScash RandomX_ScashConfig;
 
 alignas(64) RandomX_ConfigurationBase RandomX_CurrentConfig;

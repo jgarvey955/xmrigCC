@@ -156,9 +156,7 @@ struct RandomX_ConfigurationArqma : public RandomX_ConfigurationBase { RandomX_C
 struct RandomX_ConfigurationGraft : public RandomX_ConfigurationBase { RandomX_ConfigurationGraft(); };
 struct RandomX_ConfigurationSafex : public RandomX_ConfigurationBase { RandomX_ConfigurationSafex(); };
 struct RandomX_ConfigurationYada : public RandomX_ConfigurationBase { RandomX_ConfigurationYada(); };
-struct RandomX_ConfigurationTuske : public RandomX_ConfigurationBase { RandomX_ConfigurationTuske(); };
 struct RandomX_ConfigurationEquilibria : public RandomX_ConfigurationBase { RandomX_ConfigurationEquilibria(); };
-struct RandomX_ConfigurationVirel : public RandomX_ConfigurationBase { RandomX_ConfigurationVirel(); };
 struct RandomX_ConfigurationScash : public RandomX_ConfigurationBase { RandomX_ConfigurationScash(); };
 
 extern RandomX_ConfigurationMonero RandomX_MoneroConfig;
@@ -170,12 +168,10 @@ extern RandomX_ConfigurationArqma RandomX_ArqmaConfig;
 extern RandomX_ConfigurationGraft RandomX_GraftConfig;
 extern RandomX_ConfigurationSafex RandomX_SafexConfig;
 extern RandomX_ConfigurationYada RandomX_YadaConfig;
-extern RandomX_ConfigurationTuske RandomX_TuskeConfig;
 extern RandomX_ConfigurationEquilibria RandomX_EquilibriaConfig;
-extern RandomX_ConfigurationVirel RandomX_VirelConfig;
 extern RandomX_ConfigurationScash RandomX_ScashConfig;
 
-extern RandomX_ConfigurationBase RandomX_CurrentConfig;
+alignas(64) extern RandomX_ConfigurationBase RandomX_CurrentConfig;
 
 template<typename T>
 void randomx_apply_config(const T& config)
@@ -250,7 +246,7 @@ RANDOMX_EXPORT unsigned long randomx_dataset_item_count(void);
  *
  * @param dataset is a pointer to a previously allocated randomx_dataset structure. Must not be NULL.
  * @param cache is a pointer to a previously allocated and initialized randomx_cache structure. Must not be NULL.
- * @param startItem is the item number where intialization should start.
+ * @param startItem is the item number where initialization should start.
  * @param itemCount is the number of items that should be initialized.
 */
 RANDOMX_EXPORT void randomx_init_dataset(randomx_dataset *dataset, randomx_cache *cache, unsigned long startItem, unsigned long itemCount);
@@ -339,14 +335,13 @@ RANDOMX_EXPORT void randomx_calculate_hash_next(randomx_vm* machine, uint64_t (&
 
 /**
  * Calculate a RandomX commitment from a RandomX hash and its input.
- * Used by Scash (RX_SCASH)
  *
- * @param input is a pointer to memory that was hashed (block header). Must not be NULL.
+ * @param input is a pointer to memory that was hashed. Must not be NULL.
  * @param inputSize is the number of bytes in the input.
  * @param hash_in is the output from randomx_calculate_hash* (RANDOMX_HASH_SIZE bytes).
  * @param com_out is a pointer to memory where the commitment will be stored. Must not
  *        be NULL and at least RANDOMX_HASH_SIZE bytes must be available for writing.
- */
+*/
 RANDOMX_EXPORT void randomx_calculate_commitment(const void* input, size_t inputSize, const void* hash_in, void* com_out);
 
 #if defined(__cplusplus)

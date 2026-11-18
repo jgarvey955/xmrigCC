@@ -81,7 +81,7 @@ xmrig::Client::Client(int id, const char *agent, IClientListener *listener) :
     BaseClient(id, listener),
     m_agent(agent),
     m_sendBuf(1024),
-    m_tempBuf(256)
+    m_tempBuf(320)
 {
     m_reader.setListener(this);
     m_key = m_storage.add(this);

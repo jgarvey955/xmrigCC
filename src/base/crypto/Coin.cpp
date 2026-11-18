@@ -56,9 +56,7 @@ static const CoinInfo coinInfo[] = {
     { Algorithm::RX_XDAG,         "XDAG",     "Xdagger",      0,      0,              BLUE_BG_BOLD(    WHITE_BOLD_S " xdagger ") },
     { Algorithm::RX_0,            "ZEPH",     "Zephyr",       120,    1000000000000,  BLUE_BG_BOLD(  WHITE_BOLD_S " zephyr  ") },
     { Algorithm::RX_0,            "Townforge","Townforge",    30,     100000000,      MAGENTA_BG_BOLD(WHITE_BOLD_S " townforge ") },
-    { Algorithm::RX_TUSKE,        "TSK",      "Tuske",        120,    1000000000000,  MAGENTA_BG_BOLD(WHITE_BOLD_S " tuske   ") },
     { Algorithm::RX_XEQ,          "XEQ",      "Equilibria",   120,    10000,          BLUE_BG_BOLD( WHITE_BOLD_S " equilibria ") },
-    { Algorithm::RX_VRL,          "VRL",      "Virel",        5,      1000000000,     BLUE_BG_BOLD(   WHITE_BOLD_S " virel   ") },
     { Algorithm::RX_0,            "SAL",      "Salvium",      120,    100000000,      BLUE_BG_BOLD(   WHITE_BOLD_S " salvium " ) },
 };
 
@@ -85,8 +83,13 @@ xmrig::Coin::Coin(const rapidjson::Value &value)
 }
 
 
-xmrig::Algorithm xmrig::Coin::algorithm(uint8_t) const
+xmrig::Algorithm xmrig::Coin::algorithm(uint8_t blobVersion) const
 {
+    // Monero uses RandomX v2 after the FCMP++ hardfork (v17)
+    if ((m_id == MONERO) && (blobVersion >= 17)) {
+        return Algorithm::RX_V2;
+    }
+
     return coinInfo[m_id].algorithm;
 }
 

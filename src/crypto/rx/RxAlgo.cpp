@@ -32,6 +32,9 @@ xmrig::Algorithm::Id xmrig::RxAlgo::apply(Algorithm::Id algorithm)
 const RandomX_ConfigurationBase *xmrig::RxAlgo::base(Algorithm::Id algorithm)
 {
     switch (algorithm) {
+    case Algorithm::RX_V2:
+        return &RandomX_MoneroConfigV2;
+
     case Algorithm::RX_WOW:
         return &RandomX_WowneroConfig;
 
@@ -47,14 +50,8 @@ const RandomX_ConfigurationBase *xmrig::RxAlgo::base(Algorithm::Id algorithm)
     case Algorithm::RX_YADA:
         return &RandomX_YadaConfig;
 
-    case Algorithm::RX_TUSKE:
-        return &RandomX_TuskeConfig;
-
     case Algorithm::RX_XEQ:
         return &RandomX_EquilibriaConfig;
-
-    case Algorithm::RX_VRL:
-        return &RandomX_VirelConfig;
 
     case Algorithm::RX_ZECNERO2:
         return &RandomX_ZecneroConfigV2;

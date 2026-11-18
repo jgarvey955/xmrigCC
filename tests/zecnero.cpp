@@ -4,6 +4,7 @@
 #include "base/tools/zecnero/BlockTemplate.h"
 #include "base/net/stratum/Job.h"
 #include "base/net/stratum/Pool.h"
+#include "base/net/tools/Socks5Handshake.h"
 #include "base/kernel/config/BaseTransform.h"
 #include "base/kernel/interfaces/IConfig.h"
 #include "crypto/common/VirtualMemory.h"
@@ -12,6 +13,7 @@
 #include "crypto/rx/RxAlgo.h"
 #include "crypto/rx/RxCache.h"
 #include "crypto/rx/RxDataset.h"
+#include "crypto/rx/RxSeed.h"
 #include "net/JobResult.h"
 #include "backend/cpu/Cpu.h"
 #include "crypto/argon2/Impl.h"
@@ -64,6 +66,38 @@ static rapidjson::Document sample()
 
 static void protocol()
 {
+    Socks5Handshake socks("daemon.invalid", 18081);
+    std::string connectRequest;
+    const char methodReply[] = {5, 0};
+    const char *wire = methodReply;
+    size_t remaining = 1;
+    check(socks.read(wire, remaining, connectRequest) && remaining == 0 && connectRequest.empty(),
+          "fragmented SOCKS5 method reply waits for completion");
+    wire = methodReply + 1;
+    remaining = 1;
+    check(socks.read(wire, remaining, connectRequest) && !socks.isReady(),
+          "SOCKS5 method selection emits CONNECT without completing the tunnel");
+    std::string expectedConnect("\5\1\0\3\16", 5);
+    expectedConnect += "daemon.invalid";
+    expectedConnect += static_cast<char>(18081 >> 8);
+    expectedConnect += static_cast<char>(18081 & 255);
+    check(connectRequest == expectedConnect, "SOCKS5 preserves daemon hostname and port");
+    const std::string reply = std::string("\5\0\0\1\177\0\0\1\106\241", 10) + "RPC";
+    connectRequest.clear();
+    wire = reply.data();
+    remaining = 4;
+    check(socks.read(wire, remaining, connectRequest) && !socks.isReady(),
+          "fragmented SOCKS5 CONNECT reply waits for the bound address");
+    wire = reply.data() + 4;
+    remaining = reply.size() - 4;
+    check(socks.read(wire, remaining, connectRequest) && socks.isReady() &&
+          std::string(wire, remaining) == "RPC", "SOCKS5 leaves tunneled RPC bytes intact");
+    Socks5Handshake denied("daemon.invalid", 18081);
+    const char deniedReply[] = {5, static_cast<char>(255)};
+    wire = deniedReply;
+    remaining = sizeof(deniedReply);
+    check(!denied.read(wire, remaining, connectRequest) && !denied.isReady(),
+          "SOCKS5 authentication rejection cannot establish a tunnel");
     check(Algorithm("rx/zecnero") == Algorithm::RX_ZECNERO, "algorithm name registration");
     check(Algorithm("rx/zecnero2") == Algorithm::RX_ZECNERO2 &&
           Algorithm("rx2/zecnero") == Algorithm::RX_ZECNERO2 &&
@@ -78,6 +112,23 @@ static void protocol()
     JobResult result(resultJob, 0, proof, nullptr, nullptr, randomxHash);
     check(result.commitment() && result.commitment()[0] == 0x22 && !result.minerSignature(),
           "v2 result carries RandomX hash");
+    Job moneroV2(false, Algorithm::RX_V2, String());
+    JobResult moneroResult(moneroV2, 0, proof, nullptr, nullptr, randomxHash);
+    check(moneroResult.commitment() && moneroResult.commitment()[0] == 0x22 && !moneroResult.minerSignature(),
+          "Monero v2 result carries RandomX hash separately from miner signatures");
+    Job wownero(false, Algorithm::RX_WOW, String());
+    JobResult wowneroResult(wownero, 0, proof, nullptr, nullptr, randomxHash);
+    check(wowneroResult.minerSignature() && !wowneroResult.commitment(),
+          "Wownero result keeps its miner signature");
+    const Buffer sharedSeed(32, 0x5a);
+    const RxSeed moneroSeed(Algorithm::RX_0, sharedSeed), moneroV2Seed(Algorithm::RX_V2, sharedSeed);
+    const RxSeed zecneroSeed(Algorithm::RX_ZECNERO, sharedSeed), zecneroV2Seed(Algorithm::RX_ZECNERO2, sharedSeed);
+    check(moneroSeed == moneroV2Seed && moneroV2Seed == moneroSeed,
+          "Monero v1/v2 transitions reuse the dataset in both directions");
+    check(zecneroSeed == zecneroV2Seed && zecneroV2Seed == zecneroSeed,
+          "Zecnero v1/v2 transitions reuse the dataset in both directions");
+    check(moneroSeed != zecneroSeed && moneroV2Seed != zecneroV2Seed,
+          "different RandomX salts never share a dataset");
     RxAlgo::apply(Algorithm::RX_ZECNERO);
     check(!RandomX_CurrentConfig.Tweak_V2_COMMITMENT, "v1 has no commitment");
     std::string error;

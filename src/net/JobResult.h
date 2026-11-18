@@ -131,11 +131,11 @@ private:
         }
 
         if (extraData) {
-            if (algorithm == Algorithm::RX_ZECNERO2) {
+            if (algorithm == Algorithm::RX_V2 || algorithm == Algorithm::RX_ZECNERO2) {
                 m_hasCommitment = true;
                 memcpy(m_extraData, extraData, RANDOMX_HASH_SIZE);
             }
-            else {
+            else if (algorithm == Algorithm::RX_WOW) {
                 m_hasMinerSignature = true;
                 memcpy(m_extraData, extraData, RANDOMX_HASH_SIZE * 2);
             }

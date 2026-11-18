@@ -62,7 +62,10 @@ private:
     Buffer m_data;
 
     inline bool isEqualSeedAlgo(Algorithm other) const {
-        return m_algorithm == other || (m_algorithm.isZecnero() && other.isZecnero());
+        return (m_algorithm == other) ||
+              ((m_algorithm == Algorithm::RX_0)  && (other == Algorithm::RX_V2)) ||
+              ((m_algorithm == Algorithm::RX_V2) && (other == Algorithm::RX_0)) ||
+              (m_algorithm.isZecnero() && other.isZecnero());
     }
 };
 

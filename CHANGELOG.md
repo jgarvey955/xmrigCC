@@ -1,3 +1,22 @@
+# 3.9.0
+* Synchronized the core with Bendr0id/xmrigCC dev `e6e4c834` and
+  xmrig/xmrig dev `20321c61`.
+* Fixed the rare ARM64 and RISC-V ISUB_R immediate overflow affecting both
+  RandomX versions, and fixed RandomX v2 assembly on Apple ARM systems.
+* Included ARMv9 CPU detection, narrower ARM64 JIT cache invalidation, and
+  updated RISC-V vector and hardware-AES paths.
+* Updated Monero FCMP++ beta stressnet v3 block-template handling and dataset
+  reuse across Monero RandomX v1/v2 transitions.
+* Updated daemon TLS fingerprint checks, SOCKS5 routing and ZMQ cleanup while
+  retaining independent block submissions and bounded RPC timeouts.
+* Included OpenSSL 4/deprecation compatibility and the Windows libuv 1.53
+  synchronization-library fix. MSVC now uses external hwloc dependencies.
+* Removed Tuske and Virel algorithm support, following upstream.
+* Preserved Zecnero v1/v2, Salvium, CC monitoring, cookie authentication,
+  stable AES dispatch, and the forks' existing donation configurations.
+* Added release builds that verify RandomX vectors on native ARM64 runners
+  and publish the complete changelog entry with the binary assets.
+
 # 3.8.3
 * Restored ordered failback across every configured upstream priority instead
   of allowing only the first entry to reclaim work after recovery.
