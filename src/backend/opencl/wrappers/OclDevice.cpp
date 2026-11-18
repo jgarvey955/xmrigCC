@@ -166,10 +166,10 @@ xmrig::OclDevice::OclDevice(uint32_t index, cl_device_id id, cl_platform_id plat
 xmrig::String xmrig::OclDevice::printableName() const
 {
     if (m_board.isNull()) {
-        return fmt::format(GREEN_BOLD("{}"), m_name).c_str();
+        return fmt::format(GREEN_BOLD("{}"), m_name.data()).c_str();
     }
 
-    return fmt::format(GREEN_BOLD("{}") " (" CYAN_BOLD("{}") ")", m_board, m_name).c_str();
+    return fmt::format(GREEN_BOLD("{}") " (" CYAN_BOLD("{}") ")", m_board.data(), m_name.data()).c_str();
 }
 
 

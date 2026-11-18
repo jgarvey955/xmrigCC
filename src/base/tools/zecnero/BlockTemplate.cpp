@@ -175,7 +175,13 @@ std::vector<uint8_t> xmrig::ZecneroBlockTemplate::block(uint32_t nonce) const
 
 bool xmrig::ZecneroBlockTemplate::sameWork(const ZecneroBlockTemplate &other) const
 {
+    // getblocktemplate advances curtime on every poll. It does not make the
+    // transaction set or PoW target new work, and treating it as such defeats
+    // daemon-job-timeout by restarting every worker once per poll. Refresh the
+    // timestamp when the timeout expires, but immediately forward real changes
+    // to the parent, roots, commitments, compact target, or transactions.
     return powVersion == other.powVersion && height == other.height && seed == other.seed && target == other.target &&
-        std::equal(header.begin(), header.begin() + kNonceOffset, other.header.begin()) &&
+        std::equal(header.begin(), header.begin() + kTimeOffset, other.header.begin()) &&
+        std::equal(header.begin() + kBitsOffset, header.begin() + kNonceOffset, other.header.begin() + kBitsOffset) &&
         m_transactions == other.m_transactions;
 }

@@ -8,7 +8,8 @@ usage() {
         'Usage: ./build-static.sh' \
         '' \
         'Build native static Linux CPU miner, daemon, and server binaries with OpenSSL/TLS.' \
-        'Uses the installed C/C++ toolchain and all available CPU cores.' \
+        'Uses the installed C/C++ toolchain and memory-aware parallelism.' \
+        'JOBS overrides the detected parallel job count (for example, JOBS=1).' \
         'BUILD_DIR selects the output directory (default: build).'
 }
 
@@ -24,8 +25,61 @@ if [ "$(uname -s)" != Linux ]; then
     exit 1
 fi
 
-JOBS=$(nproc 2>/dev/null || getconf _NPROCESSORS_ONLN)
+detect_jobs() {
+    cpu_jobs=$(nproc 2>/dev/null || getconf _NPROCESSORS_ONLN 2>/dev/null || printf '1\n')
+    case "$cpu_jobs" in
+        ''|*[!0-9]*) cpu_jobs=1 ;;
+        0) cpu_jobs=1 ;;
+    esac
+
+    memory_jobs=$cpu_jobs
+    if [ -r /proc/meminfo ]; then
+        available_kb=$(awk '/^MemAvailable:/ { print $2; exit }' /proc/meminfo)
+        case "$available_kb" in
+            ''|*[!0-9]*) ;;
+            *)
+                # Leave 1 GiB for the OS and existing services, then budget
+                # 1.5 GiB for each compiler/linker job. This deliberately
+                # favors reliability on Raspberry Pi systems.
+                if [ "$available_kb" -le 1048576 ]; then
+                    memory_jobs=1
+                else
+                    memory_jobs=$(( (available_kb - 1048576) / 1572864 ))
+                    [ "$memory_jobs" -ge 1 ] || memory_jobs=1
+                fi
+                ;;
+        esac
+    fi
+
+    if [ "$memory_jobs" -lt "$cpu_jobs" ]; then
+        printf '%s\n' "$memory_jobs"
+    else
+        printf '%s\n' "$cpu_jobs"
+    fi
+}
+
+if [ -n "${JOBS:-}" ]; then
+    case "$JOBS" in
+        ''|*[!0-9]*|0) printf 'JOBS must be a positive integer.\n' >&2; exit 1 ;;
+    esac
+else
+    JOBS=$(detect_jobs)
+fi
 export JOBS
+
+printf 'Using %s parallel build job(s). Override with JOBS=<count>.\n' "$JOBS"
+if [ -r /proc/meminfo ]; then
+    AVAILABLE_MEMORY_KB=$(awk '/^MemAvailable:/ { print $2; exit }' /proc/meminfo)
+    case "$AVAILABLE_MEMORY_KB" in
+        ''|*[!0-9]*) ;;
+        *)
+            if [ "$AVAILABLE_MEMORY_KB" -lt 2097152 ]; then
+                printf '%s\n' \
+                    'Warning: less than 2 GiB is available. Stop active miners or enable swap if the build is killed.' >&2
+            fi
+            ;;
+    esac
+fi
 
 BUILD_DIR="${BUILD_DIR:-$SCRIPT_DIR/build}"
 case "$BUILD_DIR" in

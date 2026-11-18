@@ -70,7 +70,7 @@ void hashAndFillAes1Rx4_VAES512(void *scratchpad, size_t scratchpadSize, void *h
 	const __m512i fill_key = _mm512_load_si512(AES_GEN_1R_KEY);
 
 	const __m512i initial_hash_state = _mm512_load_si512(AES_HASH_1R_STATE);
-	const __m512i initial_fill_state = _mm512_load_si512(fill_state);
+	const __m512i initial_fill_state = _mm512_loadu_si512(fill_state);
 
 	constexpr uint8_t mask = 0b11001100;
 
@@ -100,7 +100,7 @@ void hashAndFillAes1Rx4_VAES512(void *scratchpad, size_t scratchpadSize, void *h
 
 	for (int i = 0; i < 2; ++i) {
 		while (scratchpadPtr < scratchpadEnd) {
-			const __m512i scratchpad_data = _mm512_load_si512(scratchpadPtr);
+			const __m512i scratchpad_data = _mm512_loadu_si512(scratchpadPtr);
 
 			// enc_key[0] = scratchpad_data[0]
 			// enc_key[1] = fill_key[1]
@@ -118,7 +118,7 @@ void hashAndFillAes1Rx4_VAES512(void *scratchpad, size_t scratchpadSize, void *h
 			// fill_state[1] = enc_data[1]
 			// fill_state[2] = dec_data[2]
 			// fill_state[3] = enc_data[3]
-			_mm512_store_si512(scratchpadPtr, _mm512_mask_blend_epi64(mask, dec_data, enc_data));
+			_mm512_storeu_si512(scratchpadPtr, _mm512_mask_blend_epi64(mask, dec_data, enc_data));
 
 			_mm_prefetch((const char*)prefetchPtr, _MM_HINT_T0);
 
@@ -129,7 +129,7 @@ void hashAndFillAes1Rx4_VAES512(void *scratchpad, size_t scratchpadSize, void *h
 		scratchpadEnd += PREFETCH_DISTANCE;
 	}
 
-	_mm512_store_si512(fill_state, _mm512_mask_blend_epi64(mask, dec_data, enc_data));
+	_mm512_storeu_si512(fill_state, _mm512_mask_blend_epi64(mask, dec_data, enc_data));
 
 	//two extra rounds to achieve full diffusion
 	const __m512i xkey0 = _mm512_load_si512(AES_HASH_1R_XKEY0);
@@ -141,7 +141,7 @@ void hashAndFillAes1Rx4_VAES512(void *scratchpad, size_t scratchpadSize, void *h
 	dec_data = _mm512_aesdec_epi128(dec_data, xkey1);
 
 	//output hash
-	_mm512_store_si512(hash, _mm512_mask_blend_epi64(mask, enc_data, dec_data));
+	_mm512_storeu_si512(hash, _mm512_mask_blend_epi64(mask, enc_data, dec_data));
 
 	// Just in case
 	_mm256_zeroupper();

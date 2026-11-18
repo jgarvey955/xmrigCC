@@ -101,7 +101,8 @@ static size_t sysfs_prefix(char path[PATH_MAX], const PciTopology &topology)
         return it->second.size();
     }
 
-    char *base = fmt::format_to(path, "{}0000:{}/hwmon/", kPrefix, topology.toString());
+    const auto topologyString = topology.toString();
+    char *base = fmt::format_to(path, "{}0000:{}/hwmon/", kPrefix, topologyString.data());
     *base      = '\0';
     char *end  = nullptr;
 

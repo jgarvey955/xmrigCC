@@ -202,7 +202,7 @@ Network:
   -r, --retries=N               number of times to retry before switch to backup server (default: 5)
   -R, --retry-pause=N           time to pause between retries (default: 5)
       --user-agent              set custom user-agent string for pool
-      --donate-level=N          donation fixed at 5% in this build
+      --donate-level=N          fixed by the build (5% in xmrigCC; 0% in xmrigCC4me)
 
 CPU backend:
       --no-cpu                  disable CPU mining backend
@@ -334,9 +334,10 @@ Run the local notification checks with
 
 
 ## Donations
-This build fixes donation at 5% to `us2.monero.herominers.com:1111`, with
-`us.monero.herominers.com:1111` as failover. Config and command-line values do
-not override it.
+xmrigCC fixes donation at 5% to `us2.monero.herominers.com:1111`, with
+`us.monero.herominers.com:1111` as failover. xmrigCC4me uses the same source
+with donation fixed at 0%. Config and command-line values do not override
+either build's donation level.
 
 ## Zecnero direct solo mining
 

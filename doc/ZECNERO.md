@@ -81,7 +81,8 @@ cd build
 ```
 
 The Testnet example uses an explicit 24-thread CPU profile, two dataset initialization
-threads, 5% donation, and disabled GPU/CC/API connections. Adjust the CPU profile
+threads, the build's fixed donation level (5% in xmrigCC, 0% in xmrigCC4me),
+and disabled GPU/CC/API connections. Adjust the CPU profile
 for your machine. `randomx.init` controls dataset construction, not mining threads.
 For explicit thread limits, configure both `cpu.rx/zecnero` and `cpu.rx/zecnero2`.
 

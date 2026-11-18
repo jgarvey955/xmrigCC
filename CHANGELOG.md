@@ -13,6 +13,9 @@
   synchronization-library fix. MSVC now uses external hwloc dependencies.
 * Fixed macOS native certificate-store linking and Apple header compatibility.
 * Removed Tuske and Virel algorithm support, following upstream.
+* Matched both miner forks, keeping only the fixed donation level different
+  (5% in xmrigCC, 0% in xmrigCC4me). Both now share timestamp-only template
+  refresh handling and memory-aware static build parallelism.
 * Preserved Zecnero v1/v2, Salvium, CC monitoring, cookie authentication,
   stable AES dispatch, and the forks' existing donation configurations.
 * Added release builds that verify RandomX vectors on native ARM64 runners
@@ -72,6 +75,14 @@
 * Routed the fixed donation wallet through HeroMiners US2 on port 1111, with
   the US hostname as automatic failover.
 
+# 3.6.7
+* Fixed Zecnero daemon polling treating the rolling block-header timestamp as
+  new work and restarting miners on every poll instead of honoring
+  `daemon-job-timeout`.
+* Added regression coverage proving timestamp-only template refreshes are
+  coalesced while target and Merkle-root changes remain immediate.
+
+
 # 3.6.6
 * Removed the experimental RandomX VAES-256/512 runtime selector that replaced
   the established hardware-AES path on Zen 4 and caused host instability under
@@ -96,10 +107,22 @@
 * Added regression checks for terminal startup, Ctrl+C, headless process-group
   shutdown, and stopped-miner shutdown.
 
-# 3.6.1
+# 3.6.3
 * Restored the configured CC status reporting cadence by signaling request
   completion directly to the event loop instead of consuming the next timer
   tick to reap the worker thread.
+
+# 3.6.2
+* Fixed fmt 12 compatibility for `xmrig::String` values in ARM, RISC-V,
+  OpenCL, PCI topology, and shared-data-directory build paths.
+
+
+# 3.6.1
+* Made static-build parallelism memory-aware so Raspberry Pi and other
+  low-memory systems do not blindly compile on every CPU core.
+* Added a validated `JOBS` override and a low-memory warning for builds running
+  alongside memory-heavy services.
+
 
 # 3.6.0
 * Updated llhttp to 9.4.3, fmt to 12.2.0, cpp-httplib to 0.61.0,
@@ -116,6 +139,23 @@
 * Updated the optional LibreSSL builder to 4.3.3 and retired its OpenSSL 1.1.1
   compatibility builder in favor of OpenSSL 4.
 * Zecnero direct RPC reads the node-owned local cookie file only. Removed cookie download options; automatic rereading after node cookie rotation is retained.
+
+# 3.5.1
+* Fixed daemon/RPC submission tracking so disconnects and invalid or mismatched
+  responses cannot be reported as ordinary rejected shares.
+* Hardened Stratum, self-select, and Zecnero response validation and recovery.
+* Moved CC status publishing off the mining/event thread and added bounded
+  network timeouts and clean worker shutdown.
+* Serialized remote command execution and bounded captured command output.
+* Aligned the disabled-donation fallback target with Monero.
+
+
+# 3.5.0
+* Synced with the latest XMRigCC development tree and XMRig 6.26.0.
+* Added current RandomX v2 CPU backends and upstream ARM64/RISC-V fixes.
+* Retained existing Zecnero support, full 256-bit targets, direct RPC mining,
+  reference-vector coverage, and automatic local RPC cookie rereading.
+
 
 # 3.4.9
 * Added satoshicash RandomX variant (rx/scash) +25% faster compared to cpuminer-scash

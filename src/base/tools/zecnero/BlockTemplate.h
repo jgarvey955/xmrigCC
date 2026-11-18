@@ -16,6 +16,8 @@ class ZecneroBlockTemplate
 {
 public:
     static constexpr size_t kHeaderSize = 140;
+    static constexpr size_t kTimeOffset = 100;
+    static constexpr size_t kBitsOffset = 104;
     static constexpr size_t kNonceOffset = 108;
     static constexpr size_t kMaxBlockSize = 2000000;
 

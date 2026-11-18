@@ -4,6 +4,9 @@
 #include "base/tools/zecnero/BlockTemplate.h"
 #include "base/net/stratum/Job.h"
 #include "base/net/stratum/Pool.h"
+#include "base/net/stratum/Pools.h"
+#include "base/io/json/Json.h"
+#include "donate.h"
 #include "base/net/tools/Socks5Handshake.h"
 #include "base/kernel/config/BaseTransform.h"
 #include "base/kernel/interfaces/IConfig.h"
@@ -66,6 +69,16 @@ static rapidjson::Document sample()
 
 static void protocol()
 {
+    Pools pools;
+    for (const int requested : {-1, 0, 5, 100}) {
+        rapidjson::Document config(rapidjson::kObjectType);
+        config.AddMember("pools", rapidjson::Value(rapidjson::kArrayType), config.GetAllocator());
+        config.AddMember("donate-level", requested, config.GetAllocator());
+        pools.load(JsonReader(config));
+        check(pools.donateLevel() == kDefaultDonateLevel,
+              "configuration cannot change the build's fixed donation level");
+    }
+    check(kMinimumDonateLevel == kDefaultDonateLevel, "fixed donation minimum agrees with the build");
     Socks5Handshake socks("daemon.invalid", 18081);
     std::string connectRequest;
     const char methodReply[] = {5, 0};
@@ -140,6 +153,15 @@ static void protocol()
     check(b.header[68] == 95 && b.header[99] == 64, "commitment byte order");
     check(b.header[100] == 4 && b.header[103] == 1 && b.header[107] == 0x20, "time and bits endian");
     check(b.seed[0] == 0 && b.seed[31] == 31, "seed must not be reversed");
+    ZecneroBlockTemplate later = b;
+    later.header[ZecneroBlockTemplate::kTimeOffset]++;
+    check(b.sameWork(later), "timestamp-only template refresh must not restart miners");
+    later.header[ZecneroBlockTemplate::kTimeOffset]--;
+    later.header[ZecneroBlockTemplate::kBitsOffset]++;
+    check(!b.sameWork(later), "compact target change must update work");
+    later = b;
+    later.header[36]++;
+    check(!b.sameWork(later), "merkle root change must update work");
     std::array<uint8_t,28> extra; extra.fill(0xab); b.setExtraNonce(extra.data());
     auto block = b.block(0x12345678);
     check(block.size() == 149 && block[108] == 0x78 && block[111] == 0x12 && block[112] == 0xab && block[139] == 0xab, "nonce serialization");
